@@ -108,15 +108,19 @@
             display: flex;
             position: relative;
             overflow: hidden;
+            background-color: transparent;
         }
 
         #layerPanel {
             width: 280px;
+            min-width: 280px;
             background-color: white;
             border-right: 1px solid #ccc;
             display: flex;
             flex-direction: column;
-            transition: margin-left 0.3s;
+            transition: margin-left 0.3s ease;
+            position: relative;
+            z-index: 500;
         }
 
         #layerPanel.collapsed {
@@ -180,7 +184,7 @@
             color: white;
             border: none;
             border-radius: 4px;
-            padding: 0.5rem;
+            padding: 0;
             cursor: pointer;
             box-shadow: 0 1px 5px rgba(0,0,0,0.3);
             transition: all 0.3s;
@@ -189,10 +193,17 @@
             justify-content: center;
             width: 40px;
             height: 40px;
+            font-size: 20px;
         }
 
         .toggle-panel-btn:hover {
             background-color: #1d4ed8;
+        }
+
+        .toggle-panel-btn svg,
+        .toggle-panel-btn .iconify {
+            width: 24px;
+            height: 24px;
         }
 
         #layerPanel.collapsed + .toggle-panel-btn {
@@ -244,6 +255,17 @@
         .leaflet-control-layers {
             max-height: 400px;
             overflow-y: auto;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            border-radius: 4px;
+        }
+
+        .leaflet-control-layers-expanded {
+            padding: 0.5rem;
+        }
+
+        /* Ajuster les contrôles de zoom */
+        .leaflet-control-zoom {
+            margin-top: 60px !important;
         }
 
         /* Style pour les popups */
@@ -389,7 +411,9 @@
 
         <!-- Bouton pour afficher/masquer le panneau -->
         <button class="toggle-panel-btn" id="togglePanelBtn" onclick="toggleLayerPanel()" title="Masquer le panneau">
-            <span class="iconify" data-icon="mdi:sidebar-left-collapse"></span>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3,3H11V21H3V3M13,3H21V21H13V21L13,3M5,5V19H9V5H5M15,5V19H19V5H15M10,11L14,15V13H18V9H14V7L10,11Z" />
+            </svg>
         </button>
 
         <!-- Carte -->
@@ -447,7 +471,7 @@
         // Contrôle de couches avec les fonds de carte
         const layerControl = L.control.layers(baseMaps, null, {
             collapsed: false,
-            position: 'topright'
+            position: 'bottomright'
         }).addTo(map);
 
         // Palette de couleurs accessibles (compatible daltonisme)
@@ -801,10 +825,12 @@
             panel.classList.toggle('collapsed');
 
             if (panel.classList.contains('collapsed')) {
-                btn.innerHTML = '<span class="iconify" data-icon="mdi:sidebar-left-expand"></span>';
+                // Icône pour afficher (flèche vers la droite)
+                btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M3,3H11V21H3V3M13,3H21V21H13V21L13,3M5,5V19H9V5H5M15,5V19H19V5H15M10,11L6,15V13H2V9H6V7L10,11Z" /></svg>';
                 btn.title = 'Afficher le panneau';
             } else {
-                btn.innerHTML = '<span class="iconify" data-icon="mdi:sidebar-left-collapse"></span>';
+                // Icône pour masquer (flèche vers la gauche)
+                btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M3,3H11V21H3V3M13,3H21V21H13V21L13,3M5,5V19H9V5H5M15,5V19H19V5H15M10,11L14,15V13H18V9H14V7L10,11Z" /></svg>';
                 btn.title = 'Masquer le panneau';
             }
         }
