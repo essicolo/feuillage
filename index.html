@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualiseur GeoJSON - Québec</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin=""/>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-color: #f5f5f5;
+        }
+
+        header {
+            background-color: #095797;
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .controls {
+            background-color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            flex: 1;
+            min-width: 300px;
+        }
+
+        input[type="text"],
+        input[type="file"] {
+            padding: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        button {
+            padding: 0.5rem 1rem;
+            background-color: #095797;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #073d6b;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        button.secondary {
+            background-color: #666;
+        }
+
+        button.secondary:hover {
+            background-color: #444;
+        }
+
+        button.danger {
+            background-color: #c53030;
+        }
+
+        button.danger:hover {
+            background-color: #9b2c2c;
+        }
+
+        .map-container {
+            flex: 1;
+            display: flex;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #layerPanel {
+            width: 280px;
+            background-color: white;
+            border-right: 1px solid #ccc;
+            display: flex;
+            flex-direction: column;
+            transition: margin-left 0.3s;
+        }
+
+        #layerPanel.collapsed {
+            margin-left: -280px;
+        }
+
+        .layer-panel-header {
+            padding: 1rem;
+            background-color: #f7fafc;
+            border-bottom: 1px solid #e2e8f0;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .layer-panel-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.5rem;
+        }
+
+        .layer-item {
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background-color: #f7fafc;
+            border-radius: 4px;
+            border-left: 4px solid;
+        }
+
+        .layer-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .layer-item-name {
+            font-weight: 500;
+            flex: 1;
+            margin-right: 0.5rem;
+            word-break: break-word;
+        }
+
+        .layer-item-actions {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .layer-item-actions button {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        .toggle-panel-btn {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background-color: white;
+            border: 2px solid rgba(0,0,0,0.2);
+            border-radius: 4px;
+            padding: 0.5rem;
+            cursor: pointer;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.2);
+        }
+
+        .toggle-panel-btn:hover {
+            background-color: #f7fafc;
+        }
+
+        #map {
+            flex: 1;
+            width: 100%;
+        }
+
+        .empty-state {
+            padding: 2rem;
+            text-align: center;
+            color: #718096;
+            font-size: 0.9rem;
+        }
+
+        .message {
+            padding: 0.75rem 1rem;
+            margin: 0.5rem 2rem;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .message.error {
+            background-color: #fed7d7;
+            color: #c53030;
+            border-left: 4px solid #c53030;
+        }
+
+        .message.success {
+            background-color: #c6f6d5;
+            color: #276749;
+            border-left: 4px solid #276749;
+        }
+
+        .message.warning {
+            background-color: #feebc8;
+            color: #c05621;
+            border-left: 4px solid #c05621;
+        }
+
+        .message.show {
+            display: block;
+        }
+
+        /* Style pour le contrôle de couches Leaflet */
+        .leaflet-control-layers {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        /* Style pour les popups */
+        .popup-content {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .popup-content table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .popup-content th,
+        .popup-content td {
+            padding: 0.25rem 0.5rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .popup-content th {
+            font-weight: 600;
+            background-color: #f7fafc;
+        }
+
+        /* Modal pour renommer */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            min-width: 400px;
+        }
+
+        .modal-content h2 {
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
+        }
+
+        .modal-content input {
+            width: 100%;
+            padding: 0.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-end;
+        }
+
+        .layer-edit-btn {
+            font-size: 0.8rem;
+            padding: 0.25rem 0.5rem;
+            margin-left: 0.5rem;
+            background-color: #666;
+        }
+
+        .layer-edit-btn:hover {
+            background-color: #444;
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+            }
+
+            .input-group {
+                width: 100%;
+                min-width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🗺️ Visualiseur GeoJSON - Québec</h1>
+    </header>
+
+    <div class="controls">
+        <div class="input-group">
+            <input type="text" id="urlInput" placeholder="URL du fichier GeoJSON...">
+            <button onclick="loadFromURL()">Ajouter URL</button>
+        </div>
+
+        <div class="input-group">
+            <label for="fileInput">
+                <button onclick="document.getElementById('fileInput').click()">📁 Choisir un fichier</button>
+            </label>
+            <input type="file" id="fileInput" accept=".geojson,.json" onchange="loadFromFile(this)">
+        </div>
+
+        <button class="secondary" onclick="loadExample()">✨ Exemple</button>
+        <button class="danger" onclick="clearAll()">🗑️ Effacer tout</button>
+    </div>
+
+    <div id="message" class="message"></div>
+
+    <div class="map-container">
+        <!-- Panneau de gestion des couches -->
+        <div id="layerPanel">
+            <div class="layer-panel-header">
+                <span>📋 Couches chargées</span>
+                <span id="layerCount">0</span>
+            </div>
+            <div class="layer-panel-content" id="layerList">
+                <div class="empty-state">
+                    Aucune couche chargée.<br>
+                    Utilisez les boutons ci-dessus pour ajouter des données.
+                </div>
+            </div>
+        </div>
+
+        <!-- Bouton pour afficher/masquer le panneau -->
+        <button class="toggle-panel-btn" id="togglePanelBtn" onclick="toggleLayerPanel()" title="Afficher/Masquer le panneau">
+            ◀
+        </button>
+
+        <!-- Carte -->
+        <div id="map"></div>
+    </div>
+
+    <!-- Modal pour renommer une couche -->
+    <div id="renameModal" class="modal">
+        <div class="modal-content">
+            <h2>Renommer la couche</h2>
+            <input type="text" id="renameInput" placeholder="Nouveau nom...">
+            <div class="modal-buttons">
+                <button class="secondary" onclick="closeRenameModal()">Annuler</button>
+                <button onclick="confirmRename()">Valider</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+
+    <script>
+        // Configuration de la carte
+        const map = L.map('map').setView([46.8, -71.2], 6);
+
+        // Fond de carte OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+
+        // Contrôle de couches
+        const layerControl = L.control.layers(null, null, {
+            collapsed: false,
+            position: 'topright'
+        }).addTo(map);
+
+        // Palette de couleurs accessibles (compatible daltonisme)
+        // Basée sur les recommandations de Paul Tol pour l'accessibilité
+        const colorPalette = [
+            '#0072B2', // Bleu
+            '#D55E00', // Orange
+            '#009E73', // Vert sarcelle
+            '#CC79A7', // Rose
+            '#F0E442', // Jaune
+            '#56B4E9', // Bleu ciel
+            '#E69F00', // Orange doré
+            '#882255', // Magenta foncé
+            '#44AA99', // Vert cyan
+            '#DDCC77'  // Beige
+        ];
+
+        // Stockage des couches chargées
+        let loadedLayers = [];
+        let colorIndex = 0;
+        let currentRenameLayer = null;
+        let currentRenameIndex = null;
+
+        // Limite de taille de fichier (5 MB)
+        const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
+        /**
+         * Affiche un message à l'utilisateur
+         */
+        function showMessage(text, type = 'info') {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = text;
+            messageEl.className = `message ${type} show`;
+
+            setTimeout(() => {
+                messageEl.classList.remove('show');
+            }, 5000);
+        }
+
+        /**
+         * Obtient la prochaine couleur de la palette
+         */
+        function getNextColor() {
+            const color = colorPalette[colorIndex % colorPalette.length];
+            colorIndex++;
+            return color;
+        }
+
+        /**
+         * Crée une popup pour une feature avec toutes ses propriétés
+         */
+        function createPopup(feature) {
+            if (!feature.properties) {
+                return '<p><em>Aucune propriété disponible</em></p>';
+            }
+
+            const properties = feature.properties;
+            const rows = Object.entries(properties)
+                .map(([key, value]) => {
+                    // Gestion des valeurs null/undefined
+                    const displayValue = value !== null && value !== undefined ? value : '<em>N/A</em>';
+                    return `<tr><th>${key}</th><td>${displayValue}</td></tr>`;
+                })
+                .join('');
+
+            return `
+                <div class="popup-content">
+                    <table>
+                        ${rows}
+                    </table>
+                </div>
+            `;
+        }
+
+        /**
+         * Applique le style à une feature selon son type de géométrie
+         */
+        function styleFeature(feature, color) {
+            const geometryType = feature.geometry.type;
+
+            if (geometryType === 'Point' || geometryType === 'MultiPoint') {
+                // Style pour les points
+                return {
+                    radius: 6,
+                    fillColor: color,
+                    color: '#000',
+                    weight: 1,
+                    opacity: 1,
+                    fillOpacity: 0.7
+                };
+            } else {
+                // Style pour les lignes et polygones
+                return {
+                    color: color,
+                    weight: 2,
+                    opacity: 0.8,
+                    fillColor: color,
+                    fillOpacity: 0.3
+                };
+            }
+        }
+
+        /**
+         * Ajoute une couche GeoJSON à la carte
+         */
+        function addGeoJSONLayer(geojson, name, color) {
+            const layer = L.geoJSON(geojson, {
+                style: (feature) => styleFeature(feature, color),
+                pointToLayer: (feature, latlng) => {
+                    return L.circleMarker(latlng, styleFeature(feature, color));
+                },
+                onEachFeature: (feature, layer) => {
+                    const popupContent = createPopup(feature);
+                    layer.bindPopup(popupContent);
+                }
+            }).addTo(map);
+
+            // Ajouter au contrôle de couches
+            layerControl.addOverlay(layer, name);
+
+            // Stocker la couche avec un ID unique
+            const layerInfo = {
+                id: Date.now() + Math.random(),
+                layer: layer,
+                name: name,
+                color: color,
+                geojson: geojson
+            };
+            loadedLayers.push(layerInfo);
+
+            // Mettre à jour le panneau des couches
+            updateLayerPanel();
+
+            // Zoom sur l'étendue des données
+            try {
+                const bounds = layer.getBounds();
+                if (bounds.isValid()) {
+                    map.fitBounds(bounds, { padding: [50, 50] });
+                }
+            } catch (e) {
+                console.warn('Impossible de calculer les limites:', e);
+            }
+
+            return layerInfo;
+        }
+
+        /**
+         * Demande le nom de la couche à l'utilisateur
+         */
+        function promptLayerName(defaultName) {
+            return new Promise((resolve) => {
+                const name = prompt('Nom de la couche:', defaultName);
+                resolve(name || defaultName);
+            });
+        }
+
+        /**
+         * Charge un GeoJSON depuis une URL
+         */
+        async function loadFromURL() {
+            const url = document.getElementById('urlInput').value.trim();
+
+            if (!url) {
+                showMessage('Veuillez entrer une URL', 'error');
+                return;
+            }
+
+            try {
+                showMessage('Chargement en cours...', 'info');
+
+                const response = await fetch(url);
+
+                if (!response.ok) {
+                    throw new Error(`Erreur HTTP: ${response.status}`);
+                }
+
+                // Vérifier la taille
+                const contentLength = response.headers.get('content-length');
+                if (contentLength && parseInt(contentLength) > MAX_FILE_SIZE) {
+                    const proceed = confirm(
+                        `Ce fichier est volumineux (${(parseInt(contentLength) / 1024 / 1024).toFixed(2)} MB).\n` +
+                        `Le chargement pourrait ralentir votre navigateur.\n\n` +
+                        `Voulez-vous continuer ?`
+                    );
+                    if (!proceed) {
+                        showMessage('Chargement annulé', 'warning');
+                        return;
+                    }
+                }
+
+                const geojson = await response.json();
+
+                // Valider le GeoJSON
+                if (!geojson.type || (geojson.type !== 'FeatureCollection' && geojson.type !== 'Feature')) {
+                    throw new Error('Format GeoJSON invalide');
+                }
+
+                // Extraire le nom du fichier depuis l'URL
+                const urlParts = url.split('/');
+                const filename = urlParts[urlParts.length - 1].replace(/\.geojson|\.json/i, '');
+                const defaultName = filename || `Couche ${loadedLayers.length + 1}`;
+
+                // Demander le nom
+                const layerName = await promptLayerName(defaultName);
+
+                // Ajouter la couche
+                const color = getNextColor();
+                addGeoJSONLayer(geojson, layerName, color);
+
+                showMessage(`✓ "${layerName}" chargé avec succès`, 'success');
+                document.getElementById('urlInput').value = '';
+
+            } catch (error) {
+                console.error('Erreur lors du chargement:', error);
+                showMessage(`Erreur: ${error.message}`, 'error');
+            }
+        }
+
+        /**
+         * Charge un GeoJSON depuis un fichier local
+         */
+        async function loadFromFile(input) {
+            const file = input.files[0];
+
+            if (!file) return;
+
+            // Vérifier l'extension
+            if (!file.name.match(/\.(geojson|json)$/i)) {
+                showMessage('Veuillez sélectionner un fichier .geojson ou .json', 'error');
+                return;
+            }
+
+            // Vérifier la taille
+            if (file.size > MAX_FILE_SIZE) {
+                const proceed = confirm(
+                    `Ce fichier est volumineux (${(file.size / 1024 / 1024).toFixed(2)} MB).\n` +
+                    `Le chargement pourrait ralentir votre navigateur.\n\n` +
+                    `Voulez-vous continuer ?`
+                );
+                if (!proceed) {
+                    showMessage('Chargement annulé', 'warning');
+                    input.value = '';
+                    return;
+                }
+            }
+
+            try {
+                showMessage('Chargement en cours...', 'info');
+
+                const text = await file.text();
+                const geojson = JSON.parse(text);
+
+                // Valider le GeoJSON
+                if (!geojson.type || (geojson.type !== 'FeatureCollection' && geojson.type !== 'Feature')) {
+                    throw new Error('Format GeoJSON invalide');
+                }
+
+                // Nom par défaut basé sur le nom du fichier
+                const defaultName = file.name.replace(/\.(geojson|json)$/i, '');
+
+                // Demander le nom
+                const layerName = await promptLayerName(defaultName);
+
+                // Ajouter la couche
+                const color = getNextColor();
+                addGeoJSONLayer(geojson, layerName, color);
+
+                showMessage(`✓ "${layerName}" chargé avec succès`, 'success');
+                input.value = '';
+
+            } catch (error) {
+                console.error('Erreur lors du chargement:', error);
+                showMessage(`Erreur: ${error.message}`, 'error');
+                input.value = '';
+            }
+        }
+
+        /**
+         * Charge un exemple de GeoJSON (bassins versants de Québec)
+         */
+        async function loadExample() {
+            const exampleURL = 'https://www.donneesquebec.ca/recherche/dataset/b4893e20-3a65-44fe-a428-68c79e303fb4/resource/fcdd3e3b-b6dc-45ae-9e88-542b842b1774/download/vdq-hydrobassinversant.geojson';
+
+            try {
+                showMessage('Chargement de l\'exemple...', 'info');
+
+                const response = await fetch(exampleURL);
+
+                if (!response.ok) {
+                    throw new Error(`Erreur HTTP: ${response.status}`);
+                }
+
+                const geojson = await response.json();
+
+                // Ajouter directement avec un nom prédéfini
+                const color = getNextColor();
+                addGeoJSONLayer(geojson, 'Bassins versants - Ville de Québec', color);
+
+                showMessage('✓ Exemple chargé avec succès', 'success');
+
+            } catch (error) {
+                console.error('Erreur lors du chargement de l\'exemple:', error);
+                showMessage(`Impossible de charger l'exemple: ${error.message}`, 'error');
+            }
+        }
+
+        /**
+         * Met à jour le panneau des couches
+         */
+        function updateLayerPanel() {
+            const layerList = document.getElementById('layerList');
+            const layerCount = document.getElementById('layerCount');
+
+            layerCount.textContent = loadedLayers.length;
+
+            if (loadedLayers.length === 0) {
+                layerList.innerHTML = `
+                    <div class="empty-state">
+                        Aucune couche chargée.<br>
+                        Utilisez les boutons ci-dessus pour ajouter des données.
+                    </div>
+                `;
+                return;
+            }
+
+            layerList.innerHTML = loadedLayers.map((layerInfo, index) => `
+                <div class="layer-item" style="border-left-color: ${layerInfo.color}">
+                    <div class="layer-item-header">
+                        <div class="layer-item-name">${layerInfo.name}</div>
+                    </div>
+                    <div class="layer-item-actions">
+                        <button class="secondary" onclick="renameLayer(${index})" title="Renommer">
+                            ✏️ Renommer
+                        </button>
+                        <button class="danger" onclick="removeLayer(${index})" title="Supprimer">
+                            🗑️
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        /**
+         * Affiche/Masque le panneau des couches
+         */
+        function toggleLayerPanel() {
+            const panel = document.getElementById('layerPanel');
+            const btn = document.getElementById('togglePanelBtn');
+
+            panel.classList.toggle('collapsed');
+
+            if (panel.classList.contains('collapsed')) {
+                btn.textContent = '▶';
+                btn.title = 'Afficher le panneau';
+            } else {
+                btn.textContent = '◀';
+                btn.title = 'Masquer le panneau';
+            }
+        }
+
+        /**
+         * Renomme une couche
+         */
+        function renameLayer(index) {
+            const layerInfo = loadedLayers[index];
+            currentRenameLayer = layerInfo;
+            currentRenameIndex = index;
+            document.getElementById('renameInput').value = layerInfo.name;
+            document.getElementById('renameModal').classList.add('show');
+            document.getElementById('renameInput').focus();
+        }
+
+        /**
+         * Supprime une couche individuelle
+         */
+        function removeLayer(index) {
+            const layerInfo = loadedLayers[index];
+
+            const proceed = confirm(`Voulez-vous vraiment supprimer la couche "${layerInfo.name}" ?`);
+
+            if (proceed) {
+                // Retirer de la carte et du contrôle
+                map.removeLayer(layerInfo.layer);
+                layerControl.removeLayer(layerInfo.layer);
+
+                // Retirer du tableau
+                loadedLayers.splice(index, 1);
+
+                // Mettre à jour le panneau
+                updateLayerPanel();
+
+                showMessage(`✓ Couche "${layerInfo.name}" supprimée`, 'success');
+            }
+        }
+
+        /**
+         * Efface toutes les couches
+         */
+        function clearAll() {
+            if (loadedLayers.length === 0) {
+                showMessage('Aucune couche à effacer', 'warning');
+                return;
+            }
+
+            const proceed = confirm(`Voulez-vous vraiment effacer toutes les ${loadedLayers.length} couche(s) ?`);
+
+            if (proceed) {
+                loadedLayers.forEach(layerInfo => {
+                    map.removeLayer(layerInfo.layer);
+                    layerControl.removeLayer(layerInfo.layer);
+                });
+
+                loadedLayers = [];
+                colorIndex = 0;
+
+                // Mettre à jour le panneau
+                updateLayerPanel();
+
+                // Réinitialiser la vue
+                map.setView([46.8, -71.2], 6);
+
+                showMessage('Toutes les couches ont été effacées', 'success');
+            }
+        }
+
+        /**
+         * Ouvre le modal de renommage
+         */
+        function openRenameModal(layerInfo) {
+            currentRenameLayer = layerInfo;
+            document.getElementById('renameInput').value = layerInfo.name;
+            document.getElementById('renameModal').classList.add('show');
+            document.getElementById('renameInput').focus();
+        }
+
+        /**
+         * Ferme le modal de renommage
+         */
+        function closeRenameModal() {
+            document.getElementById('renameModal').classList.remove('show');
+            currentRenameLayer = null;
+            currentRenameIndex = null;
+        }
+
+        /**
+         * Confirme le renommage d'une couche
+         */
+        function confirmRename() {
+            const newName = document.getElementById('renameInput').value.trim();
+
+            if (!newName) {
+                showMessage('Le nom ne peut pas être vide', 'error');
+                return;
+            }
+
+            if (currentRenameLayer && currentRenameIndex !== null) {
+                const oldName = currentRenameLayer.name;
+
+                // Mettre à jour le nom dans l'objet
+                currentRenameLayer.name = newName;
+                loadedLayers[currentRenameIndex].name = newName;
+
+                // Mettre à jour le contrôle de couches Leaflet
+                layerControl.removeLayer(currentRenameLayer.layer);
+                layerControl.addOverlay(currentRenameLayer.layer, newName);
+
+                // Mettre à jour le panneau
+                updateLayerPanel();
+
+                showMessage(`✓ Couche renommée: "${oldName}" → "${newName}"`, 'success');
+            }
+
+            closeRenameModal();
+        }
+
+        // Gérer la touche Entrée dans l'input URL
+        document.getElementById('urlInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                loadFromURL();
+            }
+        });
+
+        // Gérer la touche Entrée dans l'input de renommage
+        document.getElementById('renameInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                confirmRename();
+            }
+        });
+
+        // Fermer le modal en cliquant en dehors
+        document.getElementById('renameModal').addEventListener('click', (e) => {
+            if (e.target.id === 'renameModal') {
+                closeRenameModal();
+            }
+        });
+
+        // Ajouter un style personnalisé au contrôle de couches pour permettre le renommage
+        // Note: Cette fonctionnalité nécessite une modification du DOM après ajout de couche
+        // Pour simplifier, on utilise uniquement le système de prompt initial
+        // Une version plus avancée pourrait utiliser des événements personnalisés
+
+        console.log('🗺️ Visualiseur GeoJSON initialisé');
+        console.log('Palette de couleurs accessibles:', colorPalette);
+    </script>
+</body>
+</html>
