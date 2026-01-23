@@ -176,16 +176,27 @@
             top: 10px;
             left: 10px;
             z-index: 1000;
-            background-color: white;
-            border: 2px solid rgba(0,0,0,0.2);
+            background-color: #2563eb;
+            color: white;
+            border: none;
             border-radius: 4px;
             padding: 0.5rem;
             cursor: pointer;
-            box-shadow: 0 1px 5px rgba(0,0,0,0.2);
+            box-shadow: 0 1px 5px rgba(0,0,0,0.3);
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
         }
 
         .toggle-panel-btn:hover {
-            background-color: #f7fafc;
+            background-color: #1d4ed8;
+        }
+
+        #layerPanel.collapsed + .toggle-panel-btn {
+            left: 10px;
         }
 
         #map {
@@ -364,7 +375,7 @@
             <div class="layer-panel-header">
                 <span>
                     <span class="iconify" data-icon="mdi:layers" style="vertical-align: middle;"></span>
-                    Couches chargées
+                    Couches
                 </span>
                 <span id="layerCount">0</span>
             </div>
@@ -377,8 +388,8 @@
         </div>
 
         <!-- Bouton pour afficher/masquer le panneau -->
-        <button class="toggle-panel-btn" id="togglePanelBtn" onclick="toggleLayerPanel()" title="Afficher/Masquer le panneau">
-            ◀
+        <button class="toggle-panel-btn" id="togglePanelBtn" onclick="toggleLayerPanel()" title="Masquer le panneau">
+            <span class="iconify" data-icon="mdi:sidebar-left-collapse"></span>
         </button>
 
         <!-- Carte -->
@@ -407,13 +418,34 @@
         const map = L.map('map').setView([46.8, -71.2], 6);
 
         // Fond de carte OpenStreetMap
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        const basemapOSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors',
             maxZoom: 19
-        }).addTo(map);
+        });
 
-        // Contrôle de couches
-        const layerControl = L.control.layers(null, null, {
+        // Fonds de carte alternatifs
+        const basemapTopo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+            attribution: 'Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap',
+            maxZoom: 17
+        });
+
+        const basemapPositron = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors, © CARTO',
+            maxZoom: 19
+        });
+
+        // Définir les couches de base
+        const baseMaps = {
+            "OpenStreetMap": basemapOSM,
+            "OpenTopoMap": basemapTopo,
+            "CartoDB Positron": basemapPositron
+        };
+
+        // Ajouter le fond de carte par défaut
+        basemapOSM.addTo(map);
+
+        // Contrôle de couches avec les fonds de carte
+        const layerControl = L.control.layers(baseMaps, null, {
             collapsed: false,
             position: 'topright'
         }).addTo(map);
@@ -769,10 +801,10 @@
             panel.classList.toggle('collapsed');
 
             if (panel.classList.contains('collapsed')) {
-                btn.textContent = '▶';
+                btn.innerHTML = '<span class="iconify" data-icon="mdi:sidebar-left-expand"></span>';
                 btn.title = 'Afficher le panneau';
             } else {
-                btn.textContent = '◀';
+                btn.innerHTML = '<span class="iconify" data-icon="mdi:sidebar-left-collapse"></span>';
                 btn.title = 'Masquer le panneau';
             }
         }
