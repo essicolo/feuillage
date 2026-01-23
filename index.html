@@ -153,15 +153,12 @@
 
         .layer-item-header {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
             margin-bottom: 0.5rem;
         }
 
         .layer-item-name {
             font-weight: 500;
-            flex: 1;
-            margin-right: 0.5rem;
             word-break: break-word;
         }
 
@@ -193,17 +190,13 @@
             justify-content: center;
             width: 40px;
             height: 40px;
-            font-size: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            line-height: 1;
         }
 
         .toggle-panel-btn:hover {
             background-color: #1d4ed8;
-        }
-
-        .toggle-panel-btn svg,
-        .toggle-panel-btn .iconify {
-            width: 24px;
-            height: 24px;
         }
 
         #layerPanel.collapsed + .toggle-panel-btn {
@@ -251,22 +244,6 @@
             display: block;
         }
 
-        /* Style pour le contrôle de couches Leaflet */
-        .leaflet-control-layers {
-            max-height: 400px;
-            overflow-y: auto;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            border-radius: 4px;
-        }
-
-        .leaflet-control-layers-expanded {
-            padding: 0.5rem;
-        }
-
-        /* Ajuster les contrôles de zoom */
-        .leaflet-control-zoom {
-            margin-top: 60px !important;
-        }
 
         /* Style pour les popups */
         .popup-content {
@@ -401,19 +378,46 @@
                 </span>
                 <span id="layerCount">0</span>
             </div>
-            <div class="layer-panel-content" id="layerList">
-                <div class="empty-state">
-                    Aucune couche chargée.<br>
-                    Utilisez les boutons ci-dessus pour ajouter des données.
+            <div class="layer-panel-content">
+                <!-- Section des fonds de carte -->
+                <div style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; margin-bottom: 0.5rem;">
+                    <div style="font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem; color: #4a5568;">
+                        Fond de carte
+                    </div>
+                    <div id="basemapSelector">
+                        <label style="display: flex; align-items: center; padding: 0.25rem 0; cursor: pointer;">
+                            <input type="radio" name="basemap" value="osm" checked onchange="switchBasemap('osm')" style="margin-right: 0.5rem;">
+                            <span>OpenStreetMap</span>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 0.25rem 0; cursor: pointer;">
+                            <input type="radio" name="basemap" value="topo" onchange="switchBasemap('topo')" style="margin-right: 0.5rem;">
+                            <span>OpenTopoMap</span>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 0.25rem 0; cursor: pointer;">
+                            <input type="radio" name="basemap" value="positron" onchange="switchBasemap('positron')" style="margin-right: 0.5rem;">
+                            <span>CartoDB Positron</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Section des couches de données -->
+                <div style="padding: 0 0.5rem;">
+                    <div style="font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem; color: #4a5568;">
+                        Données chargées
+                    </div>
+                    <div id="layerList">
+                        <div class="empty-state">
+                            Aucune couche chargée.<br>
+                            Utilisez les boutons ci-dessus pour ajouter des données.
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Bouton pour afficher/masquer le panneau -->
         <button class="toggle-panel-btn" id="togglePanelBtn" onclick="toggleLayerPanel()" title="Masquer le panneau">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M3,3H11V21H3V3M13,3H21V21H13V21L13,3M5,5V19H9V5H5M15,5V19H19V5H15M10,11L14,15V13H18V9H14V7L10,11Z" />
-            </svg>
+            ◀
         </button>
 
         <!-- Carte -->
@@ -466,13 +470,31 @@
         };
 
         // Ajouter le fond de carte par défaut
-        basemapOSM.addTo(map);
+        let currentBasemap = basemapOSM;
+        currentBasemap.addTo(map);
 
-        // Contrôle de couches avec les fonds de carte
-        const layerControl = L.control.layers(baseMaps, null, {
-            collapsed: false,
-            position: 'bottomright'
-        }).addTo(map);
+        /**
+         * Change le fond de carte
+         */
+        function switchBasemap(type) {
+            // Retirer le fond de carte actuel
+            map.removeLayer(currentBasemap);
+
+            // Ajouter le nouveau fond de carte
+            switch(type) {
+                case 'osm':
+                    currentBasemap = basemapOSM;
+                    break;
+                case 'topo':
+                    currentBasemap = basemapTopo;
+                    break;
+                case 'positron':
+                    currentBasemap = basemapPositron;
+                    break;
+            }
+
+            currentBasemap.addTo(map);
+        }
 
         // Palette de couleurs accessibles (compatible daltonisme)
         // Basée sur les recommandations de Paul Tol pour l'accessibilité
@@ -588,9 +610,6 @@
                     layer.bindPopup(popupContent);
                 }
             }).addTo(map);
-
-            // Ajouter au contrôle de couches
-            layerControl.addOverlay(layer, name);
 
             // Stocker la couche avec un ID unique
             const layerInfo = {
@@ -800,7 +819,10 @@
             layerList.innerHTML = loadedLayers.map((layerInfo, index) => `
                 <div class="layer-item" style="border-left-color: ${layerInfo.color}">
                     <div class="layer-item-header">
-                        <div class="layer-item-name">${layerInfo.name}</div>
+                        <label style="display: flex; align-items: center; cursor: pointer; flex: 1; margin-right: 0.5rem;">
+                            <input type="checkbox" checked onchange="toggleLayerVisibility(${index})" style="margin-right: 0.5rem;">
+                            <span class="layer-item-name">${layerInfo.name}</span>
+                        </label>
                     </div>
                     <div class="layer-item-actions">
                         <button class="secondary" onclick="renameLayer(${index})" title="Renommer">
@@ -825,13 +847,24 @@
             panel.classList.toggle('collapsed');
 
             if (panel.classList.contains('collapsed')) {
-                // Icône pour afficher (flèche vers la droite)
-                btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M3,3H11V21H3V3M13,3H21V21H13V21L13,3M5,5V19H9V5H5M15,5V19H19V5H15M10,11L6,15V13H2V9H6V7L10,11Z" /></svg>';
+                btn.textContent = '▶';
                 btn.title = 'Afficher le panneau';
             } else {
-                // Icône pour masquer (flèche vers la gauche)
-                btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M3,3H11V21H3V3M13,3H21V21H13V21L13,3M5,5V19H9V5H5M15,5V19H19V5H15M10,11L14,15V13H18V9H14V7L10,11Z" /></svg>';
+                btn.textContent = '◀';
                 btn.title = 'Masquer le panneau';
+            }
+        }
+
+        /**
+         * Active/Désactive la visibilité d'une couche
+         */
+        function toggleLayerVisibility(index) {
+            const layerInfo = loadedLayers[index];
+
+            if (map.hasLayer(layerInfo.layer)) {
+                map.removeLayer(layerInfo.layer);
+            } else {
+                map.addLayer(layerInfo.layer);
             }
         }
 
@@ -856,9 +889,8 @@
             const proceed = confirm(`Voulez-vous vraiment supprimer la couche "${layerInfo.name}" ?`);
 
             if (proceed) {
-                // Retirer de la carte et du contrôle
+                // Retirer de la carte
                 map.removeLayer(layerInfo.layer);
-                layerControl.removeLayer(layerInfo.layer);
 
                 // Retirer du tableau
                 loadedLayers.splice(index, 1);
@@ -884,7 +916,6 @@
             if (proceed) {
                 loadedLayers.forEach(layerInfo => {
                     map.removeLayer(layerInfo.layer);
-                    layerControl.removeLayer(layerInfo.layer);
                 });
 
                 loadedLayers = [];
@@ -936,10 +967,6 @@
                 // Mettre à jour le nom dans l'objet
                 currentRenameLayer.name = newName;
                 loadedLayers[currentRenameIndex].name = newName;
-
-                // Mettre à jour le contrôle de couches Leaflet
-                layerControl.removeLayer(currentRenameLayer.layer);
-                layerControl.addOverlay(currentRenameLayer.layer, newName);
 
                 // Mettre à jour le panneau
                 updateLayerPanel();
