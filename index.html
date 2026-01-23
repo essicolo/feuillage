@@ -3,12 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visualiseur GeoJSON - Québec</title>
+    <title>Visualiseur GeoJSON</title>
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
           integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
           crossorigin=""/>
+
+    <!-- Iconify -->
+    <script src="https://code.iconify.design/3/3.1.0/iconify.min.js"></script>
 
     <style>
         * {
@@ -23,18 +26,6 @@
             display: flex;
             flex-direction: column;
             background-color: #f5f5f5;
-        }
-
-        header {
-            background-color: #095797;
-            color: white;
-            padding: 1rem 2rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        h1 {
-            font-size: 1.5rem;
-            font-weight: 600;
         }
 
         .controls {
@@ -74,7 +65,7 @@
 
         button {
             padding: 0.5rem 1rem;
-            background-color: #095797;
+            background-color: #2563eb;
             color: white;
             border: none;
             border-radius: 4px;
@@ -82,10 +73,13 @@
             font-size: 0.9rem;
             font-weight: 500;
             transition: background-color 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         button:hover {
-            background-color: #073d6b;
+            background-color: #1d4ed8;
         }
 
         button:disabled {
@@ -333,25 +327,33 @@
     </style>
 </head>
 <body>
-    <header>
-        <h1>🗺️ Visualiseur GeoJSON - Québec</h1>
-    </header>
-
     <div class="controls">
         <div class="input-group">
             <input type="text" id="urlInput" placeholder="URL du fichier GeoJSON...">
-            <button onclick="loadFromURL()">Ajouter URL</button>
+            <button onclick="loadFromURL()">
+                <span class="iconify" data-icon="mdi:link-plus"></span>
+                Ajouter URL
+            </button>
         </div>
 
         <div class="input-group">
             <label for="fileInput">
-                <button onclick="document.getElementById('fileInput').click()">📁 Choisir un fichier</button>
+                <button onclick="document.getElementById('fileInput').click()">
+                    <span class="iconify" data-icon="mdi:folder-open"></span>
+                    Choisir un fichier
+                </button>
             </label>
             <input type="file" id="fileInput" accept=".geojson,.json" onchange="loadFromFile(this)">
         </div>
 
-        <button class="secondary" onclick="loadExample()">✨ Exemple</button>
-        <button class="danger" onclick="clearAll()">🗑️ Effacer tout</button>
+        <button class="secondary" onclick="loadExample()">
+            <span class="iconify" data-icon="mdi:map-marker-star"></span>
+            Exemple
+        </button>
+        <button class="danger" onclick="clearAll()">
+            <span class="iconify" data-icon="mdi:delete-sweep"></span>
+            Effacer tout
+        </button>
     </div>
 
     <div id="message" class="message"></div>
@@ -360,7 +362,10 @@
         <!-- Panneau de gestion des couches -->
         <div id="layerPanel">
             <div class="layer-panel-header">
-                <span>📋 Couches chargées</span>
+                <span>
+                    <span class="iconify" data-icon="mdi:layers" style="vertical-align: middle;"></span>
+                    Couches chargées
+                </span>
                 <span id="layerCount">0</span>
             </div>
             <div class="layer-panel-content" id="layerList">
@@ -620,7 +625,7 @@
                 const color = getNextColor();
                 addGeoJSONLayer(geojson, layerName, color);
 
-                showMessage(`✓ "${layerName}" chargé avec succès`, 'success');
+                showMessage(`"${layerName}" chargé avec succès`, 'success');
                 document.getElementById('urlInput').value = '';
 
             } catch (error) {
@@ -678,7 +683,7 @@
                 const color = getNextColor();
                 addGeoJSONLayer(geojson, layerName, color);
 
-                showMessage(`✓ "${layerName}" chargé avec succès`, 'success');
+                showMessage(`"${layerName}" chargé avec succès`, 'success');
                 input.value = '';
 
             } catch (error) {
@@ -709,7 +714,7 @@
                 const color = getNextColor();
                 addGeoJSONLayer(geojson, 'Bassins versants - Ville de Québec', color);
 
-                showMessage('✓ Exemple chargé avec succès', 'success');
+                showMessage('Exemple chargé avec succès', 'success');
 
             } catch (error) {
                 console.error('Erreur lors du chargement de l\'exemple:', error);
@@ -743,10 +748,11 @@
                     </div>
                     <div class="layer-item-actions">
                         <button class="secondary" onclick="renameLayer(${index})" title="Renommer">
-                            ✏️ Renommer
+                            <span class="iconify" data-icon="mdi:pencil"></span>
+                            Renommer
                         </button>
                         <button class="danger" onclick="removeLayer(${index})" title="Supprimer">
-                            🗑️
+                            <span class="iconify" data-icon="mdi:delete"></span>
                         </button>
                     </div>
                 </div>
@@ -802,7 +808,7 @@
                 // Mettre à jour le panneau
                 updateLayerPanel();
 
-                showMessage(`✓ Couche "${layerInfo.name}" supprimée`, 'success');
+                showMessage(`Couche "${layerInfo.name}" supprimée`, 'success');
             }
         }
 
@@ -880,7 +886,7 @@
                 // Mettre à jour le panneau
                 updateLayerPanel();
 
-                showMessage(`✓ Couche renommée: "${oldName}" → "${newName}"`, 'success');
+                showMessage(`Couche renommée: "${oldName}" vers "${newName}"`, 'success');
             }
 
             closeRenameModal();
@@ -912,7 +918,7 @@
         // Pour simplifier, on utilise uniquement le système de prompt initial
         // Une version plus avancée pourrait utiliser des événements personnalisés
 
-        console.log('🗺️ Visualiseur GeoJSON initialisé');
+        console.log('Visualiseur GeoJSON initialisé');
         console.log('Palette de couleurs accessibles:', colorPalette);
     </script>
 </body>

@@ -1,38 +1,38 @@
-# 🗺️ Visualiseur GeoJSON - Québec
+# Visualiseur GeoJSON
 
 Application web 100% statique pour visualiser et gérer plusieurs fichiers GeoJSON sur une carte interactive Leaflet.
 
-## 📋 Fonctionnalités
+## Fonctionnalités
 
 ### Chargement de données
-- ✅ **Chargement par URL** : Collez l'URL d'un fichier GeoJSON distant
-- ✅ **Téléversement de fichier** : Chargez des fichiers `.geojson` ou `.json` depuis votre ordinateur
-- ✅ **Exemple intégré** : Bouton pour charger automatiquement les bassins versants de la Ville de Québec
-- ✅ **Gestion des gros fichiers** : Avertissement automatique pour les fichiers > 5 MB
+- **Chargement par URL** : Collez l'URL d'un fichier GeoJSON distant
+- **Téléversement de fichier** : Chargez des fichiers `.geojson` ou `.json` depuis votre ordinateur
+- **Exemple intégré** : Bouton pour charger automatiquement les bassins versants de la Ville de Québec
+- **Gestion des gros fichiers** : Avertissement automatique pour les fichiers > 5 MB
 
 ### Gestion des couches
-- ✅ **Panneau de gestion** : Interface latérale listant toutes les couches chargées
-- ✅ **Contrôle Leaflet** : Widget standard pour activer/désactiver chaque couche
-- ✅ **Renommage flexible** :
+- **Panneau de gestion** : Interface latérale listant toutes les couches chargées
+- **Contrôle Leaflet** : Widget standard pour activer/désactiver chaque couche
+- **Renommage flexible** :
   - Lors du chargement via dialogue
   - Après chargement via le panneau de gestion
-- ✅ **Suppression individuelle** : Retirez des couches spécifiques
-- ✅ **Effacer tout** : Supprimez toutes les couches en un clic
+- **Suppression individuelle** : Retirez des couches spécifiques
+- **Effacer tout** : Supprimez toutes les couches en un clic
 
 ### Visualisation
-- ✅ **Popups automatiques** : Affichage de toutes les propriétés pour chaque feature
-- ✅ **Zoom automatique** : Centrage sur les données chargées
-- ✅ **Palette accessible** : Couleurs distinctes respectant les principes WCAG
-- ✅ **Support multi-géométries** : Point, LineString, Polygon, MultiPoint, etc.
-- ✅ **Style adaptatif** : Styles différenciés selon le type de géométrie
+- **Popups automatiques** : Affichage de toutes les propriétés pour chaque feature
+- **Zoom automatique** : Centrage sur les données chargées
+- **Palette accessible** : Couleurs distinctes respectant les principes WCAG
+- **Support multi-géométries** : Point, LineString, Polygon, MultiPoint, etc.
+- **Style adaptatif** : Styles différenciés selon le type de géométrie
 
 ### Accessibilité
-- ✅ **Palette de couleurs accessible** : Compatible avec le daltonisme
-- ✅ **Messages d'erreur clairs** : Retours visuels pour chaque action
-- ✅ **Interface responsive** : Adaptation mobile et desktop
-- ✅ **Pas de dépendances** : Fonctionne sans backend ni frameworks JS
+- **Palette de couleurs accessible** : Compatible avec le daltonisme
+- **Messages d'erreur clairs** : Retours visuels pour chaque action
+- **Interface responsive** : Adaptation mobile et desktop
+- **Pas de dépendances** : Fonctionne sans backend ni frameworks JS
 
-## 🚀 Déploiement
+## Déploiement
 
 ### GitHub Pages
 
@@ -67,7 +67,7 @@ Ouvrez simplement `index.html` dans votre navigateur. Aucun serveur web requis !
 
 > **Note** : Pour charger des fichiers depuis des URLs externes, votre navigateur doit autoriser les requêtes CORS. Les fichiers locaux et les URLs publiques comme données.québec.ca fonctionnent sans problème.
 
-## 📖 Guide d'utilisation
+## Guide d'utilisation
 
 ### 1. Charger un GeoJSON par URL
 
@@ -114,16 +114,16 @@ Cliquez sur **"✨ Exemple"** pour charger automatiquement le GeoJSON des bassin
 
 Cliquez sur **"🗑️ Effacer tout"** pour supprimer toutes les couches et recommencer.
 
-## 🎨 Palette de couleurs
+## Palette de couleurs
 
 L'application utilise une palette de 10 couleurs accessibles, optimisée pour :
-- ✅ Contraste élevé sur fond de carte
-- ✅ Distinction pour les personnes daltoniennes
-- ✅ Conformité WCAG 2.1
+- Contraste élevé sur fond de carte
+- Distinction pour les personnes daltoniennes
+- Conformité WCAG 2.1
 
 **Couleurs** : Bleu (#0072B2), Orange (#D55E00), Vert sarcelle (#009E73), Rose (#CC79A7), Jaune (#F0E442), Bleu ciel (#56B4E9), Orange doré (#E69F00), Magenta foncé (#882255), Vert cyan (#44AA99), Beige (#DDCC77).
 
-## 🧪 Test avec le fichier d'exemple
+## Test avec le fichier d'exemple
 
 Un fichier `test-example.geojson` est inclus pour tester localement :
 
@@ -137,7 +137,7 @@ Un fichier `test-example.geojson` est inclus pour tester localement :
 - 1 Point (Station de mesure)
 - 1 Polygon (Zone protégée)
 
-## 🔧 Personnalisation
+## Personnalisation
 
 ### Modifier la vue par défaut
 
@@ -172,15 +172,15 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
 ### Modifier les couleurs de l'interface
 
-Ligne 28-32 dans `index.html` (couleur principale du header) :
+Dans le fichier `index.html`, modifiez les variables de couleur des boutons :
 ```css
-header {
-    background-color: #095797; /* Bleu Québec */
+button {
+    background-color: #2563eb; /* Bleu par défaut */
     color: white;
 }
 ```
 
-## 📐 Structure du projet
+## Structure du projet
 
 ```
 feuillage/
@@ -189,14 +189,14 @@ feuillage/
 └── README.md               # Ce fichier
 ```
 
-## 🔒 Sécurité et vie privée
+## Sécurité et vie privée
 
-- ✅ **100% côté client** : Aucune donnée n'est envoyée à un serveur
-- ✅ **Pas de tracking** : Aucun cookie ni analytics
-- ✅ **Fichiers locaux** : Vos données restent sur votre machine
-- ✅ **Pas de dépendances externes** : Seul Leaflet est chargé depuis CDN (unpkg.com)
+- **100% côté client** : Aucune donnée n'est envoyée à un serveur
+- **Pas de tracking** : Aucun cookie ni analytics
+- **Fichiers locaux** : Vos données restent sur votre machine
+- **Pas de dépendances externes** : Seul Leaflet est chargé depuis CDN (unpkg.com)
 
-## 🐛 Dépannage
+## Dépannage
 
 ### "Erreur HTTP: 403" lors du chargement d'une URL
 
@@ -220,33 +220,33 @@ feuillage/
 - Divisez le fichier en plusieurs fichiers plus petits
 - Acceptez l'avertissement si votre ordinateur est assez puissant
 
-## 🛠️ Technologies utilisées
+## Technologies utilisées
 
 - **Leaflet 1.9.4** : Bibliothèque de cartographie interactive
 - **OpenStreetMap** : Fond de carte par défaut
 - **HTML5/CSS3** : Interface utilisateur
 - **JavaScript ES6+** : Logique de l'application
 
-## 📝 Licence
+## Licence
 
 Ce projet est libre d'utilisation et de modification. Aucune restriction.
 
-## 🤝 Contribution
+## Contribution
 
 Pour signaler un bug ou suggérer une amélioration :
 1. Créez un fichier avec votre suggestion
 2. Partagez-le avec l'auteur du projet
 
-## 🌐 Ressources
+## Ressources
 
 - [Documentation Leaflet](https://leafletjs.com/reference.html)
 - [Données Québec](https://www.donneesquebec.ca/)
 - [Spécification GeoJSON](https://geojson.org/)
-- [Guide de design du Québec](https://design.quebec.ca/)
 - [Validateur GeoJSON](https://geojson.io/)
+- [Iconify Icons](https://icon-sets.iconify.design/)
 
 ---
 
 **Version** : 1.0.0
 **Dernière mise à jour** : Janvier 2026
-**Développé pour** : Visualisation de données géospatiales du Québec
+**Projet** : Visualiseur GeoJSON open source
