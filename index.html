@@ -650,10 +650,23 @@
                 return;
             }
 
+            // Vérifier que le canvas est bien attaché au DOM
+            if (!canvas.isConnected) {
+                console.error(`Canvas ${canvasId} non attaché au DOM`);
+                return;
+            }
+
             // Détruire tout graphique existant sur ce canvas
             const existingChart = Chart.getChart(canvas);
             if (existingChart) {
                 existingChart.destroy();
+            }
+
+            // Vérifier que le canvas a des dimensions
+            if (canvas.offsetWidth === 0 || canvas.offsetHeight === 0) {
+                console.warn(`Canvas ${canvasId} a des dimensions nulles, retry dans 50ms`);
+                setTimeout(() => createChart(canvasId, section, properties), 50);
+                return;
             }
 
             const ctx = canvas.getContext('2d');
@@ -775,10 +788,12 @@
 
                     // Créer les graphiques quand le popup s'ouvre
                     layer.on('popupopen', function() {
-                        // Attendre que le DOM soit prêt
-                        setTimeout(() => {
-                            createChartsInPopup(feature, templateName);
-                        }, 100);
+                        // Utiliser requestAnimationFrame pour garantir que le popup est rendu
+                        requestAnimationFrame(() => {
+                            requestAnimationFrame(() => {
+                                createChartsInPopup(feature, templateName);
+                            });
+                        });
                     });
 
                     // Nettoyer les graphiques quand le popup se ferme
