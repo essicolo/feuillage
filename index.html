@@ -672,7 +672,8 @@
                         // Section avec graphique - ID unique garanti
                         chartIdCounter++;
                         const chartId = `chart-${chartIdCounter}`;
-                        html += `<div class="popup-chart"><canvas id="${chartId}" data-chart-config='${JSON.stringify(section)}'></canvas></div>`;
+                        // Wrapper avec dimensions explicites pour Chart.js responsive
+                        html += `<div class="popup-chart"><div style="position: relative; height: 250px; width: 100%;"><canvas id="${chartId}" data-chart-config='${JSON.stringify(section)}'></canvas></div></div>`;
                     }
 
                     html += '</div>';
@@ -727,79 +728,97 @@
          * Crée un graphique Chart.js dans un popup
          */
         function createChart(canvasId, section, properties) {
+            console.log(`createChart appelé - Canvas ID: ${canvasId}`);
+
             const canvas = document.getElementById(canvasId);
             if (!canvas) {
-                console.warn(`Canvas ${canvasId} introuvable`);
+                console.error(`Canvas ${canvasId} introuvable dans le DOM`);
                 return;
             }
+
+            // Log des dimensions du canvas
+            console.log(`Canvas trouvé - Dimensions: ${canvas.offsetWidth}x${canvas.offsetHeight}`);
 
             // Détruire tout graphique existant sur ce canvas
             const existingChart = Chart.getChart(canvas);
             if (existingChart) {
+                console.log(`Destruction du graphique existant sur ${canvasId}`);
                 existingChart.destroy();
             }
 
             const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                console.error(`Impossible d'obtenir le contexte 2D pour ${canvasId}`);
+                return;
+            }
 
             // Récupérer les données du graphique
             let chartData;
             if (section.data_field && properties[section.data_field]) {
                 // Les données sont dans une propriété spécifique
                 const dataStr = properties[section.data_field];
+                console.log(`Données du champ "${section.data_field}":`, dataStr);
                 try {
                     chartData = typeof dataStr === 'string' ? JSON.parse(dataStr) : dataStr;
+                    console.log('Données parsées:', chartData);
                 } catch (e) {
                     console.error('Erreur parsing des données de graphique:', e);
                     return;
                 }
             } else {
+                console.error(`Données manquantes - data_field: "${section.data_field}", existe dans properties: ${section.data_field in properties}`);
                 return;
             }
 
             // Configuration du graphique
             const options = section.options || {};
-            new Chart(ctx, {
-                type: section.chart_type || 'bar',
-                data: {
-                    labels: chartData.labels || [],
-                    datasets: [{
-                        label: options.title || 'Données',
-                        data: chartData.values || [],
-                        backgroundColor: 'rgba(37, 99, 235, 0.5)',
-                        borderColor: 'rgba(37, 99, 235, 1)',
-                        borderWidth: 2,
-                        fill: section.chart_type === 'line' ? false : true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        title: {
-                            display: !!options.title,
-                            text: options.title || ''
-                        }
+            try {
+                const chart = new Chart(ctx, {
+                    type: section.chart_type || 'bar',
+                    data: {
+                        labels: chartData.labels || [],
+                        datasets: [{
+                            label: options.title || 'Données',
+                            data: chartData.values || [],
+                            backgroundColor: 'rgba(37, 99, 235, 0.5)',
+                            borderColor: 'rgba(37, 99, 235, 1)',
+                            borderWidth: 2,
+                            fill: section.chart_type === 'line' ? false : true
+                        }]
                     },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
                             title: {
-                                display: !!options.ylabel,
-                                text: options.ylabel || ''
+                                display: !!options.title,
+                                text: options.title || ''
                             }
                         },
-                        x: {
-                            title: {
-                                display: !!options.xlabel,
-                                text: options.xlabel || ''
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: !!options.ylabel,
+                                    text: options.ylabel || ''
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: !!options.xlabel,
+                                    text: options.xlabel || ''
+                                }
                             }
                         }
                     }
-                }
-            });
+                });
+                console.log(`✓ Graphique créé avec succès sur ${canvasId}`, chart);
+            } catch (e) {
+                console.error(`Erreur lors de la création du graphique Chart.js sur ${canvasId}:`, e);
+            }
         }
 
         /**
@@ -850,10 +869,10 @@
 
                     // Créer les graphiques quand le popup s'ouvre
                     layer.on('popupopen', function() {
-                        // Attendre que le DOM soit prêt
+                        // Attendre que le DOM soit prêt et que le popup soit positionné
                         setTimeout(() => {
                             createChartsInPopup(feature, templateName);
-                        }, 50);
+                        }, 100);
                     });
 
                     // Nettoyer les graphiques quand le popup se ferme
