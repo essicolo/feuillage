@@ -609,17 +609,17 @@
         /**
          * Crée tous les graphiques dans le popup ouvert
          */
-        function createChartsInPopup(feature, templateName) {
+        function createChartsInPopup(feature, templateName, popup) {
             if (!templateName || !popupTemplates[templateName]) return;
 
             const template = popupTemplates[templateName];
             const properties = feature.properties;
 
-            // Trouver seulement les canvas dans le popup actuellement ouvert
-            const openPopup = document.querySelector('.leaflet-popup-content');
-            if (!openPopup) return;
+            // Utiliser le popup spécifique passé en paramètre
+            const popupElement = popup.getElement();
+            if (!popupElement) return;
 
-            const canvases = openPopup.querySelectorAll('canvas[data-chart-config]');
+            const canvases = popupElement.querySelectorAll('canvas[data-chart-config]');
 
             canvases.forEach((canvas) => {
                 try {
@@ -787,11 +787,11 @@
                     layer.bindPopup(popup);
 
                     // Créer les graphiques quand le popup s'ouvre
-                    layer.on('popupopen', function() {
+                    layer.on('popupopen', function(e) {
                         // Utiliser requestAnimationFrame pour garantir que le popup est rendu
                         requestAnimationFrame(() => {
                             requestAnimationFrame(() => {
-                                createChartsInPopup(feature, templateName);
+                                createChartsInPopup(feature, templateName, e.popup);
                             });
                         });
                     });
