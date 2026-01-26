@@ -1298,6 +1298,76 @@
 
         console.log('Visualiseur GeoJSON initialisé');
         console.log('Palette de couleurs accessibles:', colorPalette);
+
+        /**
+         * Charge automatiquement view-config.json s'il existe
+         */
+        async function autoLoadViewConfig() {
+            try {
+                const response = await fetch('view-config.json');
+                if (response.ok) {
+                    const config = JSON.parse(await response.text());
+
+                    console.log('Configuration de vue trouvée, chargement automatique...');
+
+                    // Stocker la configuration
+                    currentViewConfig = config;
+
+                    // Stocker les templates de popups
+                    if (config.popup_templates) {
+                        popupTemplates = config.popup_templates;
+                    }
+
+                    // Appliquer la configuration de la vue
+                    if (config.view.center && config.view.zoom) {
+                        map.setView(config.view.center, config.view.zoom);
+                    }
+
+                    // Changer le fond de carte si spécifié
+                    if (config.view.basemap) {
+                        switchBasemap(config.view.basemap);
+                        const radio = document.querySelector(`input[name="basemap"][value="${config.view.basemap}"]`);
+                        if (radio) radio.checked = true;
+                    }
+
+                    // Charger les couches
+                    for (const layerConfig of config.layers) {
+                        try {
+                            const layerResponse = await fetch(layerConfig.url);
+                            if (!layerResponse.ok) {
+                                throw new Error(`Erreur HTTP: ${layerResponse.status}`);
+                            }
+
+                            const geojson = await layerResponse.json();
+                            const color = layerConfig.color || getNextColor();
+
+                            const layerInfo = addGeoJSONLayer(
+                                geojson,
+                                layerConfig.name,
+                                color,
+                                layerConfig.popup_template
+                            );
+
+                            if (layerConfig.visible === false) {
+                                map.removeLayer(layerInfo.layer);
+                            }
+
+                        } catch (error) {
+                            console.error(`Erreur chargement couche "${layerConfig.name}":`, error);
+                        }
+                    }
+
+                    const viewName = config.view.name || 'Vue par défaut';
+                    showMessage(`"${viewName}" chargée automatiquement`, 'success');
+                }
+            } catch (error) {
+                // Pas de view-config.json, mode normal
+                console.log('Aucun fichier view-config.json trouvé, mode manuel');
+            }
+        }
+
+        // Charger automatiquement la configuration au démarrage
+        autoLoadViewConfig();
     </script>
 </body>
 </html>

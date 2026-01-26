@@ -120,6 +120,9 @@ Cliquez sur **"✨ Exemple"** pour charger automatiquement le GeoJSON des bassin
 
 ### 6. Charger une vue configurée
 
+**Chargement automatique** : Si un fichier `view-config.json` existe dans le même dossier que `index.html`, il sera chargé automatiquement au démarrage.
+
+**Chargement manuel** :
 1. Créez un fichier `view-config.json` (voir section "Créer une vue configurée")
 2. Cliquez sur **"Charger une vue"**
 3. Sélectionnez votre fichier de configuration
@@ -132,6 +135,34 @@ Cliquez sur **"Effacer tout"** pour supprimer toutes les couches et recommencer.
 ## Créer une vue configurée
 
 Les vues configurées permettent de distribuer publiquement des cartes pré-configurées avec plusieurs couches, des popups personnalisés et des graphiques.
+
+### Distribution d'une vue pré-configurée
+
+Pour distribuer une vue qui se charge automatiquement :
+
+1. **Créez votre dossier de distribution** :
+   ```
+   mon-projet/
+   ├── index.html
+   ├── view-config.json
+   ├── bassins.geojson
+   └── stations.geojson
+   ```
+
+2. **Configurez `view-config.json`** avec des URLs relatives :
+   ```json
+   {
+     "view": { "name": "Ma vue", "center": [46.8, -71.2], "zoom": 11 },
+     "layers": [
+       { "name": "Bassins", "url": "./bassins.geojson", "popup_template": "bassin" }
+     ],
+     "popup_templates": { ... }
+   }
+   ```
+
+3. **Déployez le dossier** : GitHub Pages, serveur web, ou partagez le ZIP
+
+4. **Résultat** : Quand l'utilisateur ouvre `index.html`, la vue se charge automatiquement avec toutes les couches et graphiques configurés.
 
 ### Structure du fichier de configuration
 
@@ -284,12 +315,16 @@ button {
 
 ```
 feuillage/
-├── index.html                          # Application complète (autonome)
-├── test-example.geojson                # Fichier de test
-├── view-config-example.json            # Exemple de configuration de vue
-├── generate_geojson_with_charts.py     # Script Python pour générer des GeoJSON avec graphiques
-└── README.md                           # Ce fichier
+├── index.html                              # Application complète (autonome)
+├── view-config.json                        # Configuration de vue (chargement automatique)
+├── bassins_versants_avec_graphiques.geojson  # Exemple avec données de graphiques
+├── test-example.geojson                    # Fichier de test simple
+├── view-config-example.json                # Exemple de configuration avancée
+├── generate_geojson_with_charts.py         # Script Python pour générer des GeoJSON avec graphiques
+└── README.md                               # Ce fichier
 ```
+
+**Note** : Si `view-config.json` existe, il sera chargé automatiquement au démarrage.
 
 ## Sécurité et vie privée
 

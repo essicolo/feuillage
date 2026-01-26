@@ -1,0 +1,39 @@
+{
+  "view": {
+    "name": "Bassins versants avec graphiques - Québec",
+    "description": "Exemple de vue avec bassins versants et données de débits",
+    "center": [46.85, -71.25],
+    "zoom": 11,
+    "basemap": "osm"
+  },
+  "layers": [
+    {
+      "name": "Bassins versants (avec graphiques)",
+      "url": "./bassins_versants_avec_graphiques.geojson",
+      "visible": true,
+      "color": "#0072B2",
+      "popup_template": "bassin_versant"
+    }
+  ],
+  "popup_templates": {
+    "bassin_versant": {
+      "title": "{properties.nom}",
+      "sections": [
+        {
+          "type": "properties",
+          "fields": ["superficie_ha", "municipalite", "annee"]
+        },
+        {
+          "type": "chart",
+          "chart_type": "bar",
+          "data_field": "debits_mensuels",
+          "options": {
+            "title": "Débits mensuels moyens",
+            "xlabel": "Mois",
+            "ylabel": "Débit (m³/s)"
+          }
+        }
+      ]
+    }
+  }
+}
