@@ -688,10 +688,19 @@
             const template = popupTemplates[templateName];
             const properties = feature.properties;
 
-            // Trouver tous les canvas avec configuration de graphique
-            const canvases = document.querySelectorAll('canvas[data-chart-config]');
+            // Trouver seulement les canvas dans le popup actuellement ouvert
+            const openPopup = document.querySelector('.leaflet-popup-content');
+            if (!openPopup) return;
+
+            const canvases = openPopup.querySelectorAll('canvas[data-chart-config]');
             canvases.forEach(canvas => {
                 try {
+                    // Détruire le graphique existant s'il y en a un
+                    const existingChart = Chart.getChart(canvas.id);
+                    if (existingChart) {
+                        existingChart.destroy();
+                    }
+
                     const sectionConfig = JSON.parse(canvas.getAttribute('data-chart-config'));
                     createChart(canvas.id, sectionConfig, properties);
                 } catch (e) {
@@ -831,6 +840,21 @@
                         setTimeout(() => {
                             createChartsInPopup(feature, templateName);
                         }, 50);
+                    });
+
+                    // Nettoyer les graphiques quand le popup se ferme
+                    layer.on('popupclose', function() {
+                        // Détruire tous les graphiques Chart.js pour libérer la mémoire
+                        const popup = layer.getPopup();
+                        if (popup && popup.getElement()) {
+                            const canvases = popup.getElement().querySelectorAll('canvas[data-chart-config]');
+                            canvases.forEach(canvas => {
+                                const chart = Chart.getChart(canvas.id);
+                                if (chart) {
+                                    chart.destroy();
+                                }
+                            });
+                        }
                     });
                 }
             }).addTo(map);
