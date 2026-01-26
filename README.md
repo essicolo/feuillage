@@ -21,10 +21,18 @@ Application web 100% statique pour visualiser et gérer plusieurs fichiers GeoJS
 
 ### Visualisation
 - **Popups automatiques** : Affichage de toutes les propriétés pour chaque feature
+- **Popups avec graphiques** : Support de Chart.js pour afficher des graphiques dans les popups
+- **Templates de popups** : Système de templates configurables pour personnaliser l'affichage
 - **Zoom automatique** : Centrage sur les données chargées
 - **Palette accessible** : Couleurs distinctes respectant les principes WCAG
 - **Support multi-géométries** : Point, LineString, Polygon, MultiPoint, etc.
 - **Style adaptatif** : Styles différenciés selon le type de géométrie
+
+### Vues configurables
+- **Fichiers de configuration** : Chargement de vues pré-configurées (JSON)
+- **Distribution publique** : Partagez des vues complètes avec couches et popups
+- **Templates personnalisés** : Définissez l'affichage des popups par type de donnée
+- **Graphiques intégrés** : Bar charts, line charts pour visualiser vos données
 
 ### Accessibilité
 - **Palette de couleurs accessible** : Compatible avec le daltonisme
@@ -110,9 +118,101 @@ Cliquez sur **"✨ Exemple"** pour charger automatiquement le GeoJSON des bassin
 - **Zoomez/Déplacez** la carte pour naviguer
 - Le zoom s'ajuste automatiquement lors du chargement
 
-### 6. Effacer les données
+### 6. Charger une vue configurée
 
-Cliquez sur **"🗑️ Effacer tout"** pour supprimer toutes les couches et recommencer.
+1. Créez un fichier `view-config.json` (voir section "Créer une vue configurée")
+2. Cliquez sur **"Charger une vue"**
+3. Sélectionnez votre fichier de configuration
+4. Toutes les couches et templates se chargent automatiquement
+
+### 7. Effacer les données
+
+Cliquez sur **"Effacer tout"** pour supprimer toutes les couches et recommencer.
+
+## Créer une vue configurée
+
+Les vues configurées permettent de distribuer publiquement des cartes pré-configurées avec plusieurs couches, des popups personnalisés et des graphiques.
+
+### Structure du fichier de configuration
+
+Créez un fichier `view-config.json` :
+
+```json
+{
+  "view": {
+    "name": "Nom de votre vue",
+    "description": "Description optionnelle",
+    "center": [46.8, -71.2],
+    "zoom": 11,
+    "basemap": "osm"
+  },
+  "layers": [
+    {
+      "name": "Nom de la couche",
+      "url": "https://example.com/data.geojson",
+      "visible": true,
+      "color": "#0072B2",
+      "popup_template": "nom_du_template"
+    }
+  ],
+  "popup_templates": {
+    "nom_du_template": {
+      "title": "{properties.nom}",
+      "sections": [
+        {
+          "type": "properties",
+          "fields": ["champ1", "champ2", "champ3"]
+        },
+        {
+          "type": "chart",
+          "chart_type": "bar",
+          "data_field": "nom_propriete_avec_donnees",
+          "options": {
+            "title": "Titre du graphique",
+            "xlabel": "Axe X",
+            "ylabel": "Axe Y"
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+### Types de graphiques supportés
+
+- **bar** : Graphique à barres
+- **line** : Graphique linéaire
+- **pie** : Graphique circulaire (expérimental)
+
+### Préparer vos GeoJSON avec données de graphiques
+
+Utilisez GeoPandas pour ajouter des données de graphiques à vos GeoJSON :
+
+```python
+import geopandas as gpd
+import json
+
+# Charger votre GeoDataFrame
+gdf = gpd.read_file("bassins.geojson")
+
+# Ajouter des données de graphique
+for idx, row in gdf.iterrows():
+    graphique_data = {
+        "labels": ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun"],
+        "values": [12.5, 15.3, 22.1, 45.2, 38.7, 25.4]
+    }
+    gdf.at[idx, 'debits_mensuels'] = json.dumps(graphique_data)
+
+# Sauvegarder
+gdf.to_file("bassins_enrichis.geojson", driver="GeoJSON")
+```
+
+Un script Python complet d'exemple est disponible : `generate_geojson_with_charts.py`
+
+### Exemple complet
+
+Voir le fichier `view-config-example.json` pour un exemple complet de configuration.
 
 ## Palette de couleurs
 
@@ -184,9 +284,11 @@ button {
 
 ```
 feuillage/
-├── index.html              # Application complète (autonome)
-├── test-example.geojson    # Fichier de test
-└── README.md               # Ce fichier
+├── index.html                          # Application complète (autonome)
+├── test-example.geojson                # Fichier de test
+├── view-config-example.json            # Exemple de configuration de vue
+├── generate_geojson_with_charts.py     # Script Python pour générer des GeoJSON avec graphiques
+└── README.md                           # Ce fichier
 ```
 
 ## Sécurité et vie privée
@@ -223,6 +325,8 @@ feuillage/
 ## Technologies utilisées
 
 - **Leaflet 1.9.4** : Bibliothèque de cartographie interactive
+- **Chart.js 4.4.1** : Bibliothèque de graphiques interactifs
+- **Iconify 3.1.0** : Icônes vectorielles
 - **OpenStreetMap** : Fond de carte par défaut
 - **HTML5/CSS3** : Interface utilisateur
 - **JavaScript ES6+** : Logique de l'application
