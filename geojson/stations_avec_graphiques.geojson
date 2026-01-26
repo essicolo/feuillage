@@ -1,0 +1,10 @@
+{
+"type": "FeatureCollection",
+"name": "stations_avec_graphiques",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "code": "ST-001", "nom": "Station Saint-Charles Amont", "type": "Débitmètre", "installation": "2020-03-15", "actif": true, "historique_debit": { "labels": [ "Jan 23", "Fév 23", "Mar 23", "Avr 23", "Mai 23", "Jun 23", "Jul 23", "Aoû 23", "Sep 23", "Oct 23", "Nov 23", "Déc 23" ], "values": [ 15.2, 18.5, 25.3, 48.2, 42.1, 28.5, 20.3, 17.8, 22.5, 30.2, 21.8, 16.5 ] } }, "geometry": { "type": "Point", "coordinates": [ -71.25, 46.86 ] } },
+{ "type": "Feature", "properties": { "code": "ST-002", "nom": "Station Montmorency", "type": "Débitmètre", "installation": "2019-11-02", "actif": true, "historique_debit": { "labels": [ "Jan 23", "Fév 23", "Mar 23", "Avr 23", "Mai 23", "Jun 23", "Jul 23", "Aoû 23", "Sep 23", "Oct 23", "Nov 23", "Déc 23" ], "values": [ 15.2, 18.5, 25.3, 48.2, 42.1, 28.5, 20.3, 17.8, 22.5, 30.2, 21.8, 16.5 ] } }, "geometry": { "type": "Point", "coordinates": [ -71.15, 46.89 ] } },
+{ "type": "Feature", "properties": { "code": "ST-003", "nom": "Station Beauport", "type": "Pluviomètre", "installation": "2021-06-20", "actif": false, "historique_debit": null }, "geometry": { "type": "Point", "coordinates": [ -71.12, 46.83 ] } }
+]
+}

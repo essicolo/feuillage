@@ -1,0 +1,10 @@
+{
+"type": "FeatureCollection",
+"name": "bassins_versants_avec_graphiques",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "nom": "Bassin Saint-Charles", "superficie_ha": 545.2, "municipalite": "Québec", "annee": 2023, "debits_mensuels": { "labels": [ "Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc" ], "values": [ 12.5, 15.3, 22.1, 45.2, 38.7, 25.4, 18.9, 16.2, 20.8, 28.3, 19.5, 14.2 ] } }, "geometry": { "type": "Polygon", "coordinates": [ [ [ -71.3, 46.85 ], [ -71.2, 46.85 ], [ -71.2, 46.88 ], [ -71.3, 46.88 ], [ -71.3, 46.85 ] ] ] } },
+{ "type": "Feature", "properties": { "nom": "Bassin Montmorency", "superficie_ha": 423.8, "municipalite": "Québec", "annee": 2023, "debits_mensuels": { "labels": [ "Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc" ], "values": [ 12.5, 15.3, 22.1, 45.2, 38.7, 25.4, 18.9, 16.2, 20.8, 28.3, 19.5, 14.2 ] } }, "geometry": { "type": "Polygon", "coordinates": [ [ [ -71.2, 46.88 ], [ -71.1, 46.88 ], [ -71.1, 46.91 ], [ -71.2, 46.91 ], [ -71.2, 46.88 ] ] ] } },
+{ "type": "Feature", "properties": { "nom": "Bassin Beauport", "superficie_ha": 312.5, "municipalite": "Québec", "annee": 2023, "debits_mensuels": { "labels": [ "Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc" ], "values": [ 12.5, 15.3, 22.1, 45.2, 38.7, 25.4, 18.9, 16.2, 20.8, 28.3, 19.5, 14.2 ] } }, "geometry": { "type": "Polygon", "coordinates": [ [ [ -71.15, 46.82 ], [ -71.05, 46.82 ], [ -71.05, 46.85 ], [ -71.15, 46.85 ], [ -71.15, 46.82 ] ] ] } }
+]
+}
