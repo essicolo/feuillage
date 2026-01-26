@@ -1,1416 +1,1281 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visualiseur GeoJSON</title>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Visualiseur GeoJSON</title>
 
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-          crossorigin=""/>
+        <!-- Leaflet CSS -->
+        <link
+            rel="stylesheet"
+            href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+            integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+            crossorigin=""
+        />
 
-    <!-- Iconify -->
-    <script src="https://code.iconify.design/3/3.1.0/iconify.min.js"></script>
+        <!-- Iconify -->
+        <script src="https://code.iconify.design/3/3.1.0/iconify.min.js"></script>
 
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+        <!-- Chart.js -->
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+        <!-- Tailwind CSS -->
+        <script src="https://cdn.tailwindcss.com"></script>
 
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            height: 100vh;
-            background-color: #f5f5f5;
-            margin: 0;
-            padding: 0;
-        }
+            body {
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                    Oxygen, Ubuntu, Cantarell, sans-serif;
+                height: 100vh;
+                background-color: #f5f5f5;
+                margin: 0;
+                padding: 0;
+            }
 
-        .map-container {
-            height: 100vh;
-            display: flex;
-            position: relative;
-            overflow: hidden;
-            background-color: transparent;
-        }
+            .map-container {
+                height: 100vh;
+                display: flex;
+                position: relative;
+                overflow: hidden;
+                background-color: transparent;
+            }
 
-        #layerPanel {
-            width: 260px;
-            min-width: 260px;
-            background-color: white;
-            border-right: 1px solid #d1d5db;
-            display: flex;
-            flex-direction: column;
-            transition: margin-left 0.3s ease;
-            position: relative;
-            z-index: 500;
-        }
+            #layerPanel {
+                width: 260px;
+                min-width: 260px;
+                background-color: white;
+                border-right: 1px solid #d1d5db;
+                display: flex;
+                flex-direction: column;
+                transition: margin-left 0.3s ease;
+                position: relative;
+                z-index: 500;
+            }
 
-        #layerPanel.collapsed {
-            margin-left: -260px;
-        }
+            #layerPanel.collapsed {
+                margin-left: -260px;
+            }
 
-        .layer-panel-header {
-            padding: 0.75rem 1rem;
-            background-color: #f7fafc;
-            border-bottom: 1px solid #e2e8f0;
-            font-weight: 600;
-            font-size: 0.95rem;
-            color: #2d3748;
-        }
+            .layer-panel-header {
+                padding: 0.75rem 1rem;
+                background-color: #f7fafc;
+                border-bottom: 1px solid #e2e8f0;
+                font-weight: 600;
+                font-size: 0.95rem;
+                color: #2d3748;
+            }
 
-        .layer-panel-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 0.5rem;
-        }
+            .layer-panel-content {
+                flex: 1;
+                overflow-y: auto;
+                padding: 0.5rem;
+            }
 
-        .layer-item {
-            padding: 0.5rem;
-            margin-bottom: 0.4rem;
-            background-color: #f7fafc;
-            border-radius: 3px;
-            border-left: 3px solid;
-        }
+            .layer-item {
+                padding: 0.5rem;
+                margin-bottom: 0.4rem;
+                background-color: #f7fafc;
+                border-radius: 3px;
+                border-left: 3px solid;
+            }
 
-        .layer-item-header {
-            display: flex;
-            align-items: flex-start;
-            margin-bottom: 0.4rem;
-        }
+            .layer-item-header {
+                display: flex;
+                align-items: flex-start;
+                margin-bottom: 0.4rem;
+            }
 
-        .layer-item-name {
-            font-weight: 500;
-            font-size: 0.85rem;
-            word-break: break-word;
-        }
+            .layer-item-name {
+                font-weight: 500;
+                font-size: 0.85rem;
+                word-break: break-word;
+            }
 
-        .layer-item-actions {
-            display: flex;
-            gap: 0.25rem;
-        }
+            .layer-item-actions {
+                display: flex;
+                gap: 0.25rem;
+            }
 
-        .layer-item-actions button {
-            padding: 0.2rem 0.4rem;
-            font-size: 0.7rem;
-            background-color: white;
-            color: #4a5568;
-            border: 1px solid #d1d5db;
-        }
+            .layer-item-actions button {
+                padding: 0.2rem 0.4rem;
+                font-size: 0.7rem;
+                background-color: white;
+                color: #4a5568;
+                border: 1px solid #d1d5db;
+            }
 
-        .layer-item-actions button:hover {
-            background-color: #f9fafb;
-        }
+            .layer-item-actions button:hover {
+                background-color: #f9fafb;
+            }
 
-        .layer-item-actions button.danger {
-            color: #c53030;
-        }
+            .layer-item-actions button.danger {
+                color: #c53030;
+            }
 
-        .toggle-panel-btn {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            z-index: 1000;
-            background-color: white;
-            color: #2d3748;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            padding: 8px;
-            cursor: pointer;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+            .toggle-panel-btn {
+                position: absolute;
+                bottom: 20px;
+                left: 20px;
+                z-index: 1000;
+                background-color: white;
+                color: #2d3748;
+                border: 1px solid #d1d5db;
+                border-radius: 6px;
+                padding: 8px;
+                cursor: pointer;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                transition: all 0.2s;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
 
-        .toggle-panel-btn:hover {
-            background-color: #f9fafb;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
-        }
+            .toggle-panel-btn:hover {
+                background-color: #f9fafb;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+            }
 
-        #layerPanel.collapsed + .toggle-panel-btn {
-            left: 20px;
-        }
+            #layerPanel.collapsed + .toggle-panel-btn {
+                left: 20px;
+            }
 
-        #map {
-            flex: 1;
-            width: 100%;
-        }
+            #map {
+                flex: 1;
+                width: 100%;
+            }
 
-        .empty-state {
-            padding: 2rem;
-            text-align: center;
-            color: #718096;
-            font-size: 0.9rem;
-        }
+            .empty-state {
+                padding: 2rem;
+                text-align: center;
+                color: #718096;
+                font-size: 0.9rem;
+            }
 
-        .message {
-            padding: 0.75rem 1rem;
-            margin: 0.5rem 2rem;
-            border-radius: 4px;
-            display: none;
-        }
+            .message {
+                padding: 0.75rem 1rem;
+                margin: 0.5rem 2rem;
+                border-radius: 4px;
+                display: none;
+            }
 
-        .message.error {
-            background-color: #fed7d7;
-            color: #c53030;
-            border-left: 4px solid #c53030;
-        }
+            .message.error {
+                background-color: #fed7d7;
+                color: #c53030;
+                border-left: 4px solid #c53030;
+            }
 
-        .message.success {
-            background-color: #c6f6d5;
-            color: #276749;
-            border-left: 4px solid #276749;
-        }
+            .message.success {
+                background-color: #c6f6d5;
+                color: #276749;
+                border-left: 4px solid #276749;
+            }
 
-        .message.warning {
-            background-color: #feebc8;
-            color: #c05621;
-            border-left: 4px solid #c05621;
-        }
+            .message.warning {
+                background-color: #feebc8;
+                color: #c05621;
+                border-left: 4px solid #c05621;
+            }
 
-        .message.show {
-            display: block;
-        }
+            .message.show {
+                display: block;
+            }
 
+            /* Style pour les popups */
+            .popup-content {
+                max-height: 500px;
+                overflow-y: auto;
+                min-width: 250px;
+            }
 
-        /* Style pour les popups */
-        .popup-content {
-            max-height: 500px;
-            overflow-y: auto;
-            min-width: 250px;
-        }
+            .popup-content h3 {
+                margin: 0 0 0.5rem 0;
+                font-size: 1.1rem;
+                color: #2d3748;
+            }
 
-        .popup-content h3 {
-            margin: 0 0 0.5rem 0;
-            font-size: 1.1rem;
-            color: #2d3748;
-        }
+            .popup-content table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 1rem;
+            }
 
-        .popup-content table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 1rem;
-        }
+            .popup-content th,
+            .popup-content td {
+                padding: 0.25rem 0.5rem;
+                text-align: left;
+                border-bottom: 1px solid #eee;
+            }
 
-        .popup-content th,
-        .popup-content td {
-            padding: 0.25rem 0.5rem;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-        }
+            .popup-content th {
+                font-weight: 600;
+                background-color: #f7fafc;
+            }
 
-        .popup-content th {
-            font-weight: 600;
-            background-color: #f7fafc;
-        }
+            .popup-chart {
+                margin-top: 1rem;
+                padding-top: 1rem;
+                border-top: 1px solid #e2e8f0;
+            }
 
-        .popup-chart {
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 1px solid #e2e8f0;
-        }
+            .popup-chart canvas {
+                max-height: 250px;
+            }
 
-        .popup-chart canvas {
-            max-height: 250px;
-        }
+            .popup-section {
+                margin-bottom: 1rem;
+            }
 
-        .popup-section {
-            margin-bottom: 1rem;
-        }
+            .popup-section:last-child {
+                margin-bottom: 0;
+            }
 
-        .popup-section:last-child {
-            margin-bottom: 0;
-        }
+            /* Modal pour renommer */
+            .modal {
+                display: none;
+                position: fixed;
+                z-index: 10000;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.5);
+            }
 
-        /* Modal pour renommer */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 10000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-        }
+            .modal.show {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
 
-        .modal.show {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+            .modal-content {
+                background-color: white;
+                padding: 2rem;
+                border-radius: 8px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                min-width: 400px;
+            }
 
-        .modal-content {
-            background-color: white;
-            padding: 2rem;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            min-width: 400px;
-        }
+            .modal-content h2 {
+                margin-bottom: 1rem;
+                font-size: 1.25rem;
+            }
 
-        .modal-content h2 {
-            margin-bottom: 1rem;
-            font-size: 1.25rem;
-        }
+            .modal-content input {
+                width: 100%;
+                padding: 0.5rem;
+                margin-bottom: 1rem;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+            }
 
-        .modal-content input {
-            width: 100%;
-            padding: 0.5rem;
-            margin-bottom: 1rem;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
+            .modal-buttons {
+                display: flex;
+                gap: 0.5rem;
+                justify-content: flex-end;
+            }
 
-        .modal-buttons {
-            display: flex;
-            gap: 0.5rem;
-            justify-content: flex-end;
-        }
+            .layer-edit-btn {
+                font-size: 0.8rem;
+                padding: 0.25rem 0.5rem;
+                margin-left: 0.5rem;
+                background-color: #666;
+            }
 
-        .layer-edit-btn {
-            font-size: 0.8rem;
-            padding: 0.25rem 0.5rem;
-            margin-left: 0.5rem;
-            background-color: #666;
-        }
+            .layer-edit-btn:hover {
+                background-color: #444;
+            }
+        </style>
+    </head>
+    <body class="overflow-hidden">
+        <!-- Menu hamburger en haut à droite -->
+        <button
+            id="menuToggle"
+            onclick="toggleMenu()"
+            class="fixed top-4 right-4 z-[2000] bg-white hover:bg-gray-50 text-gray-800 p-2.5 rounded-md shadow-md border border-gray-200 transition-colors"
+        >
+            <span
+                class="iconify"
+                data-icon="mdi:menu"
+                style="font-size: 20px"
+            ></span>
+        </button>
 
-        .layer-edit-btn:hover {
-            background-color: #444;
-        }
-    </style>
-</head>
-<body class="overflow-hidden">
-    <!-- Menu hamburger en haut à droite -->
-    <button id="menuToggle" onclick="toggleMenu()" class="fixed top-4 right-4 z-[2000] bg-white hover:bg-gray-50 text-gray-800 p-2.5 rounded-md shadow-md border border-gray-200 transition-colors">
-        <span class="iconify" data-icon="mdi:menu" style="font-size: 20px;"></span>
-    </button>
+        <!-- Menu déroulant -->
+        <div
+            id="menuPanel"
+            class="hidden fixed top-16 right-4 z-[1999] bg-white rounded-lg shadow-xl border border-gray-200 w-80 max-h-[80vh] overflow-y-auto"
+        >
+            <div class="p-3 space-y-3">
+                <!-- Section URL -->
+                <div>
+                    <label
+                        class="block text-xs font-medium text-gray-600 mb-1.5"
+                        >Charger depuis une URL</label
+                    >
+                    <div class="flex gap-1.5">
+                        <input
+                            type="text"
+                            id="urlInput"
+                            placeholder="URL du fichier GeoJSON..."
+                            class="flex-1 px-2.5 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-gray-400"
+                        />
+                        <button
+                            onclick="loadFromURL()"
+                            class="bg-gray-800 hover:bg-gray-900 text-white px-3 py-1.5 rounded text-xs font-medium transition-colors whitespace-nowrap"
+                        >
+                            Ajouter
+                        </button>
+                    </div>
+                </div>
 
-    <!-- Menu déroulant -->
-    <div id="menuPanel" class="hidden fixed top-16 right-4 z-[1999] bg-white rounded-lg shadow-xl border border-gray-200 w-80 max-h-[80vh] overflow-y-auto">
-        <div class="p-3 space-y-3">
-            <!-- Section URL -->
-            <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1.5">Charger depuis une URL</label>
-                <div class="flex gap-1.5">
-                    <input type="text" id="urlInput" placeholder="URL du fichier GeoJSON..." class="flex-1 px-2.5 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-gray-400">
-                    <button onclick="loadFromURL()" class="bg-gray-800 hover:bg-gray-900 text-white px-3 py-1.5 rounded text-xs font-medium transition-colors whitespace-nowrap">
-                        Ajouter
+                <!-- Section Fichier local -->
+                <div>
+                    <label
+                        class="block text-xs font-medium text-gray-600 mb-1.5"
+                        >Charger un fichier local</label
+                    >
+                    <input
+                        type="file"
+                        id="fileInput"
+                        accept=".geojson,.json"
+                        onchange="loadFromFile(this)"
+                        class="hidden"
+                    />
+                    <button
+                        onclick="document.getElementById('fileInput').click()"
+                        class="w-full bg-gray-800 hover:bg-gray-900 text-white px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
+                    >
+                        <span
+                            class="iconify"
+                            data-icon="mdi:folder-open"
+                            style="font-size: 14px"
+                        ></span>
+                        Fichier GeoJSON
                     </button>
                 </div>
-            </div>
 
-            <!-- Section Fichier local -->
-            <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1.5">Charger un fichier local</label>
-                <input type="file" id="fileInput" accept=".geojson,.json" onchange="loadFromFile(this)" class="hidden">
-                <button onclick="document.getElementById('fileInput').click()" class="w-full bg-gray-800 hover:bg-gray-900 text-white px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1.5">
-                    <span class="iconify" data-icon="mdi:folder-open" style="font-size: 14px;"></span>
-                    Fichier GeoJSON
-                </button>
-            </div>
-
-            <!-- Section Vue/Configuration -->
-            <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1.5">Configuration</label>
-                <input type="file" id="viewConfigInput" accept=".json" onchange="loadViewConfig(this)" class="hidden">
-                <div class="space-y-1.5">
-                    <button onclick="document.getElementById('viewConfigInput').click()" class="w-full bg-white hover:bg-gray-50 text-gray-800 border border-gray-300 px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1.5">
-                        <span class="iconify" data-icon="mdi:view-dashboard" style="font-size: 14px;"></span>
-                        Charger config
-                    </button>
-                    <button onclick="exportConfig()" class="w-full bg-white hover:bg-gray-50 text-gray-800 border border-gray-300 px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1.5">
-                        <span class="iconify" data-icon="mdi:download" style="font-size: 14px;"></span>
-                        Exporter config
-                    </button>
+                <!-- Section Vue/Configuration -->
+                <div>
+                    <label
+                        class="block text-xs font-medium text-gray-600 mb-1.5"
+                        >Configuration</label
+                    >
+                    <input
+                        type="file"
+                        id="viewConfigInput"
+                        accept=".json"
+                        onchange="loadViewConfig(this)"
+                        class="hidden"
+                    />
+                    <div class="space-y-1.5">
+                        <button
+                            onclick="
+                                document
+                                    .getElementById('viewConfigInput')
+                                    .click()
+                            "
+                            class="w-full bg-white hover:bg-gray-50 text-gray-800 border border-gray-300 px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
+                        >
+                            <span
+                                class="iconify"
+                                data-icon="mdi:view-dashboard"
+                                style="font-size: 14px"
+                            ></span>
+                            Charger config
+                        </button>
+                        <button
+                            onclick="exportConfig()"
+                            class="w-full bg-white hover:bg-gray-50 text-gray-800 border border-gray-300 px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
+                        >
+                            <span
+                                class="iconify"
+                                data-icon="mdi:download"
+                                style="font-size: 14px"
+                            ></span>
+                            Exporter config
+                        </button>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Séparateur -->
-            <div class="border-t border-gray-200"></div>
+                <!-- Séparateur -->
+                <div class="border-t border-gray-200"></div>
 
-            <!-- Actions rapides -->
-            <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1.5">Actions</label>
-                <div class="space-y-1.5">
-                    <button onclick="loadExample()" class="w-full bg-white hover:bg-gray-50 text-gray-800 border border-gray-300 px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1.5">
-                        <span class="iconify" data-icon="mdi:map-marker-star" style="font-size: 14px;"></span>
-                        Exemple
-                    </button>
-                    <button onclick="clearAll()" class="w-full bg-white hover:bg-gray-50 text-red-700 border border-gray-300 px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1.5">
-                        <span class="iconify" data-icon="mdi:delete-sweep" style="font-size: 14px;"></span>
-                        Effacer tout
-                    </button>
+                <!-- Actions rapides -->
+                <div>
+                    <label
+                        class="block text-xs font-medium text-gray-600 mb-1.5"
+                        >Actions</label
+                    >
+                    <div class="space-y-1.5">
+                        <button
+                            onclick="loadExample()"
+                            class="w-full bg-white hover:bg-gray-50 text-gray-800 border border-gray-300 px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
+                        >
+                            <span
+                                class="iconify"
+                                data-icon="mdi:map-marker-star"
+                                style="font-size: 14px"
+                            ></span>
+                            Exemple
+                        </button>
+                        <button
+                            onclick="clearAll()"
+                            class="w-full bg-white hover:bg-gray-50 text-red-700 border border-gray-300 px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
+                        >
+                            <span
+                                class="iconify"
+                                data-icon="mdi:delete-sweep"
+                                style="font-size: 14px"
+                            ></span>
+                            Effacer tout
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div id="message" class="message"></div>
+        <div id="message" class="message"></div>
 
-    <div class="map-container">
-        <!-- Panneau de gestion des couches -->
-        <div id="layerPanel">
-            <div class="layer-panel-header">
-                <div id="viewTitle">Visualiseur GeoJSON</div>
-            </div>
-            <div class="layer-panel-content">
-                <!-- Section des fonds de carte -->
-                <div style="padding: 0.4rem 0.5rem; border-bottom: 1px solid #e2e8f0; margin-bottom: 0.4rem;">
-                    <div style="font-weight: 600; margin-bottom: 0.4rem; font-size: 0.75rem; color: #6b7280;">
-                        FOND DE CARTE
-                    </div>
-                    <div id="basemapSelector">
-                        <label style="display: flex; align-items: center; padding: 0.2rem 0; cursor: pointer; font-size: 0.8rem;">
-                            <input type="radio" name="basemap" value="osm" checked onchange="switchBasemap('osm')" style="margin-right: 0.4rem;">
-                            <span>OpenStreetMap</span>
-                        </label>
-                        <label style="display: flex; align-items: center; padding: 0.2rem 0; cursor: pointer; font-size: 0.8rem;">
-                            <input type="radio" name="basemap" value="topo" onchange="switchBasemap('topo')" style="margin-right: 0.4rem;">
-                            <span>OpenTopoMap</span>
-                        </label>
-                        <label style="display: flex; align-items: center; padding: 0.2rem 0; cursor: pointer; font-size: 0.8rem;">
-                            <input type="radio" name="basemap" value="positron" onchange="switchBasemap('positron')" style="margin-right: 0.4rem;">
-                            <span>CartoDB Positron</span>
-                        </label>
-                    </div>
+        <div class="map-container">
+            <!-- Panneau de gestion des couches -->
+            <div id="layerPanel">
+                <div class="layer-panel-header">
+                    <div id="viewTitle">Visualiseur GeoJSON</div>
                 </div>
-
-                <!-- Section des couches de données -->
-                <div style="padding: 0 0.5rem;">
-                    <div style="font-weight: 600; margin-bottom: 0.4rem; font-size: 0.75rem; color: #6b7280;">
-                        COUCHES
+                <div class="layer-panel-content">
+                    <!-- Section des fonds de carte -->
+                    <div
+                        style="
+                            padding: 0.4rem 0.5rem;
+                            border-bottom: 1px solid #e2e8f0;
+                            margin-bottom: 0.4rem;
+                        "
+                    >
+                        <div
+                            style="
+                                font-weight: 600;
+                                margin-bottom: 0.4rem;
+                                font-size: 0.75rem;
+                                color: #6b7280;
+                            "
+                        >
+                            FOND DE CARTE
+                        </div>
+                        <div id="basemapSelector">
+                            <label
+                                style="
+                                    display: flex;
+                                    align-items: center;
+                                    padding: 0.2rem 0;
+                                    cursor: pointer;
+                                    font-size: 0.8rem;
+                                "
+                            >
+                                <input
+                                    type="radio"
+                                    name="basemap"
+                                    value="osm"
+                                    checked
+                                    onchange="switchBasemap('osm')"
+                                    style="margin-right: 0.4rem"
+                                />
+                                <span>OpenStreetMap</span>
+                            </label>
+                            <label
+                                style="
+                                    display: flex;
+                                    align-items: center;
+                                    padding: 0.2rem 0;
+                                    cursor: pointer;
+                                    font-size: 0.8rem;
+                                "
+                            >
+                                <input
+                                    type="radio"
+                                    name="basemap"
+                                    value="topo"
+                                    onchange="switchBasemap('topo')"
+                                    style="margin-right: 0.4rem"
+                                />
+                                <span>OpenTopoMap</span>
+                            </label>
+                            <label
+                                style="
+                                    display: flex;
+                                    align-items: center;
+                                    padding: 0.2rem 0;
+                                    cursor: pointer;
+                                    font-size: 0.8rem;
+                                "
+                            >
+                                <input
+                                    type="radio"
+                                    name="basemap"
+                                    value="positron"
+                                    onchange="switchBasemap('positron')"
+                                    style="margin-right: 0.4rem"
+                                />
+                                <span>CartoDB Positron</span>
+                            </label>
+                        </div>
                     </div>
-                    <div id="layerList">
-                        <div class="empty-state" style="padding: 1rem; font-size: 0.8rem;">
-                            Aucune couche chargée.
+
+                    <!-- Section des couches de données -->
+                    <div style="padding: 0 0.5rem">
+                        <div
+                            style="
+                                font-weight: 600;
+                                margin-bottom: 0.4rem;
+                                font-size: 0.75rem;
+                                color: #6b7280;
+                            "
+                        >
+                            COUCHES
+                        </div>
+                        <div id="layerList">
+                            <div
+                                class="empty-state"
+                                style="padding: 1rem; font-size: 0.8rem"
+                            >
+                                Aucune couche chargée.
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Bouton pour afficher/masquer le panneau (bas gauche) -->
+            <button
+                class="toggle-panel-btn"
+                id="togglePanelBtn"
+                onclick="toggleLayerPanel()"
+                title="Masquer le panneau"
+            >
+                <span
+                    class="iconify"
+                    data-icon="mdi:dock-left"
+                    style="font-size: 20px"
+                ></span>
+            </button>
+
+            <!-- Carte -->
+            <div id="map"></div>
         </div>
 
-        <!-- Bouton pour afficher/masquer le panneau (bas gauche) -->
-        <button class="toggle-panel-btn" id="togglePanelBtn" onclick="toggleLayerPanel()" title="Masquer le panneau">
-            <span class="iconify" data-icon="mdi:dock-left" style="font-size: 20px;"></span>
-        </button>
-
-        <!-- Carte -->
-        <div id="map"></div>
-    </div>
-
-    <!-- Modal pour renommer une couche -->
-    <div id="renameModal" class="modal">
-        <div class="modal-content">
-            <h2>Renommer la couche</h2>
-            <input type="text" id="renameInput" placeholder="Nouveau nom...">
-            <div class="modal-buttons">
-                <button class="secondary" onclick="closeRenameModal()">Annuler</button>
-                <button onclick="confirmRename()">Valider</button>
+        <!-- Modal pour renommer une couche -->
+        <div id="renameModal" class="modal">
+            <div class="modal-content">
+                <h2>Renommer la couche</h2>
+                <input
+                    type="text"
+                    id="renameInput"
+                    placeholder="Nouveau nom..."
+                />
+                <div class="modal-buttons">
+                    <button class="secondary" onclick="closeRenameModal()">
+                        Annuler
+                    </button>
+                    <button onclick="confirmRename()">Valider</button>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        <!-- Leaflet JS -->
+        <script
+            src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
             integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-            crossorigin=""></script>
+            crossorigin=""
+        ></script>
 
-    <script>
-        // Configuration de la carte
-        const map = L.map('map').setView([46.8, -71.2], 6);
+        <script>
+            // Configuration de la carte
+            const map = L.map("map").setView([46.8, -71.2], 6);
 
-        // Fond de carte OpenStreetMap
-        const basemapOSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors',
-            maxZoom: 19
-        });
+            // Fond de carte OpenStreetMap
+            const basemapOSM = L.tileLayer(
+                "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {
+                    attribution: "© OpenStreetMap contributors",
+                    maxZoom: 19,
+                },
+            );
 
-        // Fonds de carte alternatifs
-        const basemapTopo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-            attribution: 'Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap',
-            maxZoom: 17
-        });
+            // Fonds de carte alternatifs
+            const basemapTopo = L.tileLayer(
+                "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+                {
+                    attribution:
+                        "Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap",
+                    maxZoom: 17,
+                },
+            );
 
-        const basemapPositron = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors, © CARTO',
-            maxZoom: 19
-        });
+            const basemapPositron = L.tileLayer(
+                "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+                {
+                    attribution: "© OpenStreetMap contributors, © CARTO",
+                    maxZoom: 19,
+                },
+            );
 
-        // Définir les couches de base
-        const baseMaps = {
-            "OpenStreetMap": basemapOSM,
-            "OpenTopoMap": basemapTopo,
-            "CartoDB Positron": basemapPositron
-        };
+            // Définir les couches de base
+            const baseMaps = {
+                OpenStreetMap: basemapOSM,
+                OpenTopoMap: basemapTopo,
+                "CartoDB Positron": basemapPositron,
+            };
 
-        // Ajouter le fond de carte par défaut
-        let currentBasemap = basemapOSM;
-        currentBasemap.addTo(map);
-
-        /**
-         * Change le fond de carte
-         */
-        function switchBasemap(type) {
-            // Retirer le fond de carte actuel
-            map.removeLayer(currentBasemap);
-
-            // Ajouter le nouveau fond de carte
-            switch(type) {
-                case 'osm':
-                    currentBasemap = basemapOSM;
-                    break;
-                case 'topo':
-                    currentBasemap = basemapTopo;
-                    break;
-                case 'positron':
-                    currentBasemap = basemapPositron;
-                    break;
-            }
-
+            // Ajouter le fond de carte par défaut
+            let currentBasemap = basemapOSM;
             currentBasemap.addTo(map);
-        }
 
-        // Palette de couleurs accessibles (compatible daltonisme)
-        // Basée sur les recommandations de Paul Tol pour l'accessibilité
-        const colorPalette = [
-            '#0072B2', // Bleu
-            '#D55E00', // Orange
-            '#009E73', // Vert sarcelle
-            '#CC79A7', // Rose
-            '#F0E442', // Jaune
-            '#56B4E9', // Bleu ciel
-            '#E69F00', // Orange doré
-            '#882255', // Magenta foncé
-            '#44AA99', // Vert cyan
-            '#DDCC77'  // Beige
-        ];
+            /**
+             * Change le fond de carte
+             */
+            function switchBasemap(type) {
+                // Retirer le fond de carte actuel
+                map.removeLayer(currentBasemap);
 
-        // Stockage des couches chargées
-        let loadedLayers = [];
-        let colorIndex = 0;
-        let currentRenameLayer = null;
-        let currentRenameIndex = null;
+                // Ajouter le nouveau fond de carte
+                switch (type) {
+                    case "osm":
+                        currentBasemap = basemapOSM;
+                        break;
+                    case "topo":
+                        currentBasemap = basemapTopo;
+                        break;
+                    case "positron":
+                        currentBasemap = basemapPositron;
+                        break;
+                }
 
-        // Limite de taille de fichier (5 MB)
-        const MAX_FILE_SIZE = 5 * 1024 * 1024;
-
-        // Configuration des templates de popups
-        let popupTemplates = {};
-
-        // Configuration de vue actuelle
-        let currentViewConfig = null;
-
-        /**
-         * Affiche un message à l'utilisateur
-         */
-        function showMessage(text, type = 'info') {
-            const messageEl = document.getElementById('message');
-            messageEl.textContent = text;
-            messageEl.className = `message ${type} show`;
-
-            setTimeout(() => {
-                messageEl.classList.remove('show');
-            }, 5000);
-        }
-
-        /**
-         * Obtient la prochaine couleur de la palette
-         */
-        function getNextColor() {
-            const color = colorPalette[colorIndex % colorPalette.length];
-            colorIndex++;
-            return color;
-        }
-
-        /**
-         * Crée une popup pour une feature avec toutes ses propriétés
-         */
-        function createPopup(feature, templateName = null) {
-            if (!feature.properties) {
-                return '<p><em>Aucune propriété disponible</em></p>';
+                currentBasemap.addTo(map);
             }
 
-            const properties = feature.properties;
+            // Palette de couleurs accessibles (compatible daltonisme)
+            // Basée sur les recommandations de Paul Tol pour l'accessibilité
+            const colorPalette = [
+                "#0072B2", // Bleu
+                "#D55E00", // Orange
+                "#009E73", // Vert sarcelle
+                "#CC79A7", // Rose
+                "#F0E442", // Jaune
+                "#56B4E9", // Bleu ciel
+                "#E69F00", // Orange doré
+                "#882255", // Magenta foncé
+                "#44AA99", // Vert cyan
+                "#DDCC77", // Beige
+            ];
 
-            // Si un template est spécifié et existe, l'utiliser
-            if (templateName && popupTemplates[templateName]) {
-                return createTemplatedPopup(feature, popupTemplates[templateName]);
+            // Stockage des couches chargées
+            let loadedLayers = [];
+            let colorIndex = 0;
+            let currentRenameLayer = null;
+            let currentRenameIndex = null;
+
+            // Limite de taille de fichier (5 MB)
+            const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
+            // Configuration des templates de popups
+            let popupTemplates = {};
+
+            // Configuration de vue actuelle
+            let currentViewConfig = null;
+
+            /**
+             * Affiche un message à l'utilisateur
+             */
+            function showMessage(text, type = "info") {
+                const messageEl = document.getElementById("message");
+                messageEl.textContent = text;
+                messageEl.className = `message ${type} show`;
+
+                setTimeout(() => {
+                    messageEl.classList.remove("show");
+                }, 5000);
             }
 
-            // Sinon, créer un popup par défaut avec tableau
-            const rows = Object.entries(properties)
-                .map(([key, value]) => {
-                    // Gestion des valeurs null/undefined
-                    const displayValue = value !== null && value !== undefined ? value : '<em>N/A</em>';
-                    return `<tr><th>${key}</th><td>${displayValue}</td></tr>`;
-                })
-                .join('');
+            /**
+             * Obtient la prochaine couleur de la palette
+             */
+            function getNextColor() {
+                const color = colorPalette[colorIndex % colorPalette.length];
+                colorIndex++;
+                return color;
+            }
 
-            return `
+            /**
+             * Crée une popup pour une feature avec toutes ses propriétés
+             */
+            function createPopup(feature, templateName = null) {
+                if (!feature.properties) {
+                    return "<p><em>Aucune propriété disponible</em></p>";
+                }
+
+                const properties = feature.properties;
+
+                // Si un template est spécifié et existe, l'utiliser
+                if (templateName && popupTemplates[templateName]) {
+                    return createTemplatedPopup(
+                        feature,
+                        popupTemplates[templateName],
+                    );
+                }
+
+                // Sinon, créer un popup par défaut avec tableau
+                const rows = Object.entries(properties)
+                    .map(([key, value]) => {
+                        // Gestion des valeurs null/undefined
+                        const displayValue =
+                            value !== null && value !== undefined
+                                ? value
+                                : "<em>N/A</em>";
+                        return `<tr><th>${key}</th><td>${displayValue}</td></tr>`;
+                    })
+                    .join("");
+
+                return `
                 <div class="popup-content">
                     <table>
                         ${rows}
                     </table>
                 </div>
             `;
-        }
-
-        /**
-         * Crée un popup à partir d'un template
-         */
-        function createTemplatedPopup(feature, template) {
-            const properties = feature.properties;
-            let html = '<div class="popup-content">';
-
-            // Titre du popup
-            if (template.title) {
-                const title = interpolateString(template.title, properties);
-                html += `<h3>${title}</h3>`;
             }
 
-            // Sections du template
-            if (template.sections) {
-                template.sections.forEach((section, index) => {
-                    html += '<div class="popup-section">';
+            /**
+             * Crée un popup à partir d'un template
+             */
+            function createTemplatedPopup(feature, template) {
+                const properties = feature.properties;
+                let html = '<div class="popup-content">';
 
-                    if (section.type === 'properties') {
-                        // Section avec tableau de propriétés
-                        const fields = section.fields || Object.keys(properties);
-                        const rows = fields
-                            .filter(field => properties.hasOwnProperty(field))
-                            .map(field => {
-                                const value = properties[field] !== null && properties[field] !== undefined
-                                    ? properties[field]
-                                    : '<em>N/A</em>';
-                                return `<tr><th>${field}</th><td>${value}</td></tr>`;
-                            })
-                            .join('');
-                        html += `<table>${rows}</table>`;
+                // Titre du popup
+                if (template.title) {
+                    const title = interpolateString(template.title, properties);
+                    html += `<h3>${title}</h3>`;
+                }
 
-                    } else if (section.type === 'chart') {
-                        // Section avec graphique - ID unique garanti avec timestamp + random
-                        const chartId = `chart-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-                        // Canvas avec dimensions fixes (pas de responsive pour éviter bugs)
-                        html += `<div class="popup-chart"><canvas id="${chartId}" width="350" height="250" data-chart-config='${JSON.stringify(section)}' style="display: block;"></canvas></div>`;
+                // Sections du template
+                if (template.sections) {
+                    template.sections.forEach((section, index) => {
+                        html += '<div class="popup-section">';
+
+                        if (section.type === "properties") {
+                            // Section avec tableau de propriétés
+                            const fields =
+                                section.fields || Object.keys(properties);
+                            const rows = fields
+                                .filter((field) =>
+                                    properties.hasOwnProperty(field),
+                                )
+                                .map((field) => {
+                                    const value =
+                                        properties[field] !== null &&
+                                        properties[field] !== undefined
+                                            ? properties[field]
+                                            : "<em>N/A</em>";
+                                    return `<tr><th>${field}</th><td>${value}</td></tr>`;
+                                })
+                                .join("");
+                            html += `<table>${rows}</table>`;
+                        } else if (section.type === "chart") {
+                            // Section avec graphique - ID unique garanti avec timestamp + random
+                            const chartId = `chart-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+                            // Canvas avec dimensions fixes (pas de responsive pour éviter bugs)
+                            html += `<div class="popup-chart"><canvas id="${chartId}" width="350" height="250" data-chart-config='${JSON.stringify(section)}' style="display: block;"></canvas></div>`;
+                        }
+
+                        html += "</div>";
+                    });
+                }
+
+                html += "</div>";
+                return html;
+            }
+
+            /**
+             * Crée tous les graphiques dans le popup ouvert
+             */
+            function createChartsInPopup(feature, templateName, popup) {
+                if (!templateName || !popupTemplates[templateName]) return;
+
+                const template = popupTemplates[templateName];
+                const properties = feature.properties;
+
+                // Utiliser le popup spécifique passé en paramètre
+                const popupElement = popup.getElement();
+                if (!popupElement) return;
+
+                const canvases = popupElement.querySelectorAll(
+                    "canvas[data-chart-config]",
+                );
+
+                canvases.forEach((canvas) => {
+                    try {
+                        const sectionConfig = JSON.parse(
+                            canvas.getAttribute("data-chart-config"),
+                        );
+                        createChart(canvas.id, sectionConfig, properties);
+                    } catch (e) {
+                        console.error(
+                            `Erreur création graphique ${canvas.id}:`,
+                            e,
+                        );
                     }
-
-                    html += '</div>';
                 });
             }
 
-            html += '</div>';
-            return html;
-        }
-
-        /**
-         * Crée tous les graphiques dans le popup ouvert
-         */
-        function createChartsInPopup(feature, templateName, popup) {
-            if (!templateName || !popupTemplates[templateName]) return;
-
-            const template = popupTemplates[templateName];
-            const properties = feature.properties;
-
-            // Utiliser le popup spécifique passé en paramètre
-            const popupElement = popup.getElement();
-            if (!popupElement) return;
-
-            const canvases = popupElement.querySelectorAll('canvas[data-chart-config]');
-
-            canvases.forEach((canvas) => {
-                try {
-                    const sectionConfig = JSON.parse(canvas.getAttribute('data-chart-config'));
-                    createChart(canvas.id, sectionConfig, properties);
-                } catch (e) {
-                    console.error(`Erreur création graphique ${canvas.id}:`, e);
-                }
-            });
-        }
-
-        /**
-         * Interpole une chaîne avec les propriétés (ex: "{properties.nom}" -> valeur)
-         */
-        function interpolateString(str, properties) {
-            return str.replace(/\{properties\.(\w+)\}/g, (match, key) => {
-                return properties[key] || '';
-            });
-        }
-
-        /**
-         * Crée un graphique Chart.js dans un popup
-         */
-        function createChart(canvasId, section, properties) {
-            const canvas = document.getElementById(canvasId);
-            if (!canvas) {
-                console.error(`Canvas ${canvasId} introuvable`);
-                return;
+            /**
+             * Interpole une chaîne avec les propriétés (ex: "{properties.nom}" -> valeur)
+             */
+            function interpolateString(str, properties) {
+                return str.replace(/\{properties\.(\w+)\}/g, (match, key) => {
+                    return properties[key] || "";
+                });
             }
 
-            // Vérifier que le canvas est bien attaché au DOM
-            if (!canvas.isConnected) {
-                console.error(`Canvas ${canvasId} non attaché au DOM`);
-                return;
-            }
-
-            // Détruire tout graphique existant sur ce canvas
-            const existingChart = Chart.getChart(canvas);
-            if (existingChart) {
-                existingChart.destroy();
-            }
-
-            // Vérifier que le canvas a des dimensions
-            if (canvas.offsetWidth === 0 || canvas.offsetHeight === 0) {
-                console.warn(`Canvas ${canvasId} a des dimensions nulles, retry dans 50ms`);
-                setTimeout(() => createChart(canvasId, section, properties), 50);
-                return;
-            }
-
-            const ctx = canvas.getContext('2d');
-            if (!ctx) {
-                console.error(`Impossible d'obtenir le contexte 2D pour ${canvasId}`);
-                return;
-            }
-
-            // Récupérer les données du graphique
-            let chartData;
-            if (section.data_field && properties[section.data_field]) {
-                const dataStr = properties[section.data_field];
-                try {
-                    chartData = typeof dataStr === 'string' ? JSON.parse(dataStr) : dataStr;
-                } catch (e) {
-                    console.error('Erreur parsing des données de graphique:', e);
+            /**
+             * Crée un graphique Chart.js dans un popup
+             */
+            function createChart(canvasId, section, properties) {
+                const canvas = document.getElementById(canvasId);
+                if (!canvas) {
+                    console.error(`Canvas ${canvasId} introuvable`);
                     return;
                 }
-            } else {
-                console.error(`Données manquantes pour le graphique`);
-                return;
-            }
 
-            // Configuration du graphique
-            const options = section.options || {};
-            try {
-                const chart = new Chart(ctx, {
-                    type: section.chart_type || 'bar',
-                    data: {
-                        labels: chartData.labels || [],
-                        datasets: [{
-                            label: options.title || 'Données',
-                            data: chartData.values || [],
-                            backgroundColor: 'rgba(37, 99, 235, 0.5)',
-                            borderColor: 'rgba(37, 99, 235, 1)',
-                            borderWidth: 2,
-                            fill: section.chart_type === 'line' ? false : true
-                        }]
-                    },
-                    options: {
-                        responsive: false,
-                        maintainAspectRatio: true,
-                        plugins: {
-                            legend: {
-                                display: false
-                            },
-                            title: {
-                                display: !!options.title,
-                                text: options.title || ''
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                title: {
-                                    display: !!options.ylabel,
-                                    text: options.ylabel || ''
-                                }
-                            },
-                            x: {
-                                title: {
-                                    display: !!options.xlabel,
-                                    text: options.xlabel || ''
-                                }
-                            }
-                        }
+                // Vérifier que le canvas est bien attaché au DOM
+                if (!canvas.isConnected) {
+                    console.error(`Canvas ${canvasId} non attaché au DOM`);
+                    return;
+                }
+
+                // Détruire tout graphique existant sur ce canvas
+                const existingChart = Chart.getChart(canvas);
+                if (existingChart) {
+                    existingChart.destroy();
+                }
+
+                // Vérifier que le canvas a des dimensions
+                if (canvas.offsetWidth === 0 || canvas.offsetHeight === 0) {
+                    console.warn(
+                        `Canvas ${canvasId} a des dimensions nulles, retry dans 50ms`,
+                    );
+                    setTimeout(
+                        () => createChart(canvasId, section, properties),
+                        50,
+                    );
+                    return;
+                }
+
+                const ctx = canvas.getContext("2d");
+                if (!ctx) {
+                    console.error(
+                        `Impossible d'obtenir le contexte 2D pour ${canvasId}`,
+                    );
+                    return;
+                }
+
+                // Récupérer les données du graphique
+                let chartData;
+                if (section.data_field && properties[section.data_field]) {
+                    const dataStr = properties[section.data_field];
+                    try {
+                        chartData =
+                            typeof dataStr === "string"
+                                ? JSON.parse(dataStr)
+                                : dataStr;
+                    } catch (e) {
+                        console.error(
+                            "Erreur parsing des données de graphique:",
+                            e,
+                        );
+                        return;
                     }
-                });
-            } catch (e) {
-                console.error(`Erreur création graphique Chart.js:`, e);
+                } else {
+                    console.error(`Données manquantes pour le graphique`);
+                    return;
+                }
+
+                // Configuration du graphique
+                const options = section.options || {};
+                try {
+                    const chart = new Chart(ctx, {
+                        type: section.chart_type || "bar",
+                        data: {
+                            labels: chartData.labels || [],
+                            datasets: [
+                                {
+                                    label: options.title || "Données",
+                                    data: chartData.values || [],
+                                    backgroundColor: "rgba(37, 99, 235, 0.5)",
+                                    borderColor: "rgba(37, 99, 235, 1)",
+                                    borderWidth: 2,
+                                    fill:
+                                        section.chart_type === "line"
+                                            ? false
+                                            : true,
+                                },
+                            ],
+                        },
+                        options: {
+                            responsive: false,
+                            maintainAspectRatio: true,
+                            plugins: {
+                                legend: {
+                                    display: false,
+                                },
+                                title: {
+                                    display: !!options.title,
+                                    text: options.title || "",
+                                },
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: !!options.ylabel,
+                                        text: options.ylabel || "",
+                                    },
+                                },
+                                x: {
+                                    title: {
+                                        display: !!options.xlabel,
+                                        text: options.xlabel || "",
+                                    },
+                                },
+                            },
+                        },
+                    });
+                } catch (e) {
+                    console.error(`Erreur création graphique Chart.js:`, e);
+                }
             }
-        }
 
-        /**
-         * Applique le style à une feature selon son type de géométrie
-         */
-        function styleFeature(feature, color) {
-            const geometryType = feature.geometry.type;
+            /**
+             * Applique le style à une feature selon son type de géométrie
+             */
+            function styleFeature(feature, color) {
+                const geometryType = feature.geometry.type;
 
-            if (geometryType === 'Point' || geometryType === 'MultiPoint') {
-                // Style pour les points
-                return {
-                    radius: 6,
-                    fillColor: color,
-                    color: '#000',
-                    weight: 1,
-                    opacity: 1,
-                    fillOpacity: 0.7
-                };
-            } else {
-                // Style pour les lignes et polygones
-                return {
-                    color: color,
-                    weight: 2,
-                    opacity: 0.8,
-                    fillColor: color,
-                    fillOpacity: 0.3
-                };
+                if (geometryType === "Point" || geometryType === "MultiPoint") {
+                    // Style pour les points
+                    return {
+                        radius: 6,
+                        fillColor: color,
+                        color: "#000",
+                        weight: 1,
+                        opacity: 1,
+                        fillOpacity: 0.7,
+                    };
+                } else {
+                    // Style pour les lignes et polygones
+                    return {
+                        color: color,
+                        weight: 2,
+                        opacity: 0.8,
+                        fillColor: color,
+                        fillOpacity: 0.3,
+                    };
+                }
             }
-        }
 
-        /**
-         * Ajoute une couche GeoJSON à la carte
-         */
-        function addGeoJSONLayer(geojson, name, color, templateName = null, url = null) {
-            const layer = L.geoJSON(geojson, {
-                style: (feature) => styleFeature(feature, color),
-                pointToLayer: (feature, latlng) => {
-                    return L.circleMarker(latlng, styleFeature(feature, color));
-                },
-                onEachFeature: (feature, layer) => {
-                    const popupContent = createPopup(feature, templateName);
-                    const popup = L.popup({
-                        maxWidth: 400,
-                        maxHeight: 500
-                    }).setContent(popupContent);
+            /**
+             * Ajoute une couche GeoJSON à la carte
+             */
+            function addGeoJSONLayer(
+                geojson,
+                name,
+                color,
+                templateName = null,
+                url = null,
+            ) {
+                const layer = L.geoJSON(geojson, {
+                    style: (feature) => styleFeature(feature, color),
+                    pointToLayer: (feature, latlng) => {
+                        return L.circleMarker(
+                            latlng,
+                            styleFeature(feature, color),
+                        );
+                    },
+                    onEachFeature: (feature, layer) => {
+                        const popupContent = createPopup(feature, templateName);
+                        const popup = L.popup({
+                            maxWidth: 400,
+                            maxHeight: 500,
+                        }).setContent(popupContent);
 
-                    layer.bindPopup(popup);
+                        layer.bindPopup(popup);
 
-                    // Créer les graphiques quand le popup s'ouvre
-                    layer.on('popupopen', function(e) {
-                        // Utiliser requestAnimationFrame pour garantir que le popup est rendu
-                        requestAnimationFrame(() => {
+                        // Créer les graphiques quand le popup s'ouvre
+                        layer.on("popupopen", function (e) {
+                            // Utiliser requestAnimationFrame pour garantir que le popup est rendu
                             requestAnimationFrame(() => {
-                                createChartsInPopup(feature, templateName, e.popup);
+                                requestAnimationFrame(() => {
+                                    createChartsInPopup(
+                                        feature,
+                                        templateName,
+                                        e.popup,
+                                    );
+                                });
                             });
                         });
-                    });
 
-                    // Nettoyer les graphiques quand le popup se ferme
-                    layer.on('popupclose', function() {
-                        // Détruire tous les graphiques Chart.js pour libérer la mémoire
-                        const popup = layer.getPopup();
-                        if (popup && popup.getElement()) {
-                            const canvases = popup.getElement().querySelectorAll('canvas[data-chart-config]');
-                            canvases.forEach(canvas => {
-                                const chart = Chart.getChart(canvas.id);
-                                if (chart) {
-                                    chart.destroy();
-                                }
-                            });
+                        // Nettoyer les graphiques quand le popup se ferme
+                        layer.on("popupclose", function () {
+                            // Détruire tous les graphiques Chart.js pour libérer la mémoire
+                            const popup = layer.getPopup();
+                            if (popup && popup.getElement()) {
+                                const canvases = popup
+                                    .getElement()
+                                    .querySelectorAll(
+                                        "canvas[data-chart-config]",
+                                    );
+                                canvases.forEach((canvas) => {
+                                    const chart = Chart.getChart(canvas.id);
+                                    if (chart) {
+                                        chart.destroy();
+                                    }
+                                });
+                            }
+                        });
+                    },
+                }).addTo(map);
+
+                // Stocker la couche avec un ID unique
+                const layerInfo = {
+                    id: Date.now() + Math.random(),
+                    layer: layer,
+                    name: name,
+                    color: color,
+                    geojson: geojson,
+                    templateName: templateName,
+                    url: url,
+                };
+                loadedLayers.push(layerInfo);
+
+                // Mettre à jour le panneau des couches
+                updateLayerPanel();
+
+                // Zoom sur l'étendue des données (seulement si pas de config de vue)
+                if (!currentViewConfig) {
+                    try {
+                        const bounds = layer.getBounds();
+                        if (bounds.isValid()) {
+                            map.fitBounds(bounds, { padding: [50, 50] });
                         }
-                    });
-                }
-            }).addTo(map);
-
-            // Stocker la couche avec un ID unique
-            const layerInfo = {
-                id: Date.now() + Math.random(),
-                layer: layer,
-                name: name,
-                color: color,
-                geojson: geojson,
-                templateName: templateName,
-                url: url
-            };
-            loadedLayers.push(layerInfo);
-
-            // Mettre à jour le panneau des couches
-            updateLayerPanel();
-
-            // Zoom sur l'étendue des données (seulement si pas de config de vue)
-            if (!currentViewConfig) {
-                try {
-                    const bounds = layer.getBounds();
-                    if (bounds.isValid()) {
-                        map.fitBounds(bounds, { padding: [50, 50] });
+                    } catch (e) {
+                        console.warn("Impossible de calculer les limites:", e);
                     }
-                } catch (e) {
-                    console.warn('Impossible de calculer les limites:', e);
+                }
+
+                return layerInfo;
+            }
+
+            /**
+             * Demande le nom de la couche à l'utilisateur
+             */
+            function promptLayerName(defaultName) {
+                return new Promise((resolve) => {
+                    const name = prompt("Nom de la couche:", defaultName);
+                    resolve(name || defaultName);
+                });
+            }
+
+            /**
+             * Charge un GeoJSON depuis une URL
+             */
+            async function loadFromURL() {
+                const url = document.getElementById("urlInput").value.trim();
+
+                if (!url) {
+                    showMessage("Veuillez entrer une URL", "error");
+                    return;
+                }
+
+                try {
+                    showMessage("Chargement en cours...", "info");
+
+                    const response = await fetch(url);
+
+                    if (!response.ok) {
+                        throw new Error(`Erreur HTTP: ${response.status}`);
+                    }
+
+                    // Vérifier la taille
+                    const contentLength =
+                        response.headers.get("content-length");
+                    if (
+                        contentLength &&
+                        parseInt(contentLength) > MAX_FILE_SIZE
+                    ) {
+                        const proceed = confirm(
+                            `Ce fichier est volumineux (${(parseInt(contentLength) / 1024 / 1024).toFixed(2)} MB).\n` +
+                                `Le chargement pourrait ralentir votre navigateur.\n\n` +
+                                `Voulez-vous continuer ?`,
+                        );
+                        if (!proceed) {
+                            showMessage("Chargement annulé", "warning");
+                            return;
+                        }
+                    }
+
+                    const geojson = await response.json();
+
+                    // Valider le GeoJSON
+                    if (
+                        !geojson.type ||
+                        (geojson.type !== "FeatureCollection" &&
+                            geojson.type !== "Feature")
+                    ) {
+                        throw new Error("Format GeoJSON invalide");
+                    }
+
+                    // Extraire le nom du fichier depuis l'URL
+                    const urlParts = url.split("/");
+                    const filename = urlParts[urlParts.length - 1].replace(
+                        /\.geojson|\.json/i,
+                        "",
+                    );
+                    const defaultName =
+                        filename || `Couche ${loadedLayers.length + 1}`;
+
+                    // Demander le nom
+                    const layerName = await promptLayerName(defaultName);
+
+                    // Ajouter la couche
+                    const color = getNextColor();
+                    addGeoJSONLayer(geojson, layerName, color, null, url);
+
+                    showMessage(`"${layerName}" chargé avec succès`, "success");
+                    document.getElementById("urlInput").value = "";
+
+                    // Fermer le menu
+                    document
+                        .getElementById("menuPanel")
+                        .classList.add("hidden");
+                } catch (error) {
+                    console.error("Erreur lors du chargement:", error);
+                    showMessage(`Erreur: ${error.message}`, "error");
                 }
             }
 
-            return layerInfo;
-        }
+            /**
+             * Charge un GeoJSON depuis un fichier local
+             */
+            async function loadFromFile(input) {
+                const file = input.files[0];
 
-        /**
-         * Demande le nom de la couche à l'utilisateur
-         */
-        function promptLayerName(defaultName) {
-            return new Promise((resolve) => {
-                const name = prompt('Nom de la couche:', defaultName);
-                resolve(name || defaultName);
-            });
-        }
+                if (!file) return;
 
-        /**
-         * Charge un GeoJSON depuis une URL
-         */
-        async function loadFromURL() {
-            const url = document.getElementById('urlInput').value.trim();
-
-            if (!url) {
-                showMessage('Veuillez entrer une URL', 'error');
-                return;
-            }
-
-            try {
-                showMessage('Chargement en cours...', 'info');
-
-                const response = await fetch(url);
-
-                if (!response.ok) {
-                    throw new Error(`Erreur HTTP: ${response.status}`);
+                // Vérifier l'extension
+                if (!file.name.match(/\.(geojson|json)$/i)) {
+                    showMessage(
+                        "Veuillez sélectionner un fichier .geojson ou .json",
+                        "error",
+                    );
+                    return;
                 }
 
                 // Vérifier la taille
-                const contentLength = response.headers.get('content-length');
-                if (contentLength && parseInt(contentLength) > MAX_FILE_SIZE) {
+                if (file.size > MAX_FILE_SIZE) {
                     const proceed = confirm(
-                        `Ce fichier est volumineux (${(parseInt(contentLength) / 1024 / 1024).toFixed(2)} MB).\n` +
-                        `Le chargement pourrait ralentir votre navigateur.\n\n` +
-                        `Voulez-vous continuer ?`
+                        `Ce fichier est volumineux (${(file.size / 1024 / 1024).toFixed(2)} MB).\n` +
+                            `Le chargement pourrait ralentir votre navigateur.\n\n` +
+                            `Voulez-vous continuer ?`,
                     );
                     if (!proceed) {
-                        showMessage('Chargement annulé', 'warning');
+                        showMessage("Chargement annulé", "warning");
+                        input.value = "";
                         return;
                     }
                 }
 
-                const geojson = await response.json();
+                try {
+                    showMessage("Chargement en cours...", "info");
 
-                // Valider le GeoJSON
-                if (!geojson.type || (geojson.type !== 'FeatureCollection' && geojson.type !== 'Feature')) {
-                    throw new Error('Format GeoJSON invalide');
-                }
+                    const text = await file.text();
+                    const geojson = JSON.parse(text);
 
-                // Extraire le nom du fichier depuis l'URL
-                const urlParts = url.split('/');
-                const filename = urlParts[urlParts.length - 1].replace(/\.geojson|\.json/i, '');
-                const defaultName = filename || `Couche ${loadedLayers.length + 1}`;
-
-                // Demander le nom
-                const layerName = await promptLayerName(defaultName);
-
-                // Ajouter la couche
-                const color = getNextColor();
-                addGeoJSONLayer(geojson, layerName, color, null, url);
-
-                showMessage(`"${layerName}" chargé avec succès`, 'success');
-                document.getElementById('urlInput').value = '';
-
-                // Fermer le menu
-                document.getElementById('menuPanel').classList.add('hidden');
-
-            } catch (error) {
-                console.error('Erreur lors du chargement:', error);
-                showMessage(`Erreur: ${error.message}`, 'error');
-            }
-        }
-
-        /**
-         * Charge un GeoJSON depuis un fichier local
-         */
-        async function loadFromFile(input) {
-            const file = input.files[0];
-
-            if (!file) return;
-
-            // Vérifier l'extension
-            if (!file.name.match(/\.(geojson|json)$/i)) {
-                showMessage('Veuillez sélectionner un fichier .geojson ou .json', 'error');
-                return;
-            }
-
-            // Vérifier la taille
-            if (file.size > MAX_FILE_SIZE) {
-                const proceed = confirm(
-                    `Ce fichier est volumineux (${(file.size / 1024 / 1024).toFixed(2)} MB).\n` +
-                    `Le chargement pourrait ralentir votre navigateur.\n\n` +
-                    `Voulez-vous continuer ?`
-                );
-                if (!proceed) {
-                    showMessage('Chargement annulé', 'warning');
-                    input.value = '';
-                    return;
-                }
-            }
-
-            try {
-                showMessage('Chargement en cours...', 'info');
-
-                const text = await file.text();
-                const geojson = JSON.parse(text);
-
-                // Valider le GeoJSON
-                if (!geojson.type || (geojson.type !== 'FeatureCollection' && geojson.type !== 'Feature')) {
-                    throw new Error('Format GeoJSON invalide');
-                }
-
-                // Nom par défaut basé sur le nom du fichier
-                const defaultName = file.name.replace(/\.(geojson|json)$/i, '');
-
-                // Demander le nom
-                const layerName = await promptLayerName(defaultName);
-
-                // Ajouter la couche
-                const color = getNextColor();
-                addGeoJSONLayer(geojson, layerName, color);
-
-                showMessage(`"${layerName}" chargé avec succès`, 'success');
-                input.value = '';
-
-                // Fermer le menu
-                document.getElementById('menuPanel').classList.add('hidden');
-
-            } catch (error) {
-                console.error('Erreur lors du chargement:', error);
-                showMessage(`Erreur: ${error.message}`, 'error');
-                input.value = '';
-            }
-        }
-
-        /**
-         * Charge une configuration de vue depuis un fichier JSON
-         */
-        async function loadViewConfig(input) {
-            const file = input.files[0];
-            if (!file) return;
-
-            try {
-                showMessage('Chargement de la configuration...', 'info');
-
-                const text = await file.text();
-                const config = JSON.parse(text);
-
-                // Valider la structure de base
-                if (!config.view || !config.layers) {
-                    throw new Error('Configuration invalide : "view" et "layers" requis');
-                }
-
-                // Effacer les couches existantes
-                if (loadedLayers.length > 0) {
-                    const proceed = confirm('Charger cette vue effacera toutes les couches actuelles. Continuer ?');
-                    if (!proceed) {
-                        input.value = '';
-                        return;
+                    // Valider le GeoJSON
+                    if (
+                        !geojson.type ||
+                        (geojson.type !== "FeatureCollection" &&
+                            geojson.type !== "Feature")
+                    ) {
+                        throw new Error("Format GeoJSON invalide");
                     }
-                    loadedLayers.forEach(layerInfo => map.removeLayer(layerInfo.layer));
-                    loadedLayers = [];
-                    colorIndex = 0;
+
+                    // Nom par défaut basé sur le nom du fichier
+                    const defaultName = file.name.replace(
+                        /\.(geojson|json)$/i,
+                        "",
+                    );
+
+                    // Demander le nom
+                    const layerName = await promptLayerName(defaultName);
+
+                    // Ajouter la couche
+                    const color = getNextColor();
+                    addGeoJSONLayer(geojson, layerName, color);
+
+                    showMessage(`"${layerName}" chargé avec succès`, "success");
+                    input.value = "";
+
+                    // Fermer le menu
+                    document
+                        .getElementById("menuPanel")
+                        .classList.add("hidden");
+                } catch (error) {
+                    console.error("Erreur lors du chargement:", error);
+                    showMessage(`Erreur: ${error.message}`, "error");
+                    input.value = "";
                 }
+            }
 
-                // Stocker la configuration
-                currentViewConfig = config;
+            /**
+             * Charge une configuration de vue depuis un fichier JSON
+             */
+            async function loadViewConfig(input) {
+                const file = input.files[0];
+                if (!file) return;
 
-                // Mettre à jour le titre de la vue
-                updateViewTitle(config.view.name);
+                try {
+                    showMessage("Chargement de la configuration...", "info");
 
-                // Stocker les templates de popups
-                if (config.popup_templates) {
-                    popupTemplates = config.popup_templates;
-                }
+                    const text = await file.text();
+                    const config = JSON.parse(text);
 
-                // Appliquer la configuration de la vue
-                if (config.view.center && config.view.zoom) {
-                    map.setView(config.view.center, config.view.zoom);
-                }
-
-                // Changer le fond de carte si spécifié
-                if (config.view.basemap) {
-                    switchBasemap(config.view.basemap);
-                    // Mettre à jour le radio button
-                    const radio = document.querySelector(`input[name="basemap"][value="${config.view.basemap}"]`);
-                    if (radio) radio.checked = true;
-                }
-
-                // Charger les couches
-                for (const layerConfig of config.layers) {
-                    try {
-                        const response = await fetch(layerConfig.url);
-                        if (!response.ok) {
-                            throw new Error(`Erreur HTTP: ${response.status}`);
-                        }
-
-                        const geojson = await response.json();
-
-                        // Utiliser la couleur spécifiée ou prendre la suivante dans la palette
-                        const color = layerConfig.color || getNextColor();
-
-                        // Ajouter la couche avec le template de popup si spécifié
-                        const layerInfo = addGeoJSONLayer(
-                            geojson,
-                            layerConfig.name,
-                            color,
-                            layerConfig.popup_template,
-                            layerConfig.url
+                    // Valider la structure de base
+                    if (!config.view || !config.layers) {
+                        throw new Error(
+                            'Configuration invalide : "view" et "layers" requis',
                         );
-
-                        // Gérer la visibilité initiale
-                        if (layerConfig.visible === false) {
-                            map.removeLayer(layerInfo.layer);
-                        }
-
-                    } catch (error) {
-                        console.error(`Erreur chargement couche "${layerConfig.name}":`, error);
-                        showMessage(`Erreur chargement "${layerConfig.name}": ${error.message}`, 'error');
                     }
-                }
 
-                const viewName = config.view.name || 'Vue personnalisée';
-                showMessage(`"${viewName}" chargée avec succès (${config.layers.length} couches)`, 'success');
-                input.value = '';
-
-                // Fermer le menu
-                document.getElementById('menuPanel').classList.add('hidden');
-
-            } catch (error) {
-                console.error('Erreur lors du chargement de la configuration:', error);
-                showMessage(`Erreur: ${error.message}`, 'error');
-                input.value = '';
-            }
-        }
-
-        /**
-         * Charge un exemple de GeoJSON (bassins versants de Québec)
-         */
-        async function loadExample() {
-            const exampleURL = 'https://www.donneesquebec.ca/recherche/dataset/b4893e20-3a65-44fe-a428-68c79e303fb4/resource/fcdd3e3b-b6dc-45ae-9e88-542b842b1774/download/vdq-hydrobassinversant.geojson';
-
-            try {
-                showMessage('Chargement de l\'exemple...', 'info');
-
-                const response = await fetch(exampleURL);
-
-                if (!response.ok) {
-                    throw new Error(`Erreur HTTP: ${response.status}`);
-                }
-
-                const geojson = await response.json();
-
-                // Ajouter directement avec un nom prédéfini
-                const color = getNextColor();
-                addGeoJSONLayer(geojson, 'Bassins versants - Ville de Québec', color, null, exampleURL);
-
-                showMessage('Exemple chargé avec succès', 'success');
-
-                // Fermer le menu
-                document.getElementById('menuPanel').classList.add('hidden');
-
-            } catch (error) {
-                console.error('Erreur lors du chargement de l\'exemple:', error);
-                showMessage(`Impossible de charger l'exemple: ${error.message}`, 'error');
-            }
-        }
-
-        /**
-         * Met à jour le titre de la vue
-         */
-        function updateViewTitle(title) {
-            const viewTitle = document.getElementById('viewTitle');
-            if (viewTitle) {
-                viewTitle.textContent = title || 'Visualiseur GeoJSON';
-            }
-        }
-
-        /**
-         * Met à jour le panneau des couches
-         */
-        function updateLayerPanel() {
-            const layerList = document.getElementById('layerList');
-
-            if (loadedLayers.length === 0) {
-                layerList.innerHTML = `
-                    <div class="empty-state">
-                        Aucune couche chargée.<br>
-                        Utilisez les boutons ci-dessus pour ajouter des données.
-                    </div>
-                `;
-                return;
-            }
-
-            layerList.innerHTML = loadedLayers.map((layerInfo, index) => `
-                <div class="layer-item" style="border-left-color: ${layerInfo.color}">
-                    <div class="layer-item-header">
-                        <label style="display: flex; align-items: center; cursor: pointer; flex: 1; margin-right: 0.4rem;">
-                            <input type="checkbox" checked onchange="toggleLayerVisibility(${index})" style="margin-right: 0.4rem;">
-                            <span class="layer-item-name">${layerInfo.name}</span>
-                        </label>
-                    </div>
-                    <div class="layer-item-actions">
-                        <button onclick="renameLayer(${index})" title="Renommer">
-                            <span class="iconify" data-icon="mdi:pencil" style="font-size: 11px;"></span>
-                            Renommer
-                        </button>
-                        <button class="danger" onclick="removeLayer(${index})" title="Supprimer">
-                            <span class="iconify" data-icon="mdi:delete" style="font-size: 11px;"></span>
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        /**
-         * Affiche/Masque le panneau des couches
-         */
-        function toggleLayerPanel() {
-            const panel = document.getElementById('layerPanel');
-            const btn = document.getElementById('togglePanelBtn');
-            const icon = btn.querySelector('.iconify');
-
-            panel.classList.toggle('collapsed');
-
-            if (panel.classList.contains('collapsed')) {
-                btn.title = 'Afficher le panneau';
-                icon.setAttribute('data-icon', 'mdi:dock-left');
-            } else {
-                btn.title = 'Masquer le panneau';
-                icon.setAttribute('data-icon', 'mdi:dock-left');
-            }
-        }
-
-        /**
-         * Affiche/Masque le menu hamburger
-         */
-        function toggleMenu() {
-            const menu = document.getElementById('menuPanel');
-            menu.classList.toggle('hidden');
-        }
-
-        /**
-         * Ferme le menu si on clique en dehors
-         */
-        document.addEventListener('click', function(event) {
-            const menu = document.getElementById('menuPanel');
-            const menuToggle = document.getElementById('menuToggle');
-
-            if (!menu.contains(event.target) && !menuToggle.contains(event.target)) {
-                menu.classList.add('hidden');
-            }
-        });
-
-        /**
-         * Exporte la configuration actuelle en JSON
-         */
-        function exportConfig() {
-            if (loadedLayers.length === 0) {
-                showMessage('Aucune couche à exporter', 'warning');
-                return;
-            }
-
-            // Créer la configuration
-            const config = {
-                view: {
-                    name: prompt('Nom de la configuration:', 'Ma configuration') || 'Configuration exportée',
-                    center: [map.getCenter().lat, map.getCenter().lng],
-                    zoom: map.getZoom(),
-                    basemap: currentBasemap === basemapOSM ? 'osm' :
-                             currentBasemap === basemapTopo ? 'topo' : 'positron'
-                },
-                layers: loadedLayers.map(layerInfo => ({
-                    name: layerInfo.name,
-                    url: layerInfo.url || './votre-fichier.geojson', // URL par défaut si chargé localement
-                    color: layerInfo.color,
-                    visible: map.hasLayer(layerInfo.layer),
-                    popup_template: layerInfo.templateName || null
-                })),
-                popup_templates: Object.keys(popupTemplates).length > 0 ? popupTemplates : undefined
-            };
-
-            // Créer le fichier et télécharger
-            const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'config.json';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-
-            showMessage('Configuration exportée avec succès', 'success');
-
-            // Fermer le menu
-            document.getElementById('menuPanel').classList.add('hidden');
-        }
-
-        /**
-         * Active/Désactive la visibilité d'une couche
-         */
-        function toggleLayerVisibility(index) {
-            const layerInfo = loadedLayers[index];
-
-            if (map.hasLayer(layerInfo.layer)) {
-                map.removeLayer(layerInfo.layer);
-            } else {
-                map.addLayer(layerInfo.layer);
-            }
-        }
-
-        /**
-         * Renomme une couche
-         */
-        function renameLayer(index) {
-            const layerInfo = loadedLayers[index];
-            currentRenameLayer = layerInfo;
-            currentRenameIndex = index;
-            document.getElementById('renameInput').value = layerInfo.name;
-            document.getElementById('renameModal').classList.add('show');
-            document.getElementById('renameInput').focus();
-        }
-
-        /**
-         * Supprime une couche individuelle
-         */
-        function removeLayer(index) {
-            const layerInfo = loadedLayers[index];
-
-            const proceed = confirm(`Voulez-vous vraiment supprimer la couche "${layerInfo.name}" ?`);
-
-            if (proceed) {
-                // Retirer de la carte
-                map.removeLayer(layerInfo.layer);
-
-                // Retirer du tableau
-                loadedLayers.splice(index, 1);
-
-                // Mettre à jour le panneau
-                updateLayerPanel();
-
-                showMessage(`Couche "${layerInfo.name}" supprimée`, 'success');
-            }
-        }
-
-        /**
-         * Efface toutes les couches
-         */
-        function clearAll() {
-            if (loadedLayers.length === 0) {
-                showMessage('Aucune couche à effacer', 'warning');
-                return;
-            }
-
-            const proceed = confirm(`Voulez-vous vraiment effacer toutes les ${loadedLayers.length} couche(s) ?`);
-
-            if (proceed) {
-                loadedLayers.forEach(layerInfo => {
-                    map.removeLayer(layerInfo.layer);
-                });
-
-                loadedLayers = [];
-                colorIndex = 0;
-
-                // Mettre à jour le panneau
-                updateLayerPanel();
-
-                // Réinitialiser la vue
-                map.setView([46.8, -71.2], 6);
-
-                showMessage('Toutes les couches ont été effacées', 'success');
-            }
-        }
-
-        /**
-         * Ouvre le modal de renommage
-         */
-        function openRenameModal(layerInfo) {
-            currentRenameLayer = layerInfo;
-            document.getElementById('renameInput').value = layerInfo.name;
-            document.getElementById('renameModal').classList.add('show');
-            document.getElementById('renameInput').focus();
-        }
-
-        /**
-         * Ferme le modal de renommage
-         */
-        function closeRenameModal() {
-            document.getElementById('renameModal').classList.remove('show');
-            currentRenameLayer = null;
-            currentRenameIndex = null;
-        }
-
-        /**
-         * Confirme le renommage d'une couche
-         */
-        function confirmRename() {
-            const newName = document.getElementById('renameInput').value.trim();
-
-            if (!newName) {
-                showMessage('Le nom ne peut pas être vide', 'error');
-                return;
-            }
-
-            if (currentRenameLayer && currentRenameIndex !== null) {
-                const oldName = currentRenameLayer.name;
-
-                // Mettre à jour le nom dans l'objet
-                currentRenameLayer.name = newName;
-                loadedLayers[currentRenameIndex].name = newName;
-
-                // Mettre à jour le panneau
-                updateLayerPanel();
-
-                showMessage(`Couche renommée: "${oldName}" vers "${newName}"`, 'success');
-            }
-
-            closeRenameModal();
-        }
-
-        // Gérer la touche Entrée dans l'input URL
-        document.getElementById('urlInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                loadFromURL();
-            }
-        });
-
-        // Gérer la touche Entrée dans l'input de renommage
-        document.getElementById('renameInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                confirmRename();
-            }
-        });
-
-        // Fermer le modal en cliquant en dehors
-        document.getElementById('renameModal').addEventListener('click', (e) => {
-            if (e.target.id === 'renameModal') {
-                closeRenameModal();
-            }
-        });
-
-        // Ajouter un style personnalisé au contrôle de couches pour permettre le renommage
-        // Note: Cette fonctionnalité nécessite une modification du DOM après ajout de couche
-        // Pour simplifier, on utilise uniquement le système de prompt initial
-        // Une version plus avancée pourrait utiliser des événements personnalisés
-
-        console.log('Visualiseur GeoJSON initialisé');
-        console.log('Palette de couleurs accessibles:', colorPalette);
-
-        /**
-         * Charge automatiquement config.json s'il existe
-         */
-        async function autoLoadViewConfig() {
-            try {
-                const response = await fetch('config.json');
-                if (response.ok) {
-                    const config = JSON.parse(await response.text());
-
-                    console.log('Configuration de vue trouvée, chargement automatique...');
+                    // Effacer les couches existantes
+                    if (loadedLayers.length > 0) {
+                        const proceed = confirm(
+                            "Charger cette vue effacera toutes les couches actuelles. Continuer ?",
+                        );
+                        if (!proceed) {
+                            input.value = "";
+                            return;
+                        }
+                        loadedLayers.forEach((layerInfo) =>
+                            map.removeLayer(layerInfo.layer),
+                        );
+                        loadedLayers = [];
+                        colorIndex = 0;
+                    }
 
                     // Stocker la configuration
                     currentViewConfig = config;
@@ -1431,49 +1296,531 @@
                     // Changer le fond de carte si spécifié
                     if (config.view.basemap) {
                         switchBasemap(config.view.basemap);
-                        const radio = document.querySelector(`input[name="basemap"][value="${config.view.basemap}"]`);
+                        // Mettre à jour le radio button
+                        const radio = document.querySelector(
+                            `input[name="basemap"][value="${config.view.basemap}"]`,
+                        );
                         if (radio) radio.checked = true;
                     }
 
                     // Charger les couches
                     for (const layerConfig of config.layers) {
                         try {
-                            const layerResponse = await fetch(layerConfig.url);
-                            if (!layerResponse.ok) {
-                                throw new Error(`Erreur HTTP: ${layerResponse.status}`);
+                            const response = await fetch(layerConfig.url);
+                            if (!response.ok) {
+                                throw new Error(
+                                    `Erreur HTTP: ${response.status}`,
+                                );
                             }
 
-                            const geojson = await layerResponse.json();
+                            const geojson = await response.json();
+
+                            // Utiliser la couleur spécifiée ou prendre la suivante dans la palette
                             const color = layerConfig.color || getNextColor();
 
+                            // Ajouter la couche avec le template de popup si spécifié
                             const layerInfo = addGeoJSONLayer(
                                 geojson,
                                 layerConfig.name,
                                 color,
                                 layerConfig.popup_template,
-                                layerConfig.url
+                                layerConfig.url,
                             );
 
+                            // Gérer la visibilité initiale
                             if (layerConfig.visible === false) {
                                 map.removeLayer(layerInfo.layer);
                             }
-
                         } catch (error) {
-                            console.error(`Erreur chargement couche "${layerConfig.name}":`, error);
+                            console.error(
+                                `Erreur chargement couche "${layerConfig.name}":`,
+                                error,
+                            );
+                            showMessage(
+                                `Erreur chargement "${layerConfig.name}": ${error.message}`,
+                                "error",
+                            );
                         }
                     }
 
-                    const viewName = config.view.name || 'Vue par défaut';
-                    showMessage(`"${viewName}" chargée automatiquement`, 'success');
-                }
-            } catch (error) {
-                // Pas de config.json, mode normal
-                console.log('Aucun fichier config.json trouvé, mode manuel');
-            }
-        }
+                    const viewName = config.view.name || "Vue personnalisée";
+                    showMessage(
+                        `"${viewName}" chargée avec succès (${config.layers.length} couches)`,
+                        "success",
+                    );
+                    input.value = "";
 
-        // Charger automatiquement la configuration au démarrage
-        autoLoadViewConfig();
-    </script>
-</body>
+                    // Fermer le menu
+                    document
+                        .getElementById("menuPanel")
+                        .classList.add("hidden");
+                } catch (error) {
+                    console.error(
+                        "Erreur lors du chargement de la configuration:",
+                        error,
+                    );
+                    showMessage(`Erreur: ${error.message}`, "error");
+                    input.value = "";
+                }
+            }
+
+            /**
+             * Charge un exemple de GeoJSON (bassins versants de Québec)
+             */
+            async function loadExample() {
+                const exampleURL =
+                    "https://www.donneesquebec.ca/recherche/dataset/b4893e20-3a65-44fe-a428-68c79e303fb4/resource/fcdd3e3b-b6dc-45ae-9e88-542b842b1774/download/vdq-hydrobassinversant.geojson";
+
+                try {
+                    showMessage("Chargement de l'exemple...", "info");
+
+                    const response = await fetch(exampleURL);
+
+                    if (!response.ok) {
+                        throw new Error(`Erreur HTTP: ${response.status}`);
+                    }
+
+                    const geojson = await response.json();
+
+                    // Ajouter directement avec un nom prédéfini
+                    const color = getNextColor();
+                    addGeoJSONLayer(
+                        geojson,
+                        "Bassins versants - Ville de Québec",
+                        color,
+                        null,
+                        exampleURL,
+                    );
+
+                    showMessage("Exemple chargé avec succès", "success");
+
+                    // Fermer le menu
+                    document
+                        .getElementById("menuPanel")
+                        .classList.add("hidden");
+                } catch (error) {
+                    console.error(
+                        "Erreur lors du chargement de l'exemple:",
+                        error,
+                    );
+                    showMessage(
+                        `Impossible de charger l'exemple: ${error.message}`,
+                        "error",
+                    );
+                }
+            }
+
+            /**
+             * Met à jour le titre de la vue
+             */
+            function updateViewTitle(title) {
+                const viewTitle = document.getElementById("viewTitle");
+                if (viewTitle) {
+                    viewTitle.textContent = title || "Visualiseur GeoJSON";
+                }
+            }
+
+            /**
+             * Met à jour le panneau des couches
+             */
+            function updateLayerPanel() {
+                const layerList = document.getElementById("layerList");
+
+                if (loadedLayers.length === 0) {
+                    layerList.innerHTML = `
+                    <div class="empty-state">
+                        Aucune couche chargée.<br>
+                        Utilisez les boutons ci-dessus pour ajouter des données.
+                    </div>
+                `;
+                    return;
+                }
+
+                layerList.innerHTML = loadedLayers
+                    .map(
+                        (layerInfo, index) => `
+                <div class="layer-item" style="border-left-color: ${layerInfo.color}">
+                    <div class="layer-item-header">
+                        <label style="display: flex; align-items: center; cursor: pointer; flex: 1; margin-right: 0.4rem;">
+                            <input type="checkbox" checked onchange="toggleLayerVisibility(${index})" style="margin-right: 0.4rem;">
+                            <span class="layer-item-name">${layerInfo.name}</span>
+                        </label>
+                    </div>
+                    <div class="layer-item-actions">
+                        <button onclick="renameLayer(${index})" title="Renommer">
+                            <span class="iconify" data-icon="mdi:pencil" style="font-size: 11px;"></span>
+                        </button>
+                        <button class="danger" onclick="removeLayer(${index})" title="Supprimer">
+                            <span class="iconify" data-icon="mdi:delete" style="font-size: 11px;"></span>
+                        </button>
+                    </div>
+                </div>
+            `,
+                    )
+                    .join("");
+            }
+
+            /**
+             * Affiche/Masque le panneau des couches
+             */
+            function toggleLayerPanel() {
+                const panel = document.getElementById("layerPanel");
+                const btn = document.getElementById("togglePanelBtn");
+                const icon = btn.querySelector(".iconify");
+
+                panel.classList.toggle("collapsed");
+
+                if (panel.classList.contains("collapsed")) {
+                    btn.title = "Afficher le panneau";
+                    icon.setAttribute("data-icon", "mdi:dock-left");
+                } else {
+                    btn.title = "Masquer le panneau";
+                    icon.setAttribute("data-icon", "mdi:dock-left");
+                }
+            }
+
+            /**
+             * Affiche/Masque le menu hamburger
+             */
+            function toggleMenu() {
+                const menu = document.getElementById("menuPanel");
+                menu.classList.toggle("hidden");
+            }
+
+            /**
+             * Ferme le menu si on clique en dehors
+             */
+            document.addEventListener("click", function (event) {
+                const menu = document.getElementById("menuPanel");
+                const menuToggle = document.getElementById("menuToggle");
+
+                if (
+                    !menu.contains(event.target) &&
+                    !menuToggle.contains(event.target)
+                ) {
+                    menu.classList.add("hidden");
+                }
+            });
+
+            /**
+             * Exporte la configuration actuelle en JSON
+             */
+            function exportConfig() {
+                if (loadedLayers.length === 0) {
+                    showMessage("Aucune couche à exporter", "warning");
+                    return;
+                }
+
+                // Créer la configuration
+                const config = {
+                    view: {
+                        name:
+                            prompt(
+                                "Nom de la configuration:",
+                                "Ma configuration",
+                            ) || "Configuration exportée",
+                        center: [map.getCenter().lat, map.getCenter().lng],
+                        zoom: map.getZoom(),
+                        basemap:
+                            currentBasemap === basemapOSM
+                                ? "osm"
+                                : currentBasemap === basemapTopo
+                                  ? "topo"
+                                  : "positron",
+                    },
+                    layers: loadedLayers.map((layerInfo) => ({
+                        name: layerInfo.name,
+                        url: layerInfo.url || "./votre-fichier.geojson", // URL par défaut si chargé localement
+                        color: layerInfo.color,
+                        visible: map.hasLayer(layerInfo.layer),
+                        popup_template: layerInfo.templateName || null,
+                    })),
+                    popup_templates:
+                        Object.keys(popupTemplates).length > 0
+                            ? popupTemplates
+                            : undefined,
+                };
+
+                // Créer le fichier et télécharger
+                const blob = new Blob([JSON.stringify(config, null, 2)], {
+                    type: "application/json",
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "config.json";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                showMessage("Configuration exportée avec succès", "success");
+
+                // Fermer le menu
+                document.getElementById("menuPanel").classList.add("hidden");
+            }
+
+            /**
+             * Active/Désactive la visibilité d'une couche
+             */
+            function toggleLayerVisibility(index) {
+                const layerInfo = loadedLayers[index];
+
+                if (map.hasLayer(layerInfo.layer)) {
+                    map.removeLayer(layerInfo.layer);
+                } else {
+                    map.addLayer(layerInfo.layer);
+                }
+            }
+
+            /**
+             * Renomme une couche
+             */
+            function renameLayer(index) {
+                const layerInfo = loadedLayers[index];
+                currentRenameLayer = layerInfo;
+                currentRenameIndex = index;
+                document.getElementById("renameInput").value = layerInfo.name;
+                document.getElementById("renameModal").classList.add("show");
+                document.getElementById("renameInput").focus();
+            }
+
+            /**
+             * Supprime une couche individuelle
+             */
+            function removeLayer(index) {
+                const layerInfo = loadedLayers[index];
+
+                const proceed = confirm(
+                    `Voulez-vous vraiment supprimer la couche "${layerInfo.name}" ?`,
+                );
+
+                if (proceed) {
+                    // Retirer de la carte
+                    map.removeLayer(layerInfo.layer);
+
+                    // Retirer du tableau
+                    loadedLayers.splice(index, 1);
+
+                    // Mettre à jour le panneau
+                    updateLayerPanel();
+
+                    showMessage(
+                        `Couche "${layerInfo.name}" supprimée`,
+                        "success",
+                    );
+                }
+            }
+
+            /**
+             * Efface toutes les couches
+             */
+            function clearAll() {
+                if (loadedLayers.length === 0) {
+                    showMessage("Aucune couche à effacer", "warning");
+                    return;
+                }
+
+                const proceed = confirm(
+                    `Voulez-vous vraiment effacer toutes les ${loadedLayers.length} couche(s) ?`,
+                );
+
+                if (proceed) {
+                    loadedLayers.forEach((layerInfo) => {
+                        map.removeLayer(layerInfo.layer);
+                    });
+
+                    loadedLayers = [];
+                    colorIndex = 0;
+
+                    // Mettre à jour le panneau
+                    updateLayerPanel();
+
+                    // Réinitialiser la vue
+                    map.setView([46.8, -71.2], 6);
+
+                    showMessage(
+                        "Toutes les couches ont été effacées",
+                        "success",
+                    );
+                }
+            }
+
+            /**
+             * Ouvre le modal de renommage
+             */
+            function openRenameModal(layerInfo) {
+                currentRenameLayer = layerInfo;
+                document.getElementById("renameInput").value = layerInfo.name;
+                document.getElementById("renameModal").classList.add("show");
+                document.getElementById("renameInput").focus();
+            }
+
+            /**
+             * Ferme le modal de renommage
+             */
+            function closeRenameModal() {
+                document.getElementById("renameModal").classList.remove("show");
+                currentRenameLayer = null;
+                currentRenameIndex = null;
+            }
+
+            /**
+             * Confirme le renommage d'une couche
+             */
+            function confirmRename() {
+                const newName = document
+                    .getElementById("renameInput")
+                    .value.trim();
+
+                if (!newName) {
+                    showMessage("Le nom ne peut pas être vide", "error");
+                    return;
+                }
+
+                if (currentRenameLayer && currentRenameIndex !== null) {
+                    const oldName = currentRenameLayer.name;
+
+                    // Mettre à jour le nom dans l'objet
+                    currentRenameLayer.name = newName;
+                    loadedLayers[currentRenameIndex].name = newName;
+
+                    // Mettre à jour le panneau
+                    updateLayerPanel();
+
+                    showMessage(
+                        `Couche renommée: "${oldName}" vers "${newName}"`,
+                        "success",
+                    );
+                }
+
+                closeRenameModal();
+            }
+
+            // Gérer la touche Entrée dans l'input URL
+            document
+                .getElementById("urlInput")
+                .addEventListener("keypress", (e) => {
+                    if (e.key === "Enter") {
+                        loadFromURL();
+                    }
+                });
+
+            // Gérer la touche Entrée dans l'input de renommage
+            document
+                .getElementById("renameInput")
+                .addEventListener("keypress", (e) => {
+                    if (e.key === "Enter") {
+                        confirmRename();
+                    }
+                });
+
+            // Fermer le modal en cliquant en dehors
+            document
+                .getElementById("renameModal")
+                .addEventListener("click", (e) => {
+                    if (e.target.id === "renameModal") {
+                        closeRenameModal();
+                    }
+                });
+
+            // Ajouter un style personnalisé au contrôle de couches pour permettre le renommage
+            // Note: Cette fonctionnalité nécessite une modification du DOM après ajout de couche
+            // Pour simplifier, on utilise uniquement le système de prompt initial
+            // Une version plus avancée pourrait utiliser des événements personnalisés
+
+            console.log("Visualiseur GeoJSON initialisé");
+            console.log("Palette de couleurs accessibles:", colorPalette);
+
+            /**
+             * Charge automatiquement config.json s'il existe
+             */
+            async function autoLoadViewConfig() {
+                try {
+                    const response = await fetch("config.json");
+                    if (response.ok) {
+                        const config = JSON.parse(await response.text());
+
+                        console.log(
+                            "Configuration de vue trouvée, chargement automatique...",
+                        );
+
+                        // Stocker la configuration
+                        currentViewConfig = config;
+
+                        // Mettre à jour le titre de la vue
+                        updateViewTitle(config.view.name);
+
+                        // Stocker les templates de popups
+                        if (config.popup_templates) {
+                            popupTemplates = config.popup_templates;
+                        }
+
+                        // Appliquer la configuration de la vue
+                        if (config.view.center && config.view.zoom) {
+                            map.setView(config.view.center, config.view.zoom);
+                        }
+
+                        // Changer le fond de carte si spécifié
+                        if (config.view.basemap) {
+                            switchBasemap(config.view.basemap);
+                            const radio = document.querySelector(
+                                `input[name="basemap"][value="${config.view.basemap}"]`,
+                            );
+                            if (radio) radio.checked = true;
+                        }
+
+                        // Charger les couches
+                        for (const layerConfig of config.layers) {
+                            try {
+                                const layerResponse = await fetch(
+                                    layerConfig.url,
+                                );
+                                if (!layerResponse.ok) {
+                                    throw new Error(
+                                        `Erreur HTTP: ${layerResponse.status}`,
+                                    );
+                                }
+
+                                const geojson = await layerResponse.json();
+                                const color =
+                                    layerConfig.color || getNextColor();
+
+                                const layerInfo = addGeoJSONLayer(
+                                    geojson,
+                                    layerConfig.name,
+                                    color,
+                                    layerConfig.popup_template,
+                                    layerConfig.url,
+                                );
+
+                                if (layerConfig.visible === false) {
+                                    map.removeLayer(layerInfo.layer);
+                                }
+                            } catch (error) {
+                                console.error(
+                                    `Erreur chargement couche "${layerConfig.name}":`,
+                                    error,
+                                );
+                            }
+                        }
+
+                        const viewName = config.view.name || "Vue par défaut";
+                        showMessage(
+                            `"${viewName}" chargée automatiquement`,
+                            "success",
+                        );
+                    }
+                } catch (error) {
+                    // Pas de config.json, mode normal
+                    console.log(
+                        "Aucun fichier config.json trouvé, mode manuel",
+                    );
+                }
+            }
+
+            // Charger automatiquement la configuration au démarrage
+            autoLoadViewConfig();
+        </script>
+    </body>
 </html>
