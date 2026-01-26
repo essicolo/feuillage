@@ -598,8 +598,8 @@
                         // Section avec graphique - ID unique garanti
                         chartIdCounter++;
                         const chartId = `chart-${chartIdCounter}`;
-                        // Wrapper avec dimensions explicites pour Chart.js responsive
-                        html += `<div class="popup-chart"><div style="position: relative; height: 250px; width: 100%;"><canvas id="${chartId}" data-chart-config='${JSON.stringify(section)}'></canvas></div></div>`;
+                        // Canvas avec dimensions explicites ET wrapper pour responsive
+                        html += `<div class="popup-chart"><div style="position: relative; height: 250px; width: 100%; min-height: 250px;"><canvas id="${chartId}" width="400" height="250" data-chart-config='${JSON.stringify(section)}' style="display: block; box-sizing: border-box; width: 100%; height: 100%;"></canvas></div></div>`;
                     }
 
                     html += '</div>';
@@ -665,6 +665,14 @@
             // Log des dimensions du canvas
             console.log(`Canvas trouvé - Dimensions: ${canvas.offsetWidth}x${canvas.offsetHeight}`);
 
+            // Vérifier que le canvas a des dimensions non nulles
+            if (canvas.offsetWidth === 0 || canvas.offsetHeight === 0) {
+                console.warn(`Canvas ${canvasId} a des dimensions nulles, attente de rendu...`);
+                // Réessayer après un court délai
+                setTimeout(() => createChart(canvasId, section, properties), 50);
+                return;
+            }
+
             // Détruire tout graphique existant sur ce canvas
             const existingChart = Chart.getChart(canvas);
             if (existingChart) {
@@ -714,7 +722,7 @@
                     },
                     options: {
                         responsive: true,
-                        maintainAspectRatio: true,
+                        maintainAspectRatio: false,
                         plugins: {
                             legend: {
                                 display: false
@@ -795,10 +803,10 @@
 
                     // Créer les graphiques quand le popup s'ouvre
                     layer.on('popupopen', function() {
-                        // Attendre que le DOM soit prêt et que le popup soit positionné
+                        // Attendre que le DOM soit prêt et que le popup soit complètement rendu
                         setTimeout(() => {
                             createChartsInPopup(feature, templateName);
-                        }, 100);
+                        }, 150);
                     });
 
                     // Nettoyer les graphiques quand le popup se ferme
