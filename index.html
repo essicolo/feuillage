@@ -668,12 +668,7 @@
                     } else if (section.type === 'chart') {
                         // Section avec graphique
                         const chartId = `chart-${Date.now()}-${index}`;
-                        html += `<div class="popup-chart"><canvas id="${chartId}"></canvas></div>`;
-
-                        // Stocker les infos du graphique pour le créer après l'affichage
-                        setTimeout(() => {
-                            createChart(chartId, section, properties);
-                        }, 100);
+                        html += `<div class="popup-chart"><canvas id="${chartId}" data-chart-config='${JSON.stringify(section)}'></canvas></div>`;
                     }
 
                     html += '</div>';
@@ -682,6 +677,27 @@
 
             html += '</div>';
             return html;
+        }
+
+        /**
+         * Crée tous les graphiques dans le popup ouvert
+         */
+        function createChartsInPopup(feature, templateName) {
+            if (!templateName || !popupTemplates[templateName]) return;
+
+            const template = popupTemplates[templateName];
+            const properties = feature.properties;
+
+            // Trouver tous les canvas avec configuration de graphique
+            const canvases = document.querySelectorAll('canvas[data-chart-config]');
+            canvases.forEach(canvas => {
+                try {
+                    const sectionConfig = JSON.parse(canvas.getAttribute('data-chart-config'));
+                    createChart(canvas.id, sectionConfig, properties);
+                } catch (e) {
+                    console.error('Erreur création graphique:', e);
+                }
+            });
         }
 
         /**
@@ -802,9 +818,19 @@
                 },
                 onEachFeature: (feature, layer) => {
                     const popupContent = createPopup(feature, templateName);
-                    layer.bindPopup(popupContent, {
+                    const popup = L.popup({
                         maxWidth: 400,
                         maxHeight: 500
+                    }).setContent(popupContent);
+
+                    layer.bindPopup(popup);
+
+                    // Créer les graphiques quand le popup s'ouvre
+                    layer.on('popupopen', function() {
+                        // Attendre que le DOM soit prêt
+                        setTimeout(() => {
+                            createChartsInPopup(feature, templateName);
+                        }, 50);
                     });
                 }
             }).addTo(map);
