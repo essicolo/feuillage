@@ -598,8 +598,8 @@
                         // Section avec graphique - ID unique garanti
                         chartIdCounter++;
                         const chartId = `chart-${chartIdCounter}`;
-                        // Canvas avec dimensions explicites ET wrapper pour responsive
-                        html += `<div class="popup-chart"><div style="position: relative; height: 250px; width: 100%; min-height: 250px;"><canvas id="${chartId}" width="400" height="250" data-chart-config='${JSON.stringify(section)}' style="display: block; box-sizing: border-box; width: 100%; height: 100%;"></canvas></div></div>`;
+                        // Canvas avec dimensions fixes (pas de responsive pour éviter bugs)
+                        html += `<div class="popup-chart"><canvas id="${chartId}" width="350" height="250" data-chart-config='${JSON.stringify(section)}' style="display: block;"></canvas></div>`;
                     }
 
                     html += '</div>';
@@ -663,15 +663,7 @@
             }
 
             // Log des dimensions du canvas
-            console.log(`Canvas trouvé - Dimensions: ${canvas.offsetWidth}x${canvas.offsetHeight}`);
-
-            // Vérifier que le canvas a des dimensions non nulles
-            if (canvas.offsetWidth === 0 || canvas.offsetHeight === 0) {
-                console.warn(`Canvas ${canvasId} a des dimensions nulles, attente de rendu...`);
-                // Réessayer après un court délai
-                setTimeout(() => createChart(canvasId, section, properties), 50);
-                return;
-            }
+            console.log(`Canvas trouvé - Dimensions: ${canvas.width}x${canvas.height} (offset: ${canvas.offsetWidth}x${canvas.offsetHeight})`);
 
             // Détruire tout graphique existant sur ce canvas
             const existingChart = Chart.getChart(canvas);
@@ -721,8 +713,8 @@
                         }]
                     },
                     options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
+                        responsive: false,
+                        maintainAspectRatio: true,
                         plugins: {
                             legend: {
                                 display: false
@@ -749,7 +741,7 @@
                         }
                     }
                 });
-                console.log(`✓ Graphique créé avec succès sur ${canvasId}`, chart);
+                console.log(`✓ Graphique créé avec succès sur ${canvasId} - Canvas attaché:`, !!chart.canvas, `Ctx valide:`, !!chart.ctx);
             } catch (e) {
                 console.error(`Erreur lors de la création du graphique Chart.js sur ${canvasId}:`, e);
             }
@@ -803,10 +795,10 @@
 
                     // Créer les graphiques quand le popup s'ouvre
                     layer.on('popupopen', function() {
-                        // Attendre que le DOM soit prêt et que le popup soit complètement rendu
+                        // Attendre que le DOM soit prêt
                         setTimeout(() => {
                             createChartsInPopup(feature, templateName);
-                        }, 150);
+                        }, 100);
                     });
 
                     // Nettoyer les graphiques quand le popup se ferme
