@@ -43,10 +43,10 @@
         }
 
         #layerPanel {
-            width: 280px;
-            min-width: 280px;
+            width: 260px;
+            min-width: 260px;
             background-color: white;
-            border-right: 1px solid #ccc;
+            border-right: 1px solid #d1d5db;
             display: flex;
             flex-direction: column;
             transition: margin-left 0.3s ease;
@@ -55,17 +55,16 @@
         }
 
         #layerPanel.collapsed {
-            margin-left: -280px;
+            margin-left: -260px;
         }
 
         .layer-panel-header {
-            padding: 1rem;
+            padding: 0.75rem 1rem;
             background-color: #f7fafc;
             border-bottom: 1px solid #e2e8f0;
             font-weight: 600;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            font-size: 0.95rem;
+            color: #2d3748;
         }
 
         .layer-panel-content {
@@ -75,21 +74,22 @@
         }
 
         .layer-item {
-            padding: 0.75rem;
-            margin-bottom: 0.5rem;
+            padding: 0.5rem;
+            margin-bottom: 0.4rem;
             background-color: #f7fafc;
-            border-radius: 4px;
-            border-left: 4px solid;
+            border-radius: 3px;
+            border-left: 3px solid;
         }
 
         .layer-item-header {
             display: flex;
             align-items: flex-start;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.4rem;
         }
 
         .layer-item-name {
             font-weight: 500;
+            font-size: 0.85rem;
             word-break: break-word;
         }
 
@@ -99,8 +99,19 @@
         }
 
         .layer-item-actions button {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.75rem;
+            padding: 0.2rem 0.4rem;
+            font-size: 0.7rem;
+            background-color: white;
+            color: #4a5568;
+            border: 1px solid #d1d5db;
+        }
+
+        .layer-item-actions button:hover {
+            background-color: #f9fafb;
+        }
+
+        .layer-item-actions button.danger {
+            color: #c53030;
         }
 
         .toggle-panel-btn {
@@ -108,22 +119,22 @@
             bottom: 20px;
             left: 20px;
             z-index: 1000;
-            background-color: #2563eb;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 10px;
+            background-color: white;
+            color: #2d3748;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: 8px;
             cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            transition: all 0.3s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: all 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
         .toggle-panel-btn:hover {
-            background-color: #1d4ed8;
-            transform: scale(1.05);
+            background-color: #f9fafb;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
         }
 
         #layerPanel.collapsed + .toggle-panel-btn {
@@ -280,19 +291,19 @@
 </head>
 <body class="overflow-hidden">
     <!-- Menu hamburger en haut à droite -->
-    <button id="menuToggle" onclick="toggleMenu()" class="fixed top-4 right-4 z-[2000] bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg shadow-lg transition-colors">
-        <span class="iconify" data-icon="mdi:menu" style="font-size: 24px;"></span>
+    <button id="menuToggle" onclick="toggleMenu()" class="fixed top-4 right-4 z-[2000] bg-white hover:bg-gray-50 text-gray-800 p-2.5 rounded-md shadow-md border border-gray-200 transition-colors">
+        <span class="iconify" data-icon="mdi:menu" style="font-size: 20px;"></span>
     </button>
 
     <!-- Menu déroulant -->
-    <div id="menuPanel" class="hidden fixed top-16 right-4 z-[1999] bg-white rounded-lg shadow-2xl w-80 max-h-[80vh] overflow-y-auto">
-        <div class="p-4 space-y-4">
+    <div id="menuPanel" class="hidden fixed top-16 right-4 z-[1999] bg-white rounded-lg shadow-xl border border-gray-200 w-80 max-h-[80vh] overflow-y-auto">
+        <div class="p-3 space-y-3">
             <!-- Section URL -->
             <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">Charger depuis une URL</label>
-                <div class="flex gap-2">
-                    <input type="text" id="urlInput" placeholder="URL du fichier GeoJSON..." class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <button onclick="loadFromURL()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap">
+                <label class="block text-xs font-medium text-gray-600 mb-1.5">Charger depuis une URL</label>
+                <div class="flex gap-1.5">
+                    <input type="text" id="urlInput" placeholder="URL du fichier GeoJSON..." class="flex-1 px-2.5 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-gray-400">
+                    <button onclick="loadFromURL()" class="bg-gray-800 hover:bg-gray-900 text-white px-3 py-1.5 rounded text-xs font-medium transition-colors whitespace-nowrap">
                         Ajouter
                     </button>
                 </div>
@@ -300,26 +311,26 @@
 
             <!-- Section Fichier local -->
             <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">Charger un fichier local</label>
+                <label class="block text-xs font-medium text-gray-600 mb-1.5">Charger un fichier local</label>
                 <input type="file" id="fileInput" accept=".geojson,.json" onchange="loadFromFile(this)" class="hidden">
-                <button onclick="document.getElementById('fileInput').click()" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
-                    <span class="iconify" data-icon="mdi:folder-open"></span>
-                    Choisir un fichier GeoJSON
+                <button onclick="document.getElementById('fileInput').click()" class="w-full bg-gray-800 hover:bg-gray-900 text-white px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1.5">
+                    <span class="iconify" data-icon="mdi:folder-open" style="font-size: 14px;"></span>
+                    Fichier GeoJSON
                 </button>
             </div>
 
             <!-- Section Vue/Configuration -->
             <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">Configuration</label>
+                <label class="block text-xs font-medium text-gray-600 mb-1.5">Configuration</label>
                 <input type="file" id="viewConfigInput" accept=".json" onchange="loadViewConfig(this)" class="hidden">
-                <div class="space-y-2">
-                    <button onclick="document.getElementById('viewConfigInput').click()" class="w-full bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
-                        <span class="iconify" data-icon="mdi:view-dashboard"></span>
-                        Charger une configuration
+                <div class="space-y-1.5">
+                    <button onclick="document.getElementById('viewConfigInput').click()" class="w-full bg-white hover:bg-gray-50 text-gray-800 border border-gray-300 px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1.5">
+                        <span class="iconify" data-icon="mdi:view-dashboard" style="font-size: 14px;"></span>
+                        Charger config
                     </button>
-                    <button onclick="exportConfig()" class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
-                        <span class="iconify" data-icon="mdi:download"></span>
-                        Exporter la configuration
+                    <button onclick="exportConfig()" class="w-full bg-white hover:bg-gray-50 text-gray-800 border border-gray-300 px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1.5">
+                        <span class="iconify" data-icon="mdi:download" style="font-size: 14px;"></span>
+                        Exporter config
                     </button>
                 </div>
             </div>
@@ -329,14 +340,14 @@
 
             <!-- Actions rapides -->
             <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">Actions</label>
-                <div class="space-y-2">
-                    <button onclick="loadExample()" class="w-full bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
-                        <span class="iconify" data-icon="mdi:map-marker-star"></span>
-                        Charger l'exemple
+                <label class="block text-xs font-medium text-gray-600 mb-1.5">Actions</label>
+                <div class="space-y-1.5">
+                    <button onclick="loadExample()" class="w-full bg-white hover:bg-gray-50 text-gray-800 border border-gray-300 px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1.5">
+                        <span class="iconify" data-icon="mdi:map-marker-star" style="font-size: 14px;"></span>
+                        Exemple
                     </button>
-                    <button onclick="clearAll()" class="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
-                        <span class="iconify" data-icon="mdi:delete-sweep"></span>
+                    <button onclick="clearAll()" class="w-full bg-white hover:bg-gray-50 text-red-700 border border-gray-300 px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1.5">
+                        <span class="iconify" data-icon="mdi:delete-sweep" style="font-size: 14px;"></span>
                         Effacer tout
                     </button>
                 </div>
@@ -350,29 +361,25 @@
         <!-- Panneau de gestion des couches -->
         <div id="layerPanel">
             <div class="layer-panel-header">
-                <span>
-                    <span class="iconify" data-icon="mdi:layers" style="vertical-align: middle;"></span>
-                    Couches
-                </span>
-                <span id="layerCount">0</span>
+                <div id="viewTitle">Visualiseur GeoJSON</div>
             </div>
             <div class="layer-panel-content">
                 <!-- Section des fonds de carte -->
-                <div style="padding: 0.5rem; border-bottom: 1px solid #e2e8f0; margin-bottom: 0.5rem;">
-                    <div style="font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem; color: #4a5568;">
-                        Fond de carte
+                <div style="padding: 0.4rem 0.5rem; border-bottom: 1px solid #e2e8f0; margin-bottom: 0.4rem;">
+                    <div style="font-weight: 600; margin-bottom: 0.4rem; font-size: 0.75rem; color: #6b7280;">
+                        FOND DE CARTE
                     </div>
                     <div id="basemapSelector">
-                        <label style="display: flex; align-items: center; padding: 0.25rem 0; cursor: pointer;">
-                            <input type="radio" name="basemap" value="osm" checked onchange="switchBasemap('osm')" style="margin-right: 0.5rem;">
+                        <label style="display: flex; align-items: center; padding: 0.2rem 0; cursor: pointer; font-size: 0.8rem;">
+                            <input type="radio" name="basemap" value="osm" checked onchange="switchBasemap('osm')" style="margin-right: 0.4rem;">
                             <span>OpenStreetMap</span>
                         </label>
-                        <label style="display: flex; align-items: center; padding: 0.25rem 0; cursor: pointer;">
-                            <input type="radio" name="basemap" value="topo" onchange="switchBasemap('topo')" style="margin-right: 0.5rem;">
+                        <label style="display: flex; align-items: center; padding: 0.2rem 0; cursor: pointer; font-size: 0.8rem;">
+                            <input type="radio" name="basemap" value="topo" onchange="switchBasemap('topo')" style="margin-right: 0.4rem;">
                             <span>OpenTopoMap</span>
                         </label>
-                        <label style="display: flex; align-items: center; padding: 0.25rem 0; cursor: pointer;">
-                            <input type="radio" name="basemap" value="positron" onchange="switchBasemap('positron')" style="margin-right: 0.5rem;">
+                        <label style="display: flex; align-items: center; padding: 0.2rem 0; cursor: pointer; font-size: 0.8rem;">
+                            <input type="radio" name="basemap" value="positron" onchange="switchBasemap('positron')" style="margin-right: 0.4rem;">
                             <span>CartoDB Positron</span>
                         </label>
                     </div>
@@ -380,13 +387,12 @@
 
                 <!-- Section des couches de données -->
                 <div style="padding: 0 0.5rem;">
-                    <div style="font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem; color: #4a5568;">
-                        Données chargées
+                    <div style="font-weight: 600; margin-bottom: 0.4rem; font-size: 0.75rem; color: #6b7280;">
+                        COUCHES
                     </div>
                     <div id="layerList">
-                        <div class="empty-state">
-                            Aucune couche chargée.<br>
-                            Utilisez les boutons ci-dessus pour ajouter des données.
+                        <div class="empty-state" style="padding: 1rem; font-size: 0.8rem;">
+                            Aucune couche chargée.
                         </div>
                     </div>
                 </div>
@@ -1013,6 +1019,9 @@
                 // Stocker la configuration
                 currentViewConfig = config;
 
+                // Mettre à jour le titre de la vue
+                updateViewTitle(config.view.name);
+
                 // Stocker les templates de popups
                 if (config.popup_templates) {
                     popupTemplates = config.popup_templates;
@@ -1111,13 +1120,20 @@
         }
 
         /**
+         * Met à jour le titre de la vue
+         */
+        function updateViewTitle(title) {
+            const viewTitle = document.getElementById('viewTitle');
+            if (viewTitle) {
+                viewTitle.textContent = title || 'Visualiseur GeoJSON';
+            }
+        }
+
+        /**
          * Met à jour le panneau des couches
          */
         function updateLayerPanel() {
             const layerList = document.getElementById('layerList');
-            const layerCount = document.getElementById('layerCount');
-
-            layerCount.textContent = loadedLayers.length;
 
             if (loadedLayers.length === 0) {
                 layerList.innerHTML = `
@@ -1132,18 +1148,18 @@
             layerList.innerHTML = loadedLayers.map((layerInfo, index) => `
                 <div class="layer-item" style="border-left-color: ${layerInfo.color}">
                     <div class="layer-item-header">
-                        <label style="display: flex; align-items: center; cursor: pointer; flex: 1; margin-right: 0.5rem;">
-                            <input type="checkbox" checked onchange="toggleLayerVisibility(${index})" style="margin-right: 0.5rem;">
+                        <label style="display: flex; align-items: center; cursor: pointer; flex: 1; margin-right: 0.4rem;">
+                            <input type="checkbox" checked onchange="toggleLayerVisibility(${index})" style="margin-right: 0.4rem;">
                             <span class="layer-item-name">${layerInfo.name}</span>
                         </label>
                     </div>
                     <div class="layer-item-actions">
-                        <button class="secondary" onclick="renameLayer(${index})" title="Renommer">
-                            <span class="iconify" data-icon="mdi:pencil"></span>
+                        <button onclick="renameLayer(${index})" title="Renommer">
+                            <span class="iconify" data-icon="mdi:pencil" style="font-size: 11px;"></span>
                             Renommer
                         </button>
                         <button class="danger" onclick="removeLayer(${index})" title="Supprimer">
-                            <span class="iconify" data-icon="mdi:delete"></span>
+                            <span class="iconify" data-icon="mdi:delete" style="font-size: 11px;"></span>
                         </button>
                     </div>
                 </div>
@@ -1398,6 +1414,9 @@
 
                     // Stocker la configuration
                     currentViewConfig = config;
+
+                    // Mettre à jour le titre de la vue
+                    updateViewTitle(config.view.name);
 
                     // Stocker les templates de popups
                     if (config.popup_templates) {
