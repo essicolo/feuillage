@@ -1,0 +1,77 @@
+{
+  "view": {
+    "name": "Bassins versants - Ville de Québec",
+    "description": "Vue combinant bassins versants et cours d'eau avec graphiques de débits",
+    "center": [46.85, -71.25],
+    "zoom": 11,
+    "basemap": "osm"
+  },
+  "layers": [
+    {
+      "name": "Bassins versants",
+      "url": "https://www.donneesquebec.ca/recherche/dataset/b4893e20-3a65-44fe-a428-68c79e303fb4/resource/fcdd3e3b-b6dc-45ae-9e88-542b842b1774/download/vdq-hydrobassinversant.geojson",
+      "visible": true,
+      "color": "#0072B2",
+      "popup_template": "default"
+    }
+  ],
+  "popup_templates": {
+    "bassin_versant": {
+      "title": "{properties.nom}",
+      "sections": [
+        {
+          "type": "properties",
+          "fields": ["superficie_ha", "municipalite", "annee"]
+        },
+        {
+          "type": "chart",
+          "chart_type": "bar",
+          "data_field": "debits_mensuels",
+          "options": {
+            "title": "Débits mensuels moyens",
+            "xlabel": "Mois",
+            "ylabel": "Débit (m³/s)"
+          }
+        }
+      ]
+    },
+    "cours_eau": {
+      "title": "{properties.nom_cours}",
+      "sections": [
+        {
+          "type": "properties",
+          "fields": ["longueur_km", "ordre_strahler", "municipalite"]
+        },
+        {
+          "type": "chart",
+          "chart_type": "line",
+          "data_field": "profil_elevation",
+          "options": {
+            "title": "Profil d'élévation",
+            "xlabel": "Distance (km)",
+            "ylabel": "Altitude (m)"
+          }
+        }
+      ]
+    },
+    "station": {
+      "title": "Station {properties.code}",
+      "sections": [
+        {
+          "type": "properties",
+          "fields": ["nom", "type", "installation", "actif"]
+        },
+        {
+          "type": "chart",
+          "chart_type": "line",
+          "data_field": "historique_debit",
+          "options": {
+            "title": "Historique des débits",
+            "xlabel": "Date",
+            "ylabel": "Débit (m³/s)"
+          }
+        }
+      ]
+    }
+  }
+}
