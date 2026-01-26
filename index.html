@@ -16,6 +16,9 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
     <style>
         * {
             margin: 0;
@@ -26,88 +29,13 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             height: 100vh;
-            display: flex;
-            flex-direction: column;
             background-color: #f5f5f5;
-        }
-
-        .controls {
-            background-color: white;
-            padding: 1rem 2rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1rem;
-            align-items: center;
-        }
-
-        .input-group {
-            display: flex;
-            gap: 0.5rem;
-            align-items: center;
-            flex: 1;
-            min-width: 300px;
-        }
-
-        input[type="text"],
-        input[type="file"] {
-            padding: 0.5rem;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 0.9rem;
-        }
-
-        input[type="text"] {
-            flex: 1;
-            min-width: 200px;
-        }
-
-        input[type="file"] {
-            display: none;
-        }
-
-        button {
-            padding: 0.5rem 1rem;
-            background-color: #2563eb;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            font-weight: 500;
-            transition: background-color 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        button:hover {
-            background-color: #1d4ed8;
-        }
-
-        button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
-
-        button.secondary {
-            background-color: #666;
-        }
-
-        button.secondary:hover {
-            background-color: #444;
-        }
-
-        button.danger {
-            background-color: #c53030;
-        }
-
-        button.danger:hover {
-            background-color: #9b2c2c;
+            margin: 0;
+            padding: 0;
         }
 
         .map-container {
-            flex: 1;
+            height: 100vh;
             display: flex;
             position: relative;
             overflow: hidden;
@@ -177,48 +105,29 @@
 
         .toggle-panel-btn {
             position: absolute;
-            top: 10px;
-            left: 10px;
+            bottom: 20px;
+            left: 20px;
             z-index: 1000;
             background-color: #2563eb;
             color: white;
             border: none;
-            border-radius: 4px;
-            padding: 0;
+            border-radius: 8px;
+            padding: 10px;
             cursor: pointer;
-            box-shadow: 0 1px 5px rgba(0,0,0,0.3);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
             transition: all 0.3s;
-            width: 40px;
-            height: 40px;
-            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .toggle-panel-btn:hover {
             background-color: #1d4ed8;
-        }
-
-        /* Triangle CSS pour le bouton toggle */
-        .toggle-panel-btn::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 0;
-            height: 0;
-            border-style: solid;
-            border-width: 8px 12px 8px 0;
-            border-color: transparent white transparent transparent;
-        }
-
-        /* Triangle inversé quand le panneau est collapsé */
-        #layerPanel.collapsed + .toggle-panel-btn::before {
-            border-width: 8px 0 8px 12px;
-            border-color: transparent transparent transparent white;
+            transform: scale(1.05);
         }
 
         #layerPanel.collapsed + .toggle-panel-btn {
-            left: 10px;
+            left: 20px;
         }
 
         #map {
@@ -367,57 +276,72 @@
         .layer-edit-btn:hover {
             background-color: #444;
         }
-
-        @media (max-width: 768px) {
-            .controls {
-                flex-direction: column;
-            }
-
-            .input-group {
-                width: 100%;
-                min-width: auto;
-            }
-        }
     </style>
 </head>
-<body>
-    <div class="controls">
-        <div class="input-group">
-            <input type="text" id="urlInput" placeholder="URL du fichier GeoJSON...">
-            <button onclick="loadFromURL()">
-                <span class="iconify" data-icon="mdi:link-plus"></span>
-                Ajouter URL
-            </button>
-        </div>
+<body class="overflow-hidden">
+    <!-- Menu hamburger en haut à droite -->
+    <button id="menuToggle" onclick="toggleMenu()" class="fixed top-4 right-4 z-[2000] bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg shadow-lg transition-colors">
+        <span class="iconify" data-icon="mdi:menu" style="font-size: 24px;"></span>
+    </button>
 
-        <div class="input-group">
-            <label for="fileInput">
-                <button onclick="document.getElementById('fileInput').click()">
+    <!-- Menu déroulant -->
+    <div id="menuPanel" class="hidden fixed top-16 right-4 z-[1999] bg-white rounded-lg shadow-2xl w-80 max-h-[80vh] overflow-y-auto">
+        <div class="p-4 space-y-4">
+            <!-- Section URL -->
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Charger depuis une URL</label>
+                <div class="flex gap-2">
+                    <input type="text" id="urlInput" placeholder="URL du fichier GeoJSON..." class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button onclick="loadFromURL()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap">
+                        Ajouter
+                    </button>
+                </div>
+            </div>
+
+            <!-- Section Fichier local -->
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Charger un fichier local</label>
+                <input type="file" id="fileInput" accept=".geojson,.json" onchange="loadFromFile(this)" class="hidden">
+                <button onclick="document.getElementById('fileInput').click()" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
                     <span class="iconify" data-icon="mdi:folder-open"></span>
-                    Choisir un fichier
+                    Choisir un fichier GeoJSON
                 </button>
-            </label>
-            <input type="file" id="fileInput" accept=".geojson,.json" onchange="loadFromFile(this)">
-        </div>
+            </div>
 
-        <div class="input-group">
-            <label for="viewConfigInput">
-                <button onclick="document.getElementById('viewConfigInput').click()">
-                    <span class="iconify" data-icon="mdi:view-dashboard"></span>
-                    Charger une vue
-                </button>
-            </label>
-            <input type="file" id="viewConfigInput" accept=".json" onchange="loadViewConfig(this)">
-        </div>
+            <!-- Section Vue/Configuration -->
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Configuration</label>
+                <input type="file" id="viewConfigInput" accept=".json" onchange="loadViewConfig(this)" class="hidden">
+                <div class="space-y-2">
+                    <button onclick="document.getElementById('viewConfigInput').click()" class="w-full bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
+                        <span class="iconify" data-icon="mdi:view-dashboard"></span>
+                        Charger une configuration
+                    </button>
+                    <button onclick="exportConfig()" class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
+                        <span class="iconify" data-icon="mdi:download"></span>
+                        Exporter la configuration
+                    </button>
+                </div>
+            </div>
 
-        <button class="secondary" onclick="loadExample()">
-            <span class="iconify" data-icon="mdi:map-marker-star"></span>
-            Exemple
-        </button>
-        <button class="danger" onclick="clearAll()">
-            <span class="iconify" data-icon="mdi:delete-sweep"></span>
-            Effacer tout
-        </button>
+            <!-- Séparateur -->
+            <div class="border-t border-gray-200"></div>
+
+            <!-- Actions rapides -->
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Actions</label>
+                <div class="space-y-2">
+                    <button onclick="loadExample()" class="w-full bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
+                        <span class="iconify" data-icon="mdi:map-marker-star"></span>
+                        Charger l'exemple
+                    </button>
+                    <button onclick="clearAll()" class="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
+                        <span class="iconify" data-icon="mdi:delete-sweep"></span>
+                        Effacer tout
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div id="message" class="message"></div>
@@ -469,8 +393,10 @@
             </div>
         </div>
 
-        <!-- Bouton pour afficher/masquer le panneau -->
-        <button class="toggle-panel-btn" id="togglePanelBtn" onclick="toggleLayerPanel()" title="Masquer le panneau"></button>
+        <!-- Bouton pour afficher/masquer le panneau (bas gauche) -->
+        <button class="toggle-panel-btn" id="togglePanelBtn" onclick="toggleLayerPanel()" title="Masquer le panneau">
+            <span class="iconify" data-icon="mdi:dock-left" style="font-size: 20px;"></span>
+        </button>
 
         <!-- Carte -->
         <div id="map"></div>
@@ -852,7 +778,7 @@
         /**
          * Ajoute une couche GeoJSON à la carte
          */
-        function addGeoJSONLayer(geojson, name, color, templateName = null) {
+        function addGeoJSONLayer(geojson, name, color, templateName = null, url = null) {
             const layer = L.geoJSON(geojson, {
                 style: (feature) => styleFeature(feature, color),
                 pointToLayer: (feature, latlng) => {
@@ -899,7 +825,8 @@
                 name: name,
                 color: color,
                 geojson: geojson,
-                templateName: templateName
+                templateName: templateName,
+                url: url
             };
             loadedLayers.push(layerInfo);
 
@@ -982,10 +909,13 @@
 
                 // Ajouter la couche
                 const color = getNextColor();
-                addGeoJSONLayer(geojson, layerName, color);
+                addGeoJSONLayer(geojson, layerName, color, null, url);
 
                 showMessage(`"${layerName}" chargé avec succès`, 'success');
                 document.getElementById('urlInput').value = '';
+
+                // Fermer le menu
+                document.getElementById('menuPanel').classList.add('hidden');
 
             } catch (error) {
                 console.error('Erreur lors du chargement:', error);
@@ -1044,6 +974,9 @@
 
                 showMessage(`"${layerName}" chargé avec succès`, 'success');
                 input.value = '';
+
+                // Fermer le menu
+                document.getElementById('menuPanel').classList.add('hidden');
 
             } catch (error) {
                 console.error('Erreur lors du chargement:', error);
@@ -1121,7 +1054,8 @@
                             geojson,
                             layerConfig.name,
                             color,
-                            layerConfig.popup_template
+                            layerConfig.popup_template,
+                            layerConfig.url
                         );
 
                         // Gérer la visibilité initiale
@@ -1138,6 +1072,9 @@
                 const viewName = config.view.name || 'Vue personnalisée';
                 showMessage(`"${viewName}" chargée avec succès (${config.layers.length} couches)`, 'success');
                 input.value = '';
+
+                // Fermer le menu
+                document.getElementById('menuPanel').classList.add('hidden');
 
             } catch (error) {
                 console.error('Erreur lors du chargement de la configuration:', error);
@@ -1165,9 +1102,12 @@
 
                 // Ajouter directement avec un nom prédéfini
                 const color = getNextColor();
-                addGeoJSONLayer(geojson, 'Bassins versants - Ville de Québec', color);
+                addGeoJSONLayer(geojson, 'Bassins versants - Ville de Québec', color, null, exampleURL);
 
                 showMessage('Exemple chargé avec succès', 'success');
+
+                // Fermer le menu
+                document.getElementById('menuPanel').classList.add('hidden');
 
             } catch (error) {
                 console.error('Erreur lors du chargement de l\'exemple:', error);
@@ -1221,14 +1161,82 @@
         function toggleLayerPanel() {
             const panel = document.getElementById('layerPanel');
             const btn = document.getElementById('togglePanelBtn');
+            const icon = btn.querySelector('.iconify');
 
             panel.classList.toggle('collapsed');
 
             if (panel.classList.contains('collapsed')) {
                 btn.title = 'Afficher le panneau';
+                icon.setAttribute('data-icon', 'mdi:dock-left');
             } else {
                 btn.title = 'Masquer le panneau';
+                icon.setAttribute('data-icon', 'mdi:dock-left');
             }
+        }
+
+        /**
+         * Affiche/Masque le menu hamburger
+         */
+        function toggleMenu() {
+            const menu = document.getElementById('menuPanel');
+            menu.classList.toggle('hidden');
+        }
+
+        /**
+         * Ferme le menu si on clique en dehors
+         */
+        document.addEventListener('click', function(event) {
+            const menu = document.getElementById('menuPanel');
+            const menuToggle = document.getElementById('menuToggle');
+
+            if (!menu.contains(event.target) && !menuToggle.contains(event.target)) {
+                menu.classList.add('hidden');
+            }
+        });
+
+        /**
+         * Exporte la configuration actuelle en JSON
+         */
+        function exportConfig() {
+            if (loadedLayers.length === 0) {
+                showMessage('Aucune couche à exporter', 'warning');
+                return;
+            }
+
+            // Créer la configuration
+            const config = {
+                view: {
+                    name: prompt('Nom de la configuration:', 'Ma configuration') || 'Configuration exportée',
+                    center: [map.getCenter().lat, map.getCenter().lng],
+                    zoom: map.getZoom(),
+                    basemap: currentBasemap === basemapOSM ? 'osm' :
+                             currentBasemap === basemapTopo ? 'topo' : 'positron'
+                },
+                layers: loadedLayers.map(layerInfo => ({
+                    name: layerInfo.name,
+                    url: layerInfo.url || './votre-fichier.geojson', // URL par défaut si chargé localement
+                    color: layerInfo.color,
+                    visible: map.hasLayer(layerInfo.layer),
+                    popup_template: layerInfo.templateName || null
+                })),
+                popup_templates: Object.keys(popupTemplates).length > 0 ? popupTemplates : undefined
+            };
+
+            // Créer le fichier et télécharger
+            const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'config.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showMessage('Configuration exportée avec succès', 'success');
+
+            // Fermer le menu
+            document.getElementById('menuPanel').classList.add('hidden');
         }
 
         /**
@@ -1383,11 +1391,11 @@
         console.log('Palette de couleurs accessibles:', colorPalette);
 
         /**
-         * Charge automatiquement view-config.json s'il existe
+         * Charge automatiquement config.json s'il existe
          */
         async function autoLoadViewConfig() {
             try {
-                const response = await fetch('view-config.json');
+                const response = await fetch('config.json');
                 if (response.ok) {
                     const config = JSON.parse(await response.text());
 
@@ -1428,7 +1436,8 @@
                                 geojson,
                                 layerConfig.name,
                                 color,
-                                layerConfig.popup_template
+                                layerConfig.popup_template,
+                                layerConfig.url
                             );
 
                             if (layerConfig.visible === false) {
@@ -1444,8 +1453,8 @@
                     showMessage(`"${viewName}" chargée automatiquement`, 'success');
                 }
             } catch (error) {
-                // Pas de view-config.json, mode normal
-                console.log('Aucun fichier view-config.json trouvé, mode manuel');
+                // Pas de config.json, mode normal
+                console.log('Aucun fichier config.json trouvé, mode manuel');
             }
         }
 
