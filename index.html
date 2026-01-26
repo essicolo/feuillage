@@ -185,18 +185,33 @@
             cursor: pointer;
             box-shadow: 0 1px 5px rgba(0,0,0,0.3);
             transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             width: 40px;
             height: 40px;
-            font-size: 24px;
-            font-weight: bold;
-            line-height: 1;
+            position: relative;
         }
 
         .toggle-panel-btn:hover {
             background-color: #1d4ed8;
+        }
+
+        /* Triangle CSS pour le bouton toggle */
+        .toggle-panel-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 8px 12px 8px 0;
+            border-color: transparent white transparent transparent;
+        }
+
+        /* Triangle inversé quand le panneau est collapsé */
+        #layerPanel.collapsed + .toggle-panel-btn::before {
+            border-width: 8px 0 8px 12px;
+            border-color: transparent transparent transparent white;
         }
 
         #layerPanel.collapsed + .toggle-panel-btn {
@@ -416,9 +431,7 @@
         </div>
 
         <!-- Bouton pour afficher/masquer le panneau -->
-        <button class="toggle-panel-btn" id="togglePanelBtn" onclick="toggleLayerPanel()" title="Masquer le panneau">
-            ◀
-        </button>
+        <button class="toggle-panel-btn" id="togglePanelBtn" onclick="toggleLayerPanel()" title="Masquer le panneau"></button>
 
         <!-- Carte -->
         <div id="map"></div>
@@ -847,10 +860,8 @@
             panel.classList.toggle('collapsed');
 
             if (panel.classList.contains('collapsed')) {
-                btn.textContent = '▶';
                 btn.title = 'Afficher le panneau';
             } else {
-                btn.textContent = '◀';
                 btn.title = 'Masquer le panneau';
             }
         }
