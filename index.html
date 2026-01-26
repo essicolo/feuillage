@@ -504,9 +504,6 @@
         // Configuration de vue actuelle
         let currentViewConfig = null;
 
-        // Compteur global pour IDs uniques de graphiques
-        let chartIdCounter = 0;
-
         /**
          * Affiche un message à l'utilisateur
          */
@@ -595,9 +592,8 @@
                         html += `<table>${rows}</table>`;
 
                     } else if (section.type === 'chart') {
-                        // Section avec graphique - ID unique garanti
-                        chartIdCounter++;
-                        const chartId = `chart-${chartIdCounter}`;
+                        // Section avec graphique - ID unique garanti avec timestamp + random
+                        const chartId = `chart-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
                         // Canvas avec dimensions fixes (pas de responsive pour éviter bugs)
                         html += `<div class="popup-chart"><canvas id="${chartId}" width="350" height="250" data-chart-config='${JSON.stringify(section)}' style="display: block;"></canvas></div>`;
                     }
@@ -621,18 +617,12 @@
 
             // Trouver seulement les canvas dans le popup actuellement ouvert
             const openPopup = document.querySelector('.leaflet-popup-content');
-            if (!openPopup) {
-                console.warn('Popup non trouvé');
-                return;
-            }
+            if (!openPopup) return;
 
             const canvases = openPopup.querySelectorAll('canvas[data-chart-config]');
-            console.log(`Création de ${canvases.length} graphique(s)`);
 
-            canvases.forEach((canvas, idx) => {
+            canvases.forEach((canvas) => {
                 try {
-                    console.log(`Création graphique ${idx + 1}/${canvases.length} - Canvas ID: ${canvas.id}`);
-
                     const sectionConfig = JSON.parse(canvas.getAttribute('data-chart-config'));
                     createChart(canvas.id, sectionConfig, properties);
                 } catch (e) {
@@ -654,21 +644,15 @@
          * Crée un graphique Chart.js dans un popup
          */
         function createChart(canvasId, section, properties) {
-            console.log(`createChart appelé - Canvas ID: ${canvasId}`);
-
             const canvas = document.getElementById(canvasId);
             if (!canvas) {
-                console.error(`Canvas ${canvasId} introuvable dans le DOM`);
+                console.error(`Canvas ${canvasId} introuvable`);
                 return;
             }
-
-            // Log des dimensions du canvas
-            console.log(`Canvas trouvé - Dimensions: ${canvas.width}x${canvas.height} (offset: ${canvas.offsetWidth}x${canvas.offsetHeight})`);
 
             // Détruire tout graphique existant sur ce canvas
             const existingChart = Chart.getChart(canvas);
             if (existingChart) {
-                console.log(`Destruction du graphique existant sur ${canvasId}`);
                 existingChart.destroy();
             }
 
@@ -681,18 +665,15 @@
             // Récupérer les données du graphique
             let chartData;
             if (section.data_field && properties[section.data_field]) {
-                // Les données sont dans une propriété spécifique
                 const dataStr = properties[section.data_field];
-                console.log(`Données du champ "${section.data_field}":`, dataStr);
                 try {
                     chartData = typeof dataStr === 'string' ? JSON.parse(dataStr) : dataStr;
-                    console.log('Données parsées:', chartData);
                 } catch (e) {
                     console.error('Erreur parsing des données de graphique:', e);
                     return;
                 }
             } else {
-                console.error(`Données manquantes - data_field: "${section.data_field}", existe dans properties: ${section.data_field in properties}`);
+                console.error(`Données manquantes pour le graphique`);
                 return;
             }
 
@@ -741,9 +722,8 @@
                         }
                     }
                 });
-                console.log(`✓ Graphique créé avec succès sur ${canvasId} - Canvas attaché:`, !!chart.canvas, `Ctx valide:`, !!chart.ctx);
             } catch (e) {
-                console.error(`Erreur lors de la création du graphique Chart.js sur ${canvasId}:`, e);
+                console.error(`Erreur création graphique Chart.js:`, e);
             }
         }
 
