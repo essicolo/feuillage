@@ -578,6 +578,9 @@
         // Configuration de vue actuelle
         let currentViewConfig = null;
 
+        // Compteur global pour IDs uniques de graphiques
+        let chartIdCounter = 0;
+
         /**
          * Affiche un message à l'utilisateur
          */
@@ -666,8 +669,9 @@
                         html += `<table>${rows}</table>`;
 
                     } else if (section.type === 'chart') {
-                        // Section avec graphique
-                        const chartId = `chart-${Date.now()}-${index}`;
+                        // Section avec graphique - ID unique garanti
+                        chartIdCounter++;
+                        const chartId = `chart-${chartIdCounter}`;
                         html += `<div class="popup-chart"><canvas id="${chartId}" data-chart-config='${JSON.stringify(section)}'></canvas></div>`;
                     }
 
@@ -690,21 +694,22 @@
 
             // Trouver seulement les canvas dans le popup actuellement ouvert
             const openPopup = document.querySelector('.leaflet-popup-content');
-            if (!openPopup) return;
+            if (!openPopup) {
+                console.warn('Popup non trouvé');
+                return;
+            }
 
             const canvases = openPopup.querySelectorAll('canvas[data-chart-config]');
-            canvases.forEach(canvas => {
+            console.log(`Création de ${canvases.length} graphique(s)`);
+
+            canvases.forEach((canvas, idx) => {
                 try {
-                    // Détruire le graphique existant s'il y en a un
-                    const existingChart = Chart.getChart(canvas.id);
-                    if (existingChart) {
-                        existingChart.destroy();
-                    }
+                    console.log(`Création graphique ${idx + 1}/${canvases.length} - Canvas ID: ${canvas.id}`);
 
                     const sectionConfig = JSON.parse(canvas.getAttribute('data-chart-config'));
                     createChart(canvas.id, sectionConfig, properties);
                 } catch (e) {
-                    console.error('Erreur création graphique:', e);
+                    console.error(`Erreur création graphique ${canvas.id}:`, e);
                 }
             });
         }
@@ -723,7 +728,16 @@
          */
         function createChart(canvasId, section, properties) {
             const canvas = document.getElementById(canvasId);
-            if (!canvas) return;
+            if (!canvas) {
+                console.warn(`Canvas ${canvasId} introuvable`);
+                return;
+            }
+
+            // Détruire tout graphique existant sur ce canvas
+            const existingChart = Chart.getChart(canvas);
+            if (existingChart) {
+                existingChart.destroy();
+            }
 
             const ctx = canvas.getContext('2d');
 
