@@ -88,19 +88,30 @@
 
             .layer-item-header {
                 display: flex;
-                align-items: flex-start;
-                margin-bottom: 0.4rem;
+                align-items: center;
+                justify-content: space-between;
+                gap: 0.5rem;
+            }
+
+            .layer-item-name-wrapper {
+                display: flex;
+                align-items: center;
+                flex: 1;
+                min-width: 0;
             }
 
             .layer-item-name {
                 font-weight: 500;
                 font-size: 0.85rem;
                 word-break: break-word;
+                overflow: hidden;
+                text-overflow: ellipsis;
             }
 
             .layer-item-actions {
                 display: flex;
                 gap: 0.25rem;
+                flex-shrink: 0;
             }
 
             .layer-item-actions button {
@@ -109,6 +120,9 @@
                 background-color: white;
                 color: #4a5568;
                 border: 1px solid #d1d5db;
+                border-radius: 3px;
+                cursor: pointer;
+                transition: background-color 0.15s;
             }
 
             .layer-item-actions button:hover {
@@ -117,6 +131,12 @@
 
             .layer-item-actions button.danger {
                 color: #c53030;
+            }
+
+            /* Checkboxes et radio buttons en noir */
+            input[type="checkbox"],
+            input[type="radio"] {
+                accent-color: #1f2937;
             }
 
             .toggle-panel-btn {
@@ -1441,18 +1461,18 @@
                         (layerInfo, index) => `
                 <div class="layer-item" style="border-left-color: ${layerInfo.color}">
                     <div class="layer-item-header">
-                        <label style="display: flex; align-items: center; cursor: pointer; flex: 1; margin-right: 0.4rem;">
-                            <input type="checkbox" checked onchange="toggleLayerVisibility(${index})" style="margin-right: 0.4rem;">
+                        <div class="layer-item-name-wrapper">
+                            <input type="checkbox" checked onchange="toggleLayerVisibility(${index})" style="margin-right: 0.5rem; cursor: pointer;">
                             <span class="layer-item-name">${layerInfo.name}</span>
-                        </label>
-                    </div>
-                    <div class="layer-item-actions">
-                        <button onclick="renameLayer(${index})" title="Renommer">
-                            <span class="iconify" data-icon="mdi:pencil" style="font-size: 11px;"></span>
-                        </button>
-                        <button class="danger" onclick="removeLayer(${index})" title="Supprimer">
-                            <span class="iconify" data-icon="mdi:delete" style="font-size: 11px;"></span>
-                        </button>
+                        </div>
+                        <div class="layer-item-actions">
+                            <button onclick="renameLayer(${index})" title="Renommer">
+                                <span class="iconify" data-icon="mdi:pencil" style="font-size: 11px;"></span>
+                            </button>
+                            <button class="danger" onclick="removeLayer(${index})" title="Supprimer">
+                                <span class="iconify" data-icon="mdi:delete" style="font-size: 11px;"></span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             `,
