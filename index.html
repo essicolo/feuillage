@@ -344,47 +344,64 @@
 
             /* Mode haute contraste */
             body.high-contrast {
-                --bg-main: #000;
-                --text-main: #fff;
-                --bg-panel: #1a1a1a;
-                --border-color: #fff;
+                background-color: #000 !important;
+                color: #fff !important;
+            }
+
+            body.high-contrast * {
+                color: #fff !important;
+                border-color: #fff !important;
             }
 
             body.high-contrast .map-container {
-                background-color: var(--bg-main);
+                background-color: #000 !important;
             }
 
             body.high-contrast #layerPanel,
             body.high-contrast .modal-content,
             body.high-contrast #menuPanel,
             body.high-contrast #a11yPanel {
-                background-color: var(--bg-panel);
-                color: var(--text-main);
-                border-color: var(--border-color);
+                background-color: #000 !important;
+                color: #fff !important;
+                border: 2px solid #fff !important;
             }
 
             body.high-contrast button {
-                background-color: var(--bg-panel);
-                color: var(--text-main);
-                border: 2px solid var(--text-main);
+                background-color: #000 !important;
+                color: #fff !important;
+                border: 2px solid #fff !important;
             }
 
             body.high-contrast button:hover {
-                background-color: #333;
+                background-color: #333 !important;
             }
 
-            body.high-contrast input {
-                background-color: var(--bg-panel);
-                color: var(--text-main);
-                border: 2px solid var(--text-main);
+            body.high-contrast input,
+            body.high-contrast select {
+                background-color: #000 !important;
+                color: #fff !important;
+                border: 2px solid #fff !important;
+            }
+
+            body.high-contrast .layer-item {
+                background-color: #1a1a1a !important;
+            }
+
+            body.high-contrast label,
+            body.high-contrast p,
+            body.high-contrast h1,
+            body.high-contrast h2,
+            body.high-contrast h3,
+            body.high-contrast span {
+                color: #fff !important;
             }
 
             /* Panneau d'accessibilité */
             #a11yPanel {
                 display: none;
                 position: fixed;
-                top: 16px;
-                right: 240px;
+                top: 64px;
+                right: 16px;
                 z-index: 1999;
                 background-color: white;
                 border-radius: 8px;
@@ -429,12 +446,28 @@
             }
 
             /* Tailles de texte */
-            body.text-large {
-                font-size: 1.1rem;
+            body.text-large,
+            body.text-large * {
+                font-size: 1.15rem !important;
             }
 
-            body.text-xlarge {
-                font-size: 1.25rem;
+            body.text-xlarge,
+            body.text-xlarge * {
+                font-size: 1.35rem !important;
+            }
+
+            /* Exception pour les icônes */
+            body.text-large .iconify,
+            body.text-xlarge .iconify {
+                font-size: 20px !important;
+            }
+
+            /* Réduction des animations */
+            body.reduce-motion,
+            body.reduce-motion * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
             }
         </style>
     </head>
@@ -477,16 +510,16 @@
         <button
             id="a11yToggle"
             onclick="toggleA11yMenu()"
-            class="fixed top-4 right-20 z-[2000] bg-blue-600 hover:bg-blue-700 text-white p-2.5 rounded-md shadow-md border border-blue-700 transition-colors"
+            class="fixed bottom-4 left-28 z-[2000] bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full shadow-lg border border-blue-700 transition-colors"
             aria-label="Ouvrir le menu d'accessibilité"
             aria-expanded="false"
             aria-controls="a11yPanel"
-            title="Menu d'accessibilité (Alt+A)"
+            title="Accessibilité (Alt+A)"
         >
             <span
                 class="iconify"
                 data-icon="mdi:human-accessibility"
-                style="font-size: 20px"
+                style="font-size: 18px"
                 aria-hidden="true"
             ></span>
         </button>
@@ -496,7 +529,6 @@
             id="a11yPanel"
             role="dialog"
             aria-labelledby="a11yPanelTitle"
-            class="hidden"
         >
             <div class="a11y-section">
                 <h3 id="a11yPanelTitle">Accessibilité</h3>
@@ -1844,17 +1876,30 @@
             }
 
             /**
-             * Ferme le menu si on clique en dehors
+             * Ferme les menus si on clique en dehors
              */
             document.addEventListener("click", function (event) {
                 const menu = document.getElementById("menuPanel");
                 const menuToggle = document.getElementById("menuToggle");
+                const a11yPanel = document.getElementById("a11yPanel");
+                const a11yToggle = document.getElementById("a11yToggle");
 
+                // Fermer le menu principal
                 if (
                     !menu.contains(event.target) &&
                     !menuToggle.contains(event.target)
                 ) {
                     menu.classList.add("hidden");
+                    menuToggle.setAttribute("aria-expanded", "false");
+                }
+
+                // Fermer le panneau d'accessibilité
+                if (
+                    !a11yPanel.contains(event.target) &&
+                    !a11yToggle.contains(event.target)
+                ) {
+                    a11yPanel.classList.remove("show");
+                    a11yToggle.setAttribute("aria-expanded", "false");
                 }
             });
 
@@ -2155,16 +2200,13 @@
             function toggleReduceMotion() {
                 const checkbox = document.getElementById("reduceMotionToggle");
                 const isEnabled = checkbox.checked;
+
                 if (isEnabled) {
-                    document.documentElement.style.setProperty(
-                        "--transition-duration",
-                        "0.01ms",
-                    );
+                    document.body.classList.add("reduce-motion");
                 } else {
-                    document.documentElement.style.removeProperty(
-                        "--transition-duration",
-                    );
+                    document.body.classList.remove("reduce-motion");
                 }
+
                 localStorage.setItem("reduceMotion", isEnabled);
                 announceToScreenReader(
                     isEnabled ? "Animations réduites" : "Animations normales",
@@ -2267,15 +2309,19 @@
 
                 // Taille du texte
                 const textSize = localStorage.getItem("textSize");
-                if (textSize) {
-                    changeTextSize(textSize);
+                if (textSize && textSize !== "normal") {
+                    if (textSize === "large") {
+                        document.body.classList.add("text-large");
+                    } else if (textSize === "xlarge") {
+                        document.body.classList.add("text-xlarge");
+                    }
                     document.getElementById("textSizeSelect").value = textSize;
                 }
 
                 // Réduction des animations
                 if (localStorage.getItem("reduceMotion") === "true") {
+                    document.body.classList.add("reduce-motion");
                     document.getElementById("reduceMotionToggle").checked = true;
-                    toggleReduceMotion();
                 }
             }
 
