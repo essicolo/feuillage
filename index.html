@@ -311,25 +311,276 @@
             .layer-edit-btn:hover {
                 background-color: #444;
             }
+
+            /* Accessibilité */
+            .sr-only {
+                position: absolute;
+                width: 1px;
+                height: 1px;
+                padding: 0;
+                margin: -1px;
+                overflow: hidden;
+                clip: rect(0, 0, 0, 0);
+                white-space: nowrap;
+                border-width: 0;
+            }
+
+            .focus\:not-sr-only:focus {
+                position: static;
+                width: auto;
+                height: auto;
+                padding: 0.5rem 1rem;
+                margin: 0;
+                overflow: visible;
+                clip: auto;
+                white-space: normal;
+            }
+
+            /* Focus visible pour navigation clavier */
+            *:focus-visible {
+                outline: 3px solid #2563eb;
+                outline-offset: 2px;
+            }
+
+            /* Mode haute contraste */
+            body.high-contrast {
+                --bg-main: #000;
+                --text-main: #fff;
+                --bg-panel: #1a1a1a;
+                --border-color: #fff;
+            }
+
+            body.high-contrast .map-container {
+                background-color: var(--bg-main);
+            }
+
+            body.high-contrast #layerPanel,
+            body.high-contrast .modal-content,
+            body.high-contrast #menuPanel,
+            body.high-contrast #a11yPanel {
+                background-color: var(--bg-panel);
+                color: var(--text-main);
+                border-color: var(--border-color);
+            }
+
+            body.high-contrast button {
+                background-color: var(--bg-panel);
+                color: var(--text-main);
+                border: 2px solid var(--text-main);
+            }
+
+            body.high-contrast button:hover {
+                background-color: #333;
+            }
+
+            body.high-contrast input {
+                background-color: var(--bg-panel);
+                color: var(--text-main);
+                border: 2px solid var(--text-main);
+            }
+
+            /* Panneau d'accessibilité */
+            #a11yPanel {
+                display: none;
+                position: fixed;
+                top: 16px;
+                right: 240px;
+                z-index: 1999;
+                background-color: white;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                border: 1px solid #d1d5db;
+                width: 320px;
+                max-height: 80vh;
+                overflow-y: auto;
+            }
+
+            #a11yPanel.show {
+                display: block;
+            }
+
+            .a11y-section {
+                padding: 1rem;
+                border-bottom: 1px solid #e5e7eb;
+            }
+
+            .a11y-section:last-child {
+                border-bottom: none;
+            }
+
+            .a11y-section h3 {
+                margin: 0 0 0.75rem 0;
+                font-size: 0.875rem;
+                font-weight: 600;
+                color: #374151;
+            }
+
+            .a11y-option {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0.5rem 0;
+            }
+
+            .a11y-option label {
+                font-size: 0.8rem;
+                color: #4b5563;
+                cursor: pointer;
+            }
+
+            /* Tailles de texte */
+            body.text-large {
+                font-size: 1.1rem;
+            }
+
+            body.text-xlarge {
+                font-size: 1.25rem;
+            }
         </style>
     </head>
     <body class="overflow-hidden">
+        <!-- Région ARIA live pour les annonces aux lecteurs d'écran -->
+        <div
+            id="ariaAnnouncer"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+            class="sr-only"
+        ></div>
+
+        <!-- Skip link pour navigation rapide -->
+        <a
+            href="#map"
+            class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[3000] focus:bg-blue-600 focus:text-white focus:px-4 focus:py-2 focus:rounded"
+        >
+            Aller à la carte
+        </a>
+
         <!-- Menu hamburger en haut à droite -->
         <button
             id="menuToggle"
             onclick="toggleMenu()"
             class="fixed top-4 right-4 z-[2000] bg-white hover:bg-gray-50 text-gray-800 p-2.5 rounded-md shadow-md border border-gray-200 transition-colors"
+            aria-label="Ouvrir le menu principal"
+            aria-expanded="false"
+            aria-controls="menuPanel"
         >
             <span
                 class="iconify"
                 data-icon="mdi:menu"
                 style="font-size: 20px"
+                aria-hidden="true"
             ></span>
         </button>
+
+        <!-- Bouton d'accessibilité (Alt+A) -->
+        <button
+            id="a11yToggle"
+            onclick="toggleA11yMenu()"
+            class="fixed top-4 right-20 z-[2000] bg-blue-600 hover:bg-blue-700 text-white p-2.5 rounded-md shadow-md border border-blue-700 transition-colors"
+            aria-label="Ouvrir le menu d'accessibilité"
+            aria-expanded="false"
+            aria-controls="a11yPanel"
+            title="Menu d'accessibilité (Alt+A)"
+        >
+            <span
+                class="iconify"
+                data-icon="mdi:human-accessibility"
+                style="font-size: 20px"
+                aria-hidden="true"
+            ></span>
+        </button>
+
+        <!-- Panneau d'accessibilité -->
+        <div
+            id="a11yPanel"
+            role="dialog"
+            aria-labelledby="a11yPanelTitle"
+            class="hidden"
+        >
+            <div class="a11y-section">
+                <h3 id="a11yPanelTitle">Accessibilité</h3>
+                <p style="font-size: 0.75rem; color: #6b7280; margin: 0">
+                    Raccourci clavier: Alt+A
+                </p>
+            </div>
+
+            <div class="a11y-section">
+                <h3>Affichage</h3>
+                <div class="a11y-option">
+                    <label for="highContrastToggle">Mode haute contraste</label>
+                    <input
+                        type="checkbox"
+                        id="highContrastToggle"
+                        onchange="toggleHighContrast()"
+                        aria-describedby="highContrastDesc"
+                    />
+                </div>
+                <p
+                    id="highContrastDesc"
+                    class="sr-only"
+                >
+                    Active un mode avec des couleurs plus contrastées pour une meilleure lisibilité
+                </p>
+
+                <div class="a11y-option">
+                    <label>Taille du texte</label>
+                    <select
+                        id="textSizeSelect"
+                        onchange="changeTextSize(this.value)"
+                        aria-label="Sélectionner la taille du texte"
+                        style="padding: 0.25rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.75rem"
+                    >
+                        <option value="normal">Normal</option>
+                        <option value="large">Grand</option>
+                        <option value="xlarge">Très grand</option>
+                    </select>
+                </div>
+
+                <div class="a11y-option">
+                    <label for="reduceMotionToggle">Réduire les animations</label>
+                    <input
+                        type="checkbox"
+                        id="reduceMotionToggle"
+                        onchange="toggleReduceMotion()"
+                    />
+                </div>
+            </div>
+
+            <div class="a11y-section">
+                <h3>Navigation</h3>
+                <div style="font-size: 0.75rem; color: #4b5563">
+                    <p style="margin: 0.25rem 0"><strong>Tab</strong> : Navigation entre éléments</p>
+                    <p style="margin: 0.25rem 0"><strong>Entrée/Espace</strong> : Activer</p>
+                    <p style="margin: 0.25rem 0"><strong>Échap</strong> : Fermer les menus</p>
+                    <p style="margin: 0.25rem 0"><strong>Alt+A</strong> : Menu accessibilité</p>
+                    <p style="margin: 0.25rem 0"><strong>Alt+L</strong> : Liste des couches</p>
+                    <p style="margin: 0.25rem 0"><strong>Alt+F</strong> : Liste des entités</p>
+                </div>
+            </div>
+
+            <div class="a11y-section">
+                <h3>Alternatives textuelles</h3>
+                <button
+                    onclick="showLayersSummary()"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-xs font-medium transition-colors"
+                >
+                    Résumé des couches (Alt+L)
+                </button>
+                <button
+                    onclick="showFeaturesList()"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-xs font-medium transition-colors mt-2"
+                >
+                    Liste des entités (Alt+F)
+                </button>
+            </div>
+        </div>
 
         <!-- Menu déroulant -->
         <div
             id="menuPanel"
+            role="menu"
+            aria-labelledby="menuToggle"
             class="hidden fixed top-16 right-4 z-[1999] bg-white rounded-lg shadow-xl border border-gray-200 w-80 max-h-[80vh] overflow-y-auto"
         >
             <div class="p-3 space-y-3">
@@ -465,11 +716,19 @@
 
         <div class="map-container">
             <!-- Panneau de gestion des couches -->
-            <div id="layerPanel">
+            <nav
+                id="layerPanel"
+                role="navigation"
+                aria-label="Panneau de gestion des couches"
+            >
                 <div class="layer-panel-header">
-                    <div id="viewTitle">Visualiseur GeoJSON</div>
+                    <h1 id="viewTitle">Visualiseur GeoJSON</h1>
                 </div>
-                <div class="layer-panel-content">
+                <div
+                    class="layer-panel-content"
+                    role="region"
+                    aria-label="Liste des couches et fonds de carte"
+                >
                     <!-- Section des fonds de carte -->
                     <div
                         style="
@@ -569,7 +828,7 @@
                         </div>
                     </div>
                 </div>
-            </div>
+            </nav>
 
             <!-- Bouton pour afficher/masquer le panneau (bas gauche) -->
             <button
@@ -577,16 +836,25 @@
                 id="togglePanelBtn"
                 onclick="toggleLayerPanel()"
                 title="Masquer le panneau"
+                aria-label="Masquer le panneau des couches"
+                aria-expanded="true"
+                aria-controls="layerPanel"
             >
                 <span
                     class="iconify"
                     data-icon="mdi:dock-left"
                     style="font-size: 20px"
+                    aria-hidden="true"
                 ></span>
             </button>
 
             <!-- Carte -->
-            <div id="map"></div>
+            <main
+                id="map"
+                role="application"
+                aria-label="Carte interactive GeoJSON"
+                tabindex="0"
+            ></main>
         </div>
 
         <!-- Modal pour renommer une couche -->
@@ -717,6 +985,9 @@
                 messageEl.textContent = text;
                 messageEl.className = `message ${type} show`;
 
+                // Annoncer aux lecteurs d'écran
+                announceToScreenReader(text);
+
                 setTimeout(() => {
                     messageEl.classList.remove("show");
                 }, 5000);
@@ -809,8 +1080,22 @@
                         } else if (section.type === "chart") {
                             // Section avec graphique - ID unique garanti avec timestamp + random
                             const chartId = `chart-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+                            const tableId = `table-${chartId}`;
                             // Canvas avec dimensions fixes (pas de responsive pour éviter bugs)
-                            html += `<div class="popup-chart"><canvas id="${chartId}" width="350" height="250" data-chart-config='${JSON.stringify(section)}' style="display: block;"></canvas></div>`;
+                            html += `<div class="popup-chart">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                    <button
+                                        onclick="toggleChartTable('${chartId}', '${tableId}')"
+                                        style="font-size: 0.7rem; padding: 0.25rem 0.5rem; background: #e5e7eb; border: 1px solid #d1d5db; border-radius: 3px; cursor: pointer;"
+                                        aria-label="Basculer entre graphique et tableau"
+                                    >
+                                        <span class="iconify" data-icon="mdi:table" style="font-size: 12px;"></span>
+                                        Tableau
+                                    </button>
+                                </div>
+                                <canvas id="${chartId}" width="350" height="250" data-chart-config='${JSON.stringify(section)}' style="display: block;"></canvas>
+                                <div id="${tableId}" style="display: none;" role="table" aria-label="Données du graphique sous forme de tableau"></div>
+                            </div>`;
                         }
 
                         html += "</div>";
@@ -872,6 +1157,13 @@
                     return;
                 }
 
+                // Ajouter un rôle et label ARIA au canvas
+                canvas.setAttribute("role", "img");
+                canvas.setAttribute(
+                    "aria-label",
+                    section.options?.title || "Graphique de données",
+                );
+
                 // Vérifier que le canvas est bien attaché au DOM
                 if (!canvas.isConnected) {
                     console.error(`Canvas ${canvasId} non attaché au DOM`);
@@ -924,6 +1216,10 @@
                     console.error(`Données manquantes pour le graphique`);
                     return;
                 }
+
+                // Créer le tableau de données alternatif
+                const tableId = canvasId.replace("chart-", "table-chart-");
+                createDataTable(tableId, chartData, section.options);
 
                 // Configuration du graphique
                 const options = section.options || {};
@@ -1458,24 +1754,48 @@
 
                 layerList.innerHTML = loadedLayers
                     .map(
-                        (layerInfo, index) => `
-                <div class="layer-item" style="border-left-color: ${layerInfo.color}">
+                        (layerInfo, index) => {
+                            const featureCount =
+                                layerInfo.geojson.type === "FeatureCollection"
+                                    ? layerInfo.geojson.features.length
+                                    : 1;
+                            return `
+                <div class="layer-item" style="border-left-color: ${layerInfo.color}" role="group" aria-label="Couche ${layerInfo.name}">
                     <div class="layer-item-header">
                         <div class="layer-item-name-wrapper">
-                            <input type="checkbox" checked onchange="toggleLayerVisibility(${index})" style="margin-right: 0.5rem; cursor: pointer;">
-                            <span class="layer-item-name">${layerInfo.name}</span>
+                            <input
+                                type="checkbox"
+                                checked
+                                onchange="toggleLayerVisibility(${index})"
+                                style="margin-right: 0.5rem; cursor: pointer;"
+                                id="layer-toggle-${index}"
+                                aria-label="Afficher/masquer la couche ${layerInfo.name}"
+                                aria-describedby="layer-desc-${index}"
+                            >
+                            <label for="layer-toggle-${index}" class="layer-item-name">${layerInfo.name}</label>
+                            <span id="layer-desc-${index}" class="sr-only">${featureCount} entité(s)</span>
                         </div>
                         <div class="layer-item-actions">
-                            <button onclick="renameLayer(${index})" title="Renommer">
-                                <span class="iconify" data-icon="mdi:pencil" style="font-size: 11px;"></span>
+                            <button
+                                onclick="renameLayer(${index})"
+                                title="Renommer ${layerInfo.name}"
+                                aria-label="Renommer la couche ${layerInfo.name}"
+                            >
+                                <span class="iconify" data-icon="mdi:pencil" style="font-size: 11px;" aria-hidden="true"></span>
                             </button>
-                            <button class="danger" onclick="removeLayer(${index})" title="Supprimer">
-                                <span class="iconify" data-icon="mdi:delete" style="font-size: 11px;"></span>
+                            <button
+                                class="danger"
+                                onclick="removeLayer(${index})"
+                                title="Supprimer ${layerInfo.name}"
+                                aria-label="Supprimer la couche ${layerInfo.name}"
+                            >
+                                <span class="iconify" data-icon="mdi:delete" style="font-size: 11px;" aria-hidden="true"></span>
                             </button>
                         </div>
                     </div>
                 </div>
-            `,
+            `;
+                        },
                     )
                     .join("");
             }
@@ -1492,10 +1812,16 @@
 
                 if (panel.classList.contains("collapsed")) {
                     btn.title = "Afficher le panneau";
+                    btn.setAttribute("aria-label", "Afficher le panneau des couches");
+                    btn.setAttribute("aria-expanded", "false");
                     icon.setAttribute("data-icon", "mdi:dock-left");
+                    announceToScreenReader("Panneau des couches masqué");
                 } else {
                     btn.title = "Masquer le panneau";
+                    btn.setAttribute("aria-label", "Masquer le panneau des couches");
+                    btn.setAttribute("aria-expanded", "true");
                     icon.setAttribute("data-icon", "mdi:dock-left");
+                    announceToScreenReader("Panneau des couches affiché");
                 }
             }
 
@@ -1504,7 +1830,17 @@
              */
             function toggleMenu() {
                 const menu = document.getElementById("menuPanel");
+                const btn = document.getElementById("menuToggle");
+                const isHidden = menu.classList.contains("hidden");
+
                 menu.classList.toggle("hidden");
+                btn.setAttribute("aria-expanded", isHidden);
+
+                if (isHidden) {
+                    announceToScreenReader("Menu principal ouvert");
+                } else {
+                    announceToScreenReader("Menu principal fermé");
+                }
             }
 
             /**
@@ -1588,8 +1924,10 @@
 
                 if (map.hasLayer(layerInfo.layer)) {
                     map.removeLayer(layerInfo.layer);
+                    announceToScreenReader(`Couche ${layerInfo.name} masquée`);
                 } else {
                     map.addLayer(layerInfo.layer);
+                    announceToScreenReader(`Couche ${layerInfo.name} affichée`);
                 }
             }
 
@@ -1752,12 +2090,312 @@
             console.log("Visualiseur GeoJSON initialisé");
             console.log("Palette de couleurs accessibles:", colorPalette);
 
+            // ===== FONCTIONS D'ACCESSIBILITÉ =====
+
             /**
-             * Charge automatiquement config.json s'il existe
+             * Annonce un message aux lecteurs d'écran
+             */
+            function announceToScreenReader(message) {
+                const announcer = document.getElementById("ariaAnnouncer");
+                announcer.textContent = message;
+                // Réinitialiser après 1 seconde pour permettre les annonces répétées
+                setTimeout(() => {
+                    announcer.textContent = "";
+                }, 1000);
+            }
+
+            /**
+             * Affiche/Masque le menu d'accessibilité
+             */
+            function toggleA11yMenu() {
+                const panel = document.getElementById("a11yPanel");
+                const btn = document.getElementById("a11yToggle");
+                const isHidden = !panel.classList.contains("show");
+
+                panel.classList.toggle("show");
+                btn.setAttribute("aria-expanded", isHidden);
+
+                if (isHidden) {
+                    announceToScreenReader("Menu d'accessibilité ouvert");
+                } else {
+                    announceToScreenReader("Menu d'accessibilité fermé");
+                }
+            }
+
+            /**
+             * Active/Désactive le mode haute contraste
+             */
+            function toggleHighContrast() {
+                const isEnabled = document.body.classList.toggle("high-contrast");
+                localStorage.setItem("highContrast", isEnabled);
+                announceToScreenReader(
+                    isEnabled
+                        ? "Mode haute contraste activé"
+                        : "Mode haute contraste désactivé",
+                );
+            }
+
+            /**
+             * Change la taille du texte
+             */
+            function changeTextSize(size) {
+                document.body.classList.remove("text-large", "text-xlarge");
+                if (size === "large") {
+                    document.body.classList.add("text-large");
+                } else if (size === "xlarge") {
+                    document.body.classList.add("text-xlarge");
+                }
+                localStorage.setItem("textSize", size);
+                announceToScreenReader(`Taille du texte: ${size === "normal" ? "normale" : size === "large" ? "grande" : "très grande"}`);
+            }
+
+            /**
+             * Active/Désactive la réduction des animations
+             */
+            function toggleReduceMotion() {
+                const checkbox = document.getElementById("reduceMotionToggle");
+                const isEnabled = checkbox.checked;
+                if (isEnabled) {
+                    document.documentElement.style.setProperty(
+                        "--transition-duration",
+                        "0.01ms",
+                    );
+                } else {
+                    document.documentElement.style.removeProperty(
+                        "--transition-duration",
+                    );
+                }
+                localStorage.setItem("reduceMotion", isEnabled);
+                announceToScreenReader(
+                    isEnabled ? "Animations réduites" : "Animations normales",
+                );
+            }
+
+            /**
+             * Affiche un résumé textuel des couches
+             */
+            function showLayersSummary() {
+                if (loadedLayers.length === 0) {
+                    alert("Aucune couche chargée.");
+                    return;
+                }
+
+                let summary = `=== RÉSUMÉ DES COUCHES ===\n\n`;
+                summary += `Nombre total de couches: ${loadedLayers.length}\n\n`;
+
+                loadedLayers.forEach((layerInfo, index) => {
+                    const visible = map.hasLayer(layerInfo.layer) ? "✓" : "✗";
+                    const featureCount =
+                        layerInfo.geojson.type === "FeatureCollection"
+                            ? layerInfo.geojson.features.length
+                            : 1;
+
+                    summary += `${index + 1}. ${layerInfo.name}\n`;
+                    summary += `   Visible: ${visible}\n`;
+                    summary += `   Nombre d'entités: ${featureCount}\n`;
+                    summary += `   Couleur: ${layerInfo.color}\n\n`;
+                });
+
+                alert(summary);
+                announceToScreenReader(
+                    `Résumé affiché pour ${loadedLayers.length} couches`,
+                );
+            }
+
+            /**
+             * Affiche la liste des entités de toutes les couches
+             */
+            function showFeaturesList() {
+                if (loadedLayers.length === 0) {
+                    alert("Aucune couche chargée.");
+                    return;
+                }
+
+                let list = `=== LISTE DES ENTITÉS ===\n\n`;
+
+                loadedLayers.forEach((layerInfo, layerIndex) => {
+                    if (!map.hasLayer(layerInfo.layer)) return;
+
+                    list += `\n--- ${layerInfo.name} ---\n\n`;
+
+                    const features =
+                        layerInfo.geojson.type === "FeatureCollection"
+                            ? layerInfo.geojson.features
+                            : [layerInfo.geojson];
+
+                    features.slice(0, 10).forEach((feature, index) => {
+                        list += `${index + 1}. `;
+
+                        // Essayer de trouver un nom ou ID
+                        const props = feature.properties || {};
+                        const name =
+                            props.name ||
+                            props.nom ||
+                            props.id ||
+                            props.ID ||
+                            `Entité ${index + 1}`;
+
+                        list += `${name}\n`;
+
+                        // Afficher quelques propriétés importantes
+                        const importantProps = Object.entries(props)
+                            .slice(0, 3)
+                            .map(([key, value]) => `   ${key}: ${value}`)
+                            .join("\n");
+
+                        list += importantProps + "\n\n";
+                    });
+
+                    if (features.length > 10) {
+                        list += `... et ${features.length - 10} autres entités\n`;
+                    }
+                });
+
+                alert(list);
+                announceToScreenReader("Liste des entités affichée");
+            }
+
+            /**
+             * Restaure les préférences d'accessibilité depuis localStorage
+             */
+            function restoreA11yPreferences() {
+                // Haute contraste
+                if (localStorage.getItem("highContrast") === "true") {
+                    document.body.classList.add("high-contrast");
+                    document.getElementById("highContrastToggle").checked = true;
+                }
+
+                // Taille du texte
+                const textSize = localStorage.getItem("textSize");
+                if (textSize) {
+                    changeTextSize(textSize);
+                    document.getElementById("textSizeSelect").value = textSize;
+                }
+
+                // Réduction des animations
+                if (localStorage.getItem("reduceMotion") === "true") {
+                    document.getElementById("reduceMotionToggle").checked = true;
+                    toggleReduceMotion();
+                }
+            }
+
+            /**
+             * Gestion des raccourcis clavier
+             */
+            document.addEventListener("keydown", function (e) {
+                // Alt+A : Menu d'accessibilité
+                if (e.altKey && e.key === "a") {
+                    e.preventDefault();
+                    toggleA11yMenu();
+                }
+
+                // Alt+L : Résumé des couches
+                if (e.altKey && e.key === "l") {
+                    e.preventDefault();
+                    showLayersSummary();
+                }
+
+                // Alt+F : Liste des entités
+                if (e.altKey && e.key === "f") {
+                    e.preventDefault();
+                    showFeaturesList();
+                }
+
+                // Échap : Fermer les menus
+                if (e.key === "Escape") {
+                    document.getElementById("menuPanel").classList.add("hidden");
+                    document.getElementById("a11yPanel").classList.remove("show");
+                    document.getElementById("menuToggle").setAttribute("aria-expanded", "false");
+                    document.getElementById("a11yToggle").setAttribute("aria-expanded", "false");
+                    closeRenameModal();
+                }
+            });
+
+            /**
+             * Bascule entre graphique et tableau
+             */
+            function toggleChartTable(chartId, tableId) {
+                const canvas = document.getElementById(chartId);
+                const table = document.getElementById(tableId);
+
+                if (canvas.style.display === "none") {
+                    canvas.style.display = "block";
+                    table.style.display = "none";
+                    announceToScreenReader("Affichage graphique");
+                } else {
+                    canvas.style.display = "none";
+                    table.style.display = "block";
+                    announceToScreenReader("Affichage tableau");
+                }
+            }
+
+            /**
+             * Crée un tableau de données alternatif pour un graphique
+             */
+            function createDataTable(tableId, chartData, options) {
+                const table = document.getElementById(tableId);
+                if (!table) return;
+
+                let html = `<table style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
+                    <caption style="font-weight: 600; text-align: left; margin-bottom: 0.5rem;">
+                        ${options?.title || "Données"}
+                    </caption>
+                    <thead>
+                        <tr>
+                            <th style="border: 1px solid #d1d5db; padding: 0.25rem; background: #f3f4f6;">
+                                ${options?.xlabel || "Label"}
+                            </th>
+                            <th style="border: 1px solid #d1d5db; padding: 0.25rem; background: #f3f4f6;">
+                                ${options?.ylabel || "Valeur"}
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+
+                const labels = chartData.labels || [];
+                const values = chartData.values || [];
+
+                labels.forEach((label, index) => {
+                    html += `<tr>
+                        <td style="border: 1px solid #d1d5db; padding: 0.25rem;">${label}</td>
+                        <td style="border: 1px solid #d1d5db; padding: 0.25rem;">${values[index] || "N/A"}</td>
+                    </tr>`;
+                });
+
+                html += `</tbody></table>`;
+                table.innerHTML = html;
+            }
+
+            // Restaurer les préférences au chargement
+            restoreA11yPreferences();
+
+            // ===== FIN DES FONCTIONS D'ACCESSIBILITÉ =====
+
+            /**
+             * Obtient le nom du fichier de configuration depuis l'URL
+             */
+            function getConfigFromURL() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const configParam = urlParams.get('config');
+
+                // Si un paramètre 'config' est fourni, l'utiliser
+                // Sinon, utiliser 'config' par défaut
+                if (configParam) {
+                    // Ajouter .json si pas déjà présent
+                    return configParam.endsWith('.json') ? configParam : `${configParam}.json`;
+                }
+                return 'config.json';
+            }
+
+            /**
+             * Charge automatiquement la configuration depuis l'URL ou config.json par défaut
              */
             async function autoLoadViewConfig() {
                 try {
-                    const response = await fetch("config.json");
+                    const configFile = getConfigFromURL();
+                    console.log(`Tentative de chargement de la configuration: ${configFile}`);
+
+                    const response = await fetch(configFile);
                     if (response.ok) {
                         const config = JSON.parse(await response.text());
 
@@ -1826,16 +2464,28 @@
                         }
 
                         const viewName = config.view.name || "Vue par défaut";
+                        const configFile = getConfigFromURL();
                         showMessage(
-                            `"${viewName}" chargée automatiquement`,
+                            `"${viewName}" chargée depuis ${configFile}`,
                             "success",
                         );
                     }
                 } catch (error) {
-                    // Pas de config.json, mode normal
-                    console.log(
-                        "Aucun fichier config.json trouvé, mode manuel",
-                    );
+                    // Pas de fichier de configuration trouvé
+                    const configFile = getConfigFromURL();
+                    if (configFile !== 'config.json') {
+                        // Si un paramètre config était spécifié mais non trouvé, avertir l'utilisateur
+                        console.warn(`Configuration "${configFile}" non trouvée`);
+                        showMessage(
+                            `Configuration "${configFile}" non trouvée. Utilisez le menu pour charger des données.`,
+                            "warning",
+                        );
+                    } else {
+                        // Mode normal sans config.json
+                        console.log(
+                            "Aucun fichier config.json trouvé, mode manuel",
+                        );
+                    }
                 }
             }
 
