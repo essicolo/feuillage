@@ -396,12 +396,42 @@
                 color: #fff !important;
             }
 
+            /* Contrôles Leaflet en mode haute contraste */
+            body.high-contrast .leaflet-control-zoom a,
+            body.high-contrast .leaflet-bar a {
+                background-color: #000 !important;
+                color: #fff !important;
+                border: 2px solid #fff !important;
+            }
+
+            body.high-contrast .leaflet-control-zoom a:hover,
+            body.high-contrast .leaflet-bar a:hover {
+                background-color: #333 !important;
+            }
+
+            body.high-contrast .leaflet-popup-content-wrapper {
+                background-color: #000 !important;
+                color: #fff !important;
+                border: 2px solid #fff !important;
+            }
+
+            body.high-contrast .leaflet-popup-tip {
+                background-color: #000 !important;
+                border: 2px solid #fff !important;
+            }
+
+            body.high-contrast .leaflet-control-attribution {
+                background-color: #000 !important;
+                color: #fff !important;
+                border: 1px solid #fff !important;
+            }
+
             /* Panneau d'accessibilité */
             #a11yPanel {
                 display: none;
                 position: fixed;
                 top: 64px;
-                right: 16px;
+                left: 16px;
                 z-index: 1999;
                 background-color: white;
                 border-radius: 8px;
@@ -510,7 +540,7 @@
         <button
             id="a11yToggle"
             onclick="toggleA11yMenu()"
-            class="fixed bottom-4 left-28 z-[2000] bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full shadow-lg border border-blue-700 transition-colors"
+            class="fixed top-4 left-4 z-[2000] bg-white hover:bg-gray-50 text-gray-800 p-2.5 rounded-md shadow-md border border-gray-200 transition-colors"
             aria-label="Ouvrir le menu d'accessibilité"
             aria-expanded="false"
             aria-controls="a11yPanel"
@@ -519,7 +549,7 @@
             <span
                 class="iconify"
                 data-icon="mdi:human-accessibility"
-                style="font-size: 18px"
+                style="font-size: 20px"
                 aria-hidden="true"
             ></span>
         </button>
