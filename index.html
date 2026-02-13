@@ -387,12 +387,18 @@
                 background-color: #1a1a1a !important;
             }
 
+            body.high-contrast .layer-panel-header {
+                background-color: #000 !important;
+                border-bottom: 2px solid #fff !important;
+            }
+
             body.high-contrast label,
             body.high-contrast p,
             body.high-contrast h1,
             body.high-contrast h2,
             body.high-contrast h3,
-            body.high-contrast span {
+            body.high-contrast span,
+            body.high-contrast div {
                 color: #fff !important;
             }
 
@@ -431,7 +437,7 @@
                 display: none;
                 position: fixed;
                 top: 64px;
-                left: 16px;
+                right: 16px;
                 z-index: 1999;
                 background-color: white;
                 border-radius: 8px;
@@ -540,7 +546,7 @@
         <button
             id="a11yToggle"
             onclick="toggleA11yMenu()"
-            class="fixed top-4 left-4 z-[2000] bg-white hover:bg-gray-50 text-gray-800 p-2.5 rounded-md shadow-md border border-gray-200 transition-colors"
+            class="fixed top-4 right-16 z-[2000] bg-white hover:bg-gray-50 text-gray-800 p-2.5 rounded-md shadow-md border border-gray-200 transition-colors"
             aria-label="Ouvrir le menu d'accessibilité"
             aria-expanded="false"
             aria-controls="a11yPanel"
@@ -548,7 +554,7 @@
         >
             <span
                 class="iconify"
-                data-icon="mdi:human-accessibility"
+                data-icon="material-symbols:settings-applications-outline"
                 style="font-size: 20px"
                 aria-hidden="true"
             ></span>
