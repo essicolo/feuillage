@@ -1,0 +1,54 @@
+{
+  "view": {
+    "name": "Test chart_lazy - Troncons hydrologiques",
+    "center": [46.87, -71.27],
+    "zoom": 13,
+    "basemap": "osm"
+  },
+  "layers": [
+    {
+      "name": "Troncons hydrologiques (region 01)",
+      "url": "./test-lazy/test-troncons.geojson",
+      "visible": true,
+      "color": "#0072B2",
+      "popup_template": "troncon_hydro"
+    }
+  ],
+  "popup_templates": {
+    "troncon_hydro": {
+      "title": "{properties.nom}",
+      "sections": [
+        {
+          "type": "properties",
+          "fields": ["id", "longueur_km", "ordre_strahler"]
+        },
+        {
+          "type": "chart",
+          "chart_type": "bar",
+          "data_field": "debits_mensuels",
+          "options": {
+            "title": "Debits mensuels moyens",
+            "xlabel": "Mois",
+            "ylabel": "Debit (m3/s)"
+          }
+        },
+        {
+          "type": "chart_lazy",
+          "chart_type": "line",
+          "data_url_template": "./test-lazy/series/region_{properties.region}/{selector}.json",
+          "record_key": "{properties.id}",
+          "selector": {
+            "label": "Decennie",
+            "options": ["2000", "2010"],
+            "default": "2010"
+          },
+          "options": {
+            "title": "Debits journaliers",
+            "xlabel": "Date",
+            "ylabel": "Debit (m3/s)"
+          }
+        }
+      ]
+    }
+  }
+}

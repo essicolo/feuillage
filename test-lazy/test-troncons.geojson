@@ -1,0 +1,65 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "TR_00101",
+        "nom": "Troncon Riviere du Nord - Amont",
+        "region": "01",
+        "longueur_km": 12.5,
+        "ordre_strahler": 3,
+        "debits_mensuels": "{\"labels\":[\"Jan\",\"Fev\",\"Mar\",\"Avr\",\"Mai\",\"Jun\",\"Jul\",\"Aou\",\"Sep\",\"Oct\",\"Nov\",\"Dec\"],\"values\":[15.2,12.8,18.5,35.2,48.1,32.6,22.4,18.1,20.3,25.7,22.1,17.3]}"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-71.30, 46.88],
+          [-71.28, 46.87],
+          [-71.26, 46.86],
+          [-71.24, 46.85]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "TR_00102",
+        "nom": "Troncon Riviere du Nord - Aval",
+        "region": "01",
+        "longueur_km": 8.3,
+        "ordre_strahler": 4,
+        "debits_mensuels": "{\"labels\":[\"Jan\",\"Fev\",\"Mar\",\"Avr\",\"Mai\",\"Jun\",\"Jul\",\"Aou\",\"Sep\",\"Oct\",\"Nov\",\"Dec\"],\"values\":[8.1,6.5,10.2,19.8,26.3,18.4,12.7,10.0,11.5,14.2,12.0,9.5]}"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-71.24, 46.85],
+          [-71.22, 46.84],
+          [-71.20, 46.83]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "TR_00103",
+        "nom": "Troncon Riviere Jacques-Cartier",
+        "region": "01",
+        "longueur_km": 15.7,
+        "ordre_strahler": 5,
+        "debits_mensuels": "{\"labels\":[\"Jan\",\"Fev\",\"Mar\",\"Avr\",\"Mai\",\"Jun\",\"Jul\",\"Aou\",\"Sep\",\"Oct\",\"Nov\",\"Dec\"],\"values\":[22.5,18.3,27.8,52.1,68.5,45.2,31.8,26.0,29.1,36.4,30.5,24.8]}"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-71.35, 46.92],
+          [-71.32, 46.90],
+          [-71.29, 46.88],
+          [-71.26, 46.87],
+          [-71.24, 46.85]
+        ]
+      }
+    }
+  ]
+}

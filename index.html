@@ -256,6 +256,55 @@
                 margin-bottom: 0;
             }
 
+            .lazy-chart-container {
+                position: relative;
+            }
+
+            .lazy-chart-select {
+                width: 100%;
+                padding: 0.3rem 0.5rem;
+                margin-bottom: 0.5rem;
+                border: 1px solid #d1d5db;
+                border-radius: 3px;
+                font-size: 0.8rem;
+                background-color: white;
+            }
+
+            .lazy-chart-loading {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                height: 250px;
+                color: #6b7280;
+                font-size: 0.85rem;
+            }
+
+            .lazy-chart-loading::before {
+                content: "";
+                width: 16px;
+                height: 16px;
+                border: 2px solid #d1d5db;
+                border-top-color: #374151;
+                border-radius: 50%;
+                margin-right: 0.5rem;
+                animation: spin 0.6s linear infinite;
+            }
+
+            @keyframes spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+
+            .lazy-chart-error {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                height: 100px;
+                color: #c53030;
+                font-size: 0.8rem;
+            }
+
             /* Modal pour renommer */
             .modal {
                 display: none;
@@ -709,6 +758,9 @@
             // Configuration de vue actuelle
             let currentViewConfig = null;
 
+            // Cache en mémoire pour les données lazy (clé = URL)
+            const lazyDataCache = {};
+
             /**
              * Affiche un message à l'utilisateur
              */
@@ -811,6 +863,22 @@
                             const chartId = `chart-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
                             // Canvas avec dimensions fixes (pas de responsive pour éviter bugs)
                             html += `<div class="popup-chart"><canvas id="${chartId}" width="350" height="250" data-chart-config='${JSON.stringify(section)}' style="display: block;"></canvas></div>`;
+                        } else if (section.type === "chart_lazy") {
+                            const lazyId = `lazy-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+                            const selectorConfig = section.selector || {};
+                            const options = (selectorConfig.options || [])
+                                .map(
+                                    (opt) =>
+                                        `<option value="${opt}"${opt === selectorConfig.default ? " selected" : ""}>${opt}</option>`,
+                                )
+                                .join("");
+                            html += `<div class="popup-chart lazy-chart-container" data-lazy-id="${lazyId}" data-lazy-config='${JSON.stringify(section)}'>`;
+                            if (selectorConfig.label) {
+                                html += `<label style="font-size:0.75rem;color:#6b7280;margin-bottom:0.2rem;display:block;">${selectorConfig.label}</label>`;
+                            }
+                            html += `<select class="lazy-chart-select" data-lazy-id="${lazyId}">${options}</select>`;
+                            html += `<div class="lazy-chart-canvas-wrapper" data-lazy-id="${lazyId}"><div class="lazy-chart-loading">Chargement...</div></div>`;
+                            html += `</div>`;
                         }
 
                         html += "</div>";
@@ -827,13 +895,13 @@
             function createChartsInPopup(feature, templateName, popup) {
                 if (!templateName || !popupTemplates[templateName]) return;
 
-                const template = popupTemplates[templateName];
                 const properties = feature.properties;
 
                 // Utiliser le popup spécifique passé en paramètre
                 const popupElement = popup.getElement();
                 if (!popupElement) return;
 
+                // Graphiques embarqués (type chart)
                 const canvases = popupElement.querySelectorAll(
                     "canvas[data-chart-config]",
                 );
@@ -851,6 +919,9 @@
                         );
                     }
                 });
+
+                // Graphiques lazy (type chart_lazy)
+                initLazyChartsInPopup(feature, popup);
             }
 
             /**
@@ -981,6 +1052,219 @@
             }
 
             /**
+             * Interpole une chaîne avec les propriétés et le sélecteur
+             */
+            function interpolateLazyUrl(template, properties, selectorValue) {
+                let result = template.replace(
+                    /\{properties\.(\w+)\}/g,
+                    (match, key) => {
+                        return properties[key] !== undefined
+                            ? properties[key]
+                            : "";
+                    },
+                );
+                result = result.replace(/\{selector\}/g, selectorValue);
+                return result;
+            }
+
+            /**
+             * Charge des données lazy depuis une URL avec cache
+             */
+            async function fetchLazyData(url) {
+                if (lazyDataCache[url]) {
+                    return lazyDataCache[url];
+                }
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                const data = await response.json();
+                lazyDataCache[url] = data;
+                return data;
+            }
+
+            /**
+             * Charge et affiche un graphique lazy
+             */
+            async function loadLazyChart(
+                container,
+                section,
+                properties,
+                selectorValue,
+            ) {
+                const wrapper = container.querySelector(
+                    `.lazy-chart-canvas-wrapper[data-lazy-id="${container.dataset.lazyId}"]`,
+                );
+                if (!wrapper) return;
+
+                // Afficher le spinner
+                wrapper.innerHTML =
+                    '<div class="lazy-chart-loading">Chargement...</div>';
+
+                // Construire l'URL
+                const url = interpolateLazyUrl(
+                    section.data_url_template,
+                    properties,
+                    selectorValue,
+                );
+
+                // Résoudre la clé d'enregistrement
+                const recordKey = interpolateString(
+                    section.record_key,
+                    properties,
+                );
+
+                try {
+                    const data = await fetchLazyData(url);
+
+                    // Extraire les données
+                    const labels = data.dates || [];
+                    const values =
+                        data.troncons && data.troncons[recordKey]
+                            ? data.troncons[recordKey]
+                            : [];
+
+                    if (values.length === 0) {
+                        wrapper.innerHTML = `<div class="lazy-chart-error">Aucune donnee pour ${recordKey}</div>`;
+                        return;
+                    }
+
+                    // Créer le canvas
+                    const canvasId = `lazy-canvas-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+                    wrapper.innerHTML = `<canvas id="${canvasId}" width="350" height="250" style="display:block;"></canvas>`;
+
+                    const canvas = document.getElementById(canvasId);
+                    if (!canvas || !canvas.isConnected) return;
+
+                    const ctx = canvas.getContext("2d");
+                    if (!ctx) return;
+
+                    const opts = section.options || {};
+                    const isLargeSeries = labels.length > 100;
+
+                    new Chart(ctx, {
+                        type: section.chart_type || "line",
+                        data: {
+                            labels: labels,
+                            datasets: [
+                                {
+                                    label: opts.title || "Donnees",
+                                    data: values,
+                                    backgroundColor: "rgba(37, 99, 235, 0.1)",
+                                    borderColor: "rgba(37, 99, 235, 1)",
+                                    borderWidth: isLargeSeries ? 1 : 2,
+                                    pointRadius: isLargeSeries ? 0 : 3,
+                                    pointHoverRadius: isLargeSeries ? 2 : 5,
+                                    fill: true,
+                                    tension: 0.1,
+                                },
+                            ],
+                        },
+                        options: {
+                            responsive: false,
+                            maintainAspectRatio: true,
+                            plugins: {
+                                legend: { display: false },
+                                title: {
+                                    display: !!opts.title,
+                                    text: opts.title || "",
+                                },
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: !!opts.ylabel,
+                                        text: opts.ylabel || "",
+                                    },
+                                },
+                                x: {
+                                    title: {
+                                        display: !!opts.xlabel,
+                                        text: opts.xlabel || "",
+                                    },
+                                    ticks: {
+                                        maxTicksLimit: isLargeSeries ? 10 : 20,
+                                        maxRotation: 45,
+                                    },
+                                },
+                            },
+                            interaction: {
+                                intersect: false,
+                                mode: "index",
+                            },
+                        },
+                    });
+                } catch (e) {
+                    console.error("Erreur chargement lazy chart:", e);
+                    wrapper.innerHTML = `<div class="lazy-chart-error">Erreur: ${e.message}</div>`;
+                }
+            }
+
+            /**
+             * Initialise les graphiques lazy dans un popup
+             */
+            function initLazyChartsInPopup(feature, popup) {
+                const popupElement = popup.getElement();
+                if (!popupElement) return;
+
+                const containers = popupElement.querySelectorAll(
+                    ".lazy-chart-container[data-lazy-config]",
+                );
+
+                containers.forEach((container) => {
+                    try {
+                        const section = JSON.parse(
+                            container.getAttribute("data-lazy-config"),
+                        );
+                        const properties = feature.properties;
+                        const selectorConfig = section.selector || {};
+                        const defaultValue =
+                            selectorConfig.default ||
+                            (selectorConfig.options &&
+                                selectorConfig.options[0]) ||
+                            "";
+
+                        // Charger le graphique avec la valeur par défaut
+                        loadLazyChart(
+                            container,
+                            section,
+                            properties,
+                            defaultValue,
+                        );
+
+                        // Écouter les changements de sélecteur
+                        const select = container.querySelector(
+                            `.lazy-chart-select[data-lazy-id="${container.dataset.lazyId}"]`,
+                        );
+                        if (select) {
+                            select.addEventListener("change", function () {
+                                // Détruire le chart existant si présent
+                                const existingCanvas =
+                                    container.querySelector("canvas");
+                                if (existingCanvas) {
+                                    const chart =
+                                        Chart.getChart(existingCanvas);
+                                    if (chart) chart.destroy();
+                                }
+                                loadLazyChart(
+                                    container,
+                                    section,
+                                    properties,
+                                    this.value,
+                                );
+                            });
+                        }
+                    } catch (e) {
+                        console.error(
+                            "Erreur initialisation lazy chart:",
+                            e,
+                        );
+                    }
+                });
+            }
+
+            /**
              * Applique le style à une feature selon son type de géométrie
              */
             function styleFeature(feature, color) {
@@ -1029,8 +1313,8 @@
                     onEachFeature: (feature, layer) => {
                         const popupContent = createPopup(feature, templateName);
                         const popup = L.popup({
-                            maxWidth: 400,
-                            maxHeight: 500,
+                            maxWidth: 420,
+                            maxHeight: 550,
                         }).setContent(popupContent);
 
                         layer.bindPopup(popup);
@@ -1054,13 +1338,11 @@
                             // Détruire tous les graphiques Chart.js pour libérer la mémoire
                             const popup = layer.getPopup();
                             if (popup && popup.getElement()) {
-                                const canvases = popup
+                                const allCanvases = popup
                                     .getElement()
-                                    .querySelectorAll(
-                                        "canvas[data-chart-config]",
-                                    );
-                                canvases.forEach((canvas) => {
-                                    const chart = Chart.getChart(canvas.id);
+                                    .querySelectorAll("canvas");
+                                allCanvases.forEach((canvas) => {
+                                    const chart = Chart.getChart(canvas);
                                     if (chart) {
                                         chart.destroy();
                                     }
