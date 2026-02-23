@@ -209,9 +209,9 @@
 
             /* Style pour les popups */
             .popup-content {
-                max-height: 500px;
+                max-height: 70vh;
                 overflow-y: auto;
-                min-width: 250px;
+                min-width: min(300px, 80vw);
             }
 
             .popup-content h3 {
@@ -1393,8 +1393,8 @@
                     onEachFeature: (feature, layer) => {
                         const popupContent = createPopup(feature, templateName);
                         const popup = L.popup({
-                            maxWidth: 400,
-                            maxHeight: 500,
+                            maxWidth: Math.min(window.innerWidth * 0.8, 600),
+                            maxHeight: Math.round(window.innerHeight * 0.7),
                         }).setContent(popupContent);
 
                         layer.bindPopup(popup);
