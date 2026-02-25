@@ -505,6 +505,49 @@
                 animation-iteration-count: 1 !important;
                 transition-duration: 0.01ms !important;
             }
+
+            /* Drag handle */
+            .drag-handle {
+                cursor: grab;
+                color: #9ca3af;
+                padding: 0 2px 0 0;
+                display: flex;
+                align-items: center;
+                flex-shrink: 0;
+            }
+
+            .drag-handle:active {
+                cursor: grabbing;
+            }
+
+            .layer-item.dragging {
+                opacity: 0.4;
+            }
+
+            .layer-item.drag-over {
+                border-top: 2px solid #2563eb;
+                margin-top: -2px;
+            }
+
+            /* Bouton œil */
+            .eye-btn {
+                padding: 0.2rem 0.4rem;
+                font-size: 0.7rem;
+                background-color: white;
+                color: #4a5568;
+                border: 1px solid #d1d5db;
+                border-radius: 3px;
+                cursor: pointer;
+                transition: background-color 0.15s;
+            }
+
+            .eye-btn:hover {
+                background-color: #f9fafb;
+            }
+
+            .eye-btn.hidden-layer {
+                color: #9ca3af;
+            }
         </style>
     </head>
     <body class="overflow-hidden">
@@ -1827,23 +1870,26 @@
                                 layerInfo.geojson.type === "FeatureCollection"
                                     ? layerInfo.geojson.features.length
                                     : 1;
+                            const isVisible = map.hasLayer(layerInfo.layer);
                             return `
-                <div class="layer-item" style="border-left-color: ${layerInfo.color}" role="group" aria-label="Couche ${layerInfo.name}">
+                <div class="layer-item" style="border-left-color: ${layerInfo.color}" role="group" aria-label="Couche ${layerInfo.name}" draggable="true" data-index="${index}">
                     <div class="layer-item-header">
+                        <div class="drag-handle" aria-hidden="true" title="Glisser pour réordonner">
+                            <span class="iconify" data-icon="mdi:drag-vertical" style="font-size: 14px;"></span>
+                        </div>
                         <div class="layer-item-name-wrapper">
-                            <input
-                                type="checkbox"
-                                checked
-                                onchange="toggleLayerVisibility(${index})"
-                                style="margin-right: 0.5rem; cursor: pointer;"
-                                id="layer-toggle-${index}"
-                                aria-label="Afficher/masquer la couche ${layerInfo.name}"
-                                aria-describedby="layer-desc-${index}"
-                            >
-                            <label for="layer-toggle-${index}" class="layer-item-name">${layerInfo.name}</label>
-                            <span id="layer-desc-${index}" class="sr-only">${featureCount} entité(s)</span>
+                            <span class="layer-item-name" title="${layerInfo.name}">${layerInfo.name}</span>
+                            <span class="sr-only">${featureCount} entité(s)</span>
                         </div>
                         <div class="layer-item-actions">
+                            <button
+                                onclick="toggleLayerVisibility(${index})"
+                                title="${isVisible ? 'Masquer' : 'Afficher'} la couche ${layerInfo.name}"
+                                aria-label="${isVisible ? 'Masquer' : 'Afficher'} la couche ${layerInfo.name}"
+                                class="eye-btn${isVisible ? '' : ' hidden-layer'}"
+                            >
+                                <span class="iconify" data-icon="${isVisible ? 'mdi:eye' : 'mdi:eye-off'}" style="font-size: 11px;" aria-hidden="true"></span>
+                            </button>
                             <button
                                 onclick="renameLayer(${index})"
                                 title="Renommer ${layerInfo.name}"
@@ -1866,6 +1912,8 @@
                         },
                     )
                     .join("");
+
+                setupDragAndDrop();
             }
 
             /**
@@ -2010,6 +2058,79 @@
                     map.addLayer(layerInfo.layer);
                     announceToScreenReader(`Couche ${layerInfo.name} affichée`);
                 }
+
+                updateLayerPanel();
+            }
+
+            /**
+             * Configure le drag-and-drop pour réordonner les couches
+             */
+            function setupDragAndDrop() {
+                const layerList = document.getElementById("layerList");
+                const items = layerList.querySelectorAll(".layer-item[draggable]");
+                let draggedIndex = null;
+
+                items.forEach((item) => {
+                    item.addEventListener("dragstart", (e) => {
+                        draggedIndex = parseInt(item.dataset.index);
+                        item.classList.add("dragging");
+                        e.dataTransfer.effectAllowed = "move";
+                    });
+
+                    item.addEventListener("dragend", () => {
+                        item.classList.remove("dragging");
+                        layerList
+                            .querySelectorAll(".layer-item.drag-over")
+                            .forEach((el) => el.classList.remove("drag-over"));
+                    });
+
+                    item.addEventListener("dragover", (e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = "move";
+                        layerList
+                            .querySelectorAll(".layer-item.drag-over")
+                            .forEach((el) => el.classList.remove("drag-over"));
+                        item.classList.add("drag-over");
+                    });
+
+                    item.addEventListener("dragleave", (e) => {
+                        if (!item.contains(e.relatedTarget)) {
+                            item.classList.remove("drag-over");
+                        }
+                    });
+
+                    item.addEventListener("drop", (e) => {
+                        e.preventDefault();
+                        const targetIndex = parseInt(item.dataset.index);
+                        if (draggedIndex !== null && draggedIndex !== targetIndex) {
+                            const moved = loadedLayers.splice(draggedIndex, 1)[0];
+                            loadedLayers.splice(targetIndex, 0, moved);
+                            reorderMapLayers();
+                            updateLayerPanel();
+                        }
+                    });
+                });
+            }
+
+            /**
+             * Réordonne les couches sur la carte après un drag-and-drop
+             */
+            function reorderMapLayers() {
+                const visibilityState = loadedLayers.map((l) =>
+                    map.hasLayer(l.layer),
+                );
+
+                loadedLayers.forEach((layerInfo) => {
+                    if (map.hasLayer(layerInfo.layer)) {
+                        map.removeLayer(layerInfo.layer);
+                    }
+                });
+
+                loadedLayers.forEach((layerInfo, i) => {
+                    if (visibilityState[i]) {
+                        layerInfo.layer.addTo(map);
+                    }
+                });
             }
 
             /**
