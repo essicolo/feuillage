@@ -1,36 +1,93 @@
 {
   "view": {
-    "name": "Bassins versants avec graphiques - Québec",
-    "description": "Exemple de vue avec bassins versants et données de débits",
-    "center": [46.85, -71.25],
-    "zoom": 11,
+    "name": "Prélèvements et rejets d'eau — Québec",
+    "description": "Prélèvements (2012-2024) et rejets imputés (2001-2024)",
+    "center": [
+      47.0,
+      -71.0
+    ],
+    "zoom": 7,
     "basemap": "osm"
   },
   "layers": [
     {
-      "name": "Bassins versants (avec graphiques)",
-      "url": "./bassins_versants_avec_graphiques.geojson",
+      "name": "Prélèvements",
+      "url": "./geojson/prelevements.geojson",
       "visible": true,
       "color": "#0072B2",
-      "popup_template": "bassin_versant"
+      "popup_template": "prelevement"
+    },
+    {
+      "name": "Rejets",
+      "url": "./geojson/rejets.geojson",
+      "visible": true,
+      "color": "#D55E00",
+      "popup_template": "rejet"
     }
   ],
   "popup_templates": {
-    "bassin_versant": {
-      "title": "{properties.nom}",
+    "prelevement": {
+      "title": "Prélèvement — {properties.site}",
       "sections": [
         {
           "type": "properties",
-          "fields": ["superficie_ha", "municipalite", "annee"]
+          "fields": [
+            "secteur",
+            "volume_annuel_moyen_m3"
+          ]
         },
         {
           "type": "chart",
           "chart_type": "bar",
-          "data_field": "debits_mensuels",
+          "data_field": "volumes_annuels",
           "options": {
-            "title": "Débits mensuels moyens",
+            "title": "Volume annuel",
+            "xlabel": "Année",
+            "ylabel": "m³"
+          }
+        },
+        {
+          "type": "chart",
+          "chart_type": "line",
+          "data_field": "profil_mensuel",
+          "options": {
+            "title": "Profil mensuel moyen",
             "xlabel": "Mois",
-            "ylabel": "Débit (m³/s)"
+            "ylabel": "m³"
+          }
+        }
+      ]
+    },
+    "rejet": {
+      "title": "Rejet — {properties.site}",
+      "sections": [
+        {
+          "type": "properties",
+          "fields": [
+            "intervenant",
+            "nature",
+            "secteur",
+            "volume_annuel_moyen_m3"
+          ]
+        },
+        {
+          "type": "chart",
+          "chart_type": "bar",
+          "data_field": "volumes_annuels",
+          "options": {
+            "title": "Volume annuel",
+            "xlabel": "Année",
+            "ylabel": "m³"
+          }
+        },
+        {
+          "type": "chart",
+          "chart_type": "line",
+          "data_field": "profil_mensuel",
+          "options": {
+            "title": "Profil mensuel moyen",
+            "xlabel": "Mois",
+            "ylabel": "m³"
           }
         }
       ]
