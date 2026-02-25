@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add index.html)",
+      "Bash(git commit:*)",
+      "Bash(git checkout io-eau)",
+      "Bash(git cherry-pick e805da2)",
+      "Bash(ls *.geojson *.json)",
+      "Bash(ls *.geojson)",
+      "Bash(git checkout stash@{0} -- geojson/regions.geojson geojson/prelevements.geojson geojson/rejets.geojson config.json)"
+    ]
+  }
+}

@@ -449,8 +449,3 @@ Pour signaler un bug ou suggérer une amélioration :
 - [Iconify Icons](https://icon-sets.iconify.design/)
 - [Tailwind CSS](https://tailwindcss.com/)
 
----
-
-**Version** : 2.0.0
-**Dernière mise à jour** : Janvier 2026
-**Projet** : Visualiseur GeoJSON open source

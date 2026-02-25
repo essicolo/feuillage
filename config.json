@@ -11,6 +11,13 @@
   },
   "layers": [
     {
+      "name": "Régions hydrographiques",
+      "url": "./geojson/regions.geojson",
+      "visible": true,
+      "color": "#999999",
+      "popup_template": "region"
+    },
+    {
       "name": "Prélèvements",
       "url": "./geojson/prelevements.geojson",
       "visible": true,
@@ -26,6 +33,37 @@
     }
   ],
   "popup_templates": {
+      "region": {
+      "title": "Région hydrographique — {properties.nom}",
+      "sections": [
+        {
+          "type": "properties",
+          "fields": [
+            "layer"
+          ]
+        },
+        {
+          "type": "chart",
+          "chart_type": "bar",
+          "data_field": "volumes_annuels",
+          "options": {
+            "title": "Volume annuel",
+            "xlabel": "Année",
+            "ylabel": "m³"
+          }
+        },
+        {
+          "type": "chart",
+          "chart_type": "line",
+          "data_field": "profil_mensuel",
+          "options": {
+            "title": "Profil mensuel moyen",
+            "xlabel": "Mois",
+            "ylabel": "m³"
+          }
+        }
+      ]
+    },
     "prelevement": {
       "title": "Prélèvement — {properties.site}",
       "sections": [
