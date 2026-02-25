@@ -41,26 +41,6 @@
           "fields": [
             "layer"
           ]
-        },
-        {
-          "type": "chart",
-          "chart_type": "bar",
-          "data_field": "volumes_annuels",
-          "options": {
-            "title": "Volume annuel",
-            "xlabel": "Année",
-            "ylabel": "m³"
-          }
-        },
-        {
-          "type": "chart",
-          "chart_type": "line",
-          "data_field": "profil_mensuel",
-          "options": {
-            "title": "Profil mensuel moyen",
-            "xlabel": "Mois",
-            "ylabel": "m³"
-          }
         }
       ]
     },

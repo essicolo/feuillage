@@ -245,7 +245,9 @@
             }
 
             .popup-chart canvas {
-                max-height: 250px;
+                width: 100% !important;
+                height: auto !important;
+                max-height: 200px;
             }
 
             .popup-section {
@@ -1204,7 +1206,7 @@
                                         Tableau
                                     </button>
                                 </div>
-                                <canvas id="${chartId}" width="350" height="250" data-chart-config='${JSON.stringify(section)}' style="display: block;"></canvas>
+                                <canvas id="${chartId}" data-chart-config='${JSON.stringify(section)}' style="display: block; width: 100%; height: 200px;"></canvas>
                                 <div id="${tableId}" style="display: none;" role="table" aria-label="Données du graphique sous forme de tableau"></div>
                             </div>`;
                         }
@@ -1354,8 +1356,8 @@
                             ],
                         },
                         options: {
-                            responsive: false,
-                            maintainAspectRatio: true,
+                            responsive: true,
+                            maintainAspectRatio: false,
                             plugins: {
                                 legend: {
                                     display: false,
@@ -1437,7 +1439,6 @@
                         const popupContent = createPopup(feature, templateName);
                         const popup = L.popup({
                             maxWidth: Math.min(window.innerWidth * 0.8, 600),
-                            maxHeight: Math.round(window.innerHeight * 0.7),
                         }).setContent(popupContent);
 
                         layer.bindPopup(popup);
