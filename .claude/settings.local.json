@@ -7,7 +7,8 @@
       "Bash(git cherry-pick e805da2)",
       "Bash(ls *.geojson *.json)",
       "Bash(ls *.geojson)",
-      "Bash(git checkout stash@{0} -- geojson/regions.geojson geojson/prelevements.geojson geojson/rejets.geojson config.json)"
+      "Bash(git checkout stash@{0} -- geojson/regions.geojson geojson/prelevements.geojson geojson/rejets.geojson config.json)",
+      "Bash(uv add pyyaml)"
     ]
   }
 }

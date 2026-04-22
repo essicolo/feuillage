@@ -1,7 +1,7 @@
 {
   "view": {
     "name": "Prélèvements et rejets d'eau — Québec",
-    "description": "Prélèvements (2012-2024) et rejets imputés (2001-2024)",
+    "description": "Prélèvements et rejets imputés (2001-2024)",
     "center": [
       47.0,
       -71.0
@@ -10,13 +10,6 @@
     "basemap": "osm"
   },
   "layers": [
-    {
-      "name": "Régions hydrographiques",
-      "url": "./geojson/regions.geojson",
-      "visible": true,
-      "color": "#83817b",
-      "popup_template": "region"
-    },
     {
       "name": "Prélèvements",
       "url": "./geojson/prelevements.geojson",
@@ -33,17 +26,6 @@
     }
   ],
   "popup_templates": {
-      "region": {
-      "title": "Région hydrographique — {properties.nom}",
-      "sections": [
-        {
-          "type": "properties",
-          "fields": [
-            "layer"
-          ]
-        }
-      ]
-    },
     "prelevement": {
       "title": "Prélèvement — {properties.site}",
       "sections": [
