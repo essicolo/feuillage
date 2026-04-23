@@ -9,7 +9,7 @@
   "layers": [
     {
       "name": "Bassins versants (avec graphiques)",
-      "url": "./bassins_versants_avec_graphiques.geojson",
+      "url": "./geojson/bassins_versants_avec_graphiques.geojson",
       "visible": true,
       "color": "#0072B2",
       "popup_template": "bassin_versant"
