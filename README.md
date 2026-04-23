@@ -1,6 +1,6 @@
 # Visualiseur GeoJSON
 
-Application web 100% statique pour visualiser et gérer plusieurs fichiers GeoJSON sur une carte interactive Leaflet.
+Application web 100% statique pour visualiser et gérer plusieurs fichiers GeoJSON sur une carte interactive MapLibre GL JS.
 
 ## Fonctionnalités
 
@@ -257,6 +257,8 @@ Tous les bassins chargés, visibilité contrôlée par cases à cocher.
 
 Créez un fichier `config.json` :
 
+**Note importante** : Le champ `center` utilise le format `[latitude, longitude]` pour la compatibilité (converti automatiquement en interne pour MapLibre).
+
 ```json
 {
   "view": {
@@ -356,9 +358,12 @@ L'application utilise une palette de 10 couleurs accessibles, optimisée pour :
 
 Dans `index.html`, recherchez :
 ```javascript
-const map = L.map('map').setView([46.8, -71.2], 6);
+const map = new maplibregl.Map({
+    container: "map",
+    center: [-71.2, 46.8],
+    zoom: 6,
 ```
-- `[46.8, -71.2]` : Latitude, Longitude (Québec)
+- `[-71.2, 46.8]` : Longitude, Latitude (Québec) - Note: MapLibre utilise [lng, lat]
 - `6` : Niveau de zoom (1 = monde entier, 18 = rue)
 
 ### Modifier la limite de fichier
@@ -398,8 +403,9 @@ feuillage/
 
 ### La carte ne s'affiche pas
 
-- Vérifiez votre connexion Internet (Leaflet est chargé depuis CDN)
+- Vérifiez votre connexion Internet (MapLibre GL JS est chargé depuis CDN)
 - Ouvrez la console du navigateur (F12) pour voir les erreurs
+- MapLibre GL JS nécessite WebGL - vérifiez que votre navigateur le supporte
 
 ### "Format GeoJSON invalide"
 
@@ -421,8 +427,9 @@ feuillage/
 
 ## Technologies utilisées
 
-- **Leaflet 1.9.4** : Bibliothèque de cartographie interactive
+- **MapLibre GL JS 4.7.1** : Bibliothèque de cartographie interactive moderne avec rendu WebGL
 - **Chart.js 4.4.1** : Bibliothèque de graphiques interactifs
+- **Turf.js 7.1.0** : Outils d'analyse géospatiale
 - **Iconify 3.1.0** : Icônes vectorielles
 - **Tailwind CSS** : Framework CSS utilitaire
 - **OpenStreetMap** : Fond de carte par défaut
@@ -441,8 +448,9 @@ Pour signaler un bug ou suggérer une amélioration :
 
 ## Ressources
 
-- [Documentation Leaflet](https://leafletjs.com/reference.html)
+- [Documentation MapLibre GL JS](https://maplibre.org/maplibre-gl-js/docs/)
 - [Documentation Chart.js](https://www.chartjs.org/docs/latest/)
+- [Documentation Turf.js](https://turfjs.org/docs/)
 - [Données Québec](https://www.donneesquebec.ca/)
 - [Spécification GeoJSON](https://geojson.org/)
 - [Validateur GeoJSON](https://geojson.io/)

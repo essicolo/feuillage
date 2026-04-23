@@ -5,11 +5,10 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Visualiseur GeoJSON</title>
 
-        <!-- Leaflet CSS -->
+        <!-- MapLibre GL CSS -->
         <link
             rel="stylesheet"
-            href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-            integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+            href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
             crossorigin=""
         />
 
@@ -18,6 +17,9 @@
 
         <!-- Chart.js -->
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+        <!-- Turf.js for geospatial calculations -->
+        <script src="https://unpkg.com/@turf/turf@7.1.0/turf.min.js"></script>
 
         <!-- Tailwind CSS -->
         <script src="https://cdn.tailwindcss.com"></script>
@@ -402,31 +404,31 @@
                 color: #fff !important;
             }
 
-            /* Contrôles Leaflet en mode haute contraste */
-            body.high-contrast .leaflet-control-zoom a,
-            body.high-contrast .leaflet-bar a {
+            /* Contrôles MapLibre en mode haute contraste */
+            body.high-contrast .maplibregl-ctrl-group button,
+            body.high-contrast .maplibregl-ctrl button {
                 background-color: #000 !important;
                 color: #fff !important;
                 border: 2px solid #fff !important;
             }
 
-            body.high-contrast .leaflet-control-zoom a:hover,
-            body.high-contrast .leaflet-bar a:hover {
+            body.high-contrast .maplibregl-ctrl-group button:hover,
+            body.high-contrast .maplibregl-ctrl button:hover {
                 background-color: #333 !important;
             }
 
-            body.high-contrast .leaflet-popup-content-wrapper {
+            body.high-contrast .maplibregl-popup-content {
                 background-color: #000 !important;
                 color: #fff !important;
                 border: 2px solid #fff !important;
             }
 
-            body.high-contrast .leaflet-popup-tip {
-                background-color: #000 !important;
-                border: 2px solid #fff !important;
+            body.high-contrast .maplibregl-popup-tip {
+                border-top-color: #000 !important;
+                border-bottom-color: #000 !important;
             }
 
-            body.high-contrast .leaflet-control-attribution {
+            body.high-contrast .maplibregl-ctrl-attrib {
                 background-color: #000 !important;
                 color: #fff !important;
                 border: 1px solid #fff !important;
@@ -547,6 +549,17 @@
 
             .eye-btn.hidden-layer {
                 color: #9ca3af;
+            }
+
+            /* MapLibre controls positioning - offset to avoid overlapping with feuillage buttons */
+            .maplibregl-ctrl-top-right {
+                top: 120px; /* Below the menu and accessibility buttons */
+                right: 10px;
+            }
+
+            .maplibregl-ctrl-bottom-right {
+                bottom: 10px;
+                right: 10px;
             }
         </style>
     </head>
@@ -968,15 +981,35 @@
             ></main>
         </div>
 
-        <!-- Modal pour renommer une couche -->
+        <!-- Modal pour éditer une couche -->
         <div id="renameModal" class="modal">
             <div class="modal-content">
-                <h2>Renommer la couche</h2>
-                <input
-                    type="text"
-                    id="renameInput"
-                    placeholder="Nouveau nom..."
-                />
+                <h2>Éditer la couche</h2>
+                <div style="margin-bottom: 1rem;">
+                    <label for="renameInput" style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem;">Nom de la couche</label>
+                    <input
+                        type="text"
+                        id="renameInput"
+                        placeholder="Nouveau nom..."
+                    />
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label for="colorInput" style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem;">Couleur</label>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <input
+                            type="color"
+                            id="colorInput"
+                            style="width: 60px; height: 40px; border: 1px solid #ccc; border-radius: 4px; cursor: pointer;"
+                        />
+                        <input
+                            type="text"
+                            id="colorInputText"
+                            placeholder="#0072B2"
+                            maxlength="7"
+                            style="flex: 1; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-family: monospace;"
+                        />
+                    </div>
+                </div>
                 <div class="modal-buttons">
                     <button class="secondary" onclick="closeRenameModal()">
                         Annuler
@@ -986,76 +1019,134 @@
             </div>
         </div>
 
-        <!-- Leaflet JS -->
+        <!-- MapLibre GL JS -->
         <script
-            src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"
             crossorigin=""
         ></script>
 
         <script>
-            // Configuration de la carte
-            const map = L.map("map").setView([46.8, -71.2], 6);
+            // Configuration de la carte MapLibre
+            const map = new maplibregl.Map({
+                container: "map",
+                style: {
+                    version: 8,
+                    sources: {
+                        osm: {
+                            type: "raster",
+                            tiles: [
+                                "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                                "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                                "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                            ],
+                            tileSize: 256,
+                            attribution: "© OpenStreetMap contributors",
+                            maxzoom: 19,
+                        },
+                    },
+                    layers: [
+                        {
+                            id: "osm",
+                            type: "raster",
+                            source: "osm",
+                        },
+                    ],
+                },
+                center: [-71.2, 46.8],
+                zoom: 6,
+            });
 
-            // Fond de carte OpenStreetMap
-            const basemapOSM = L.tileLayer(
-                "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                {
+            // Ajouter les contrôles de navigation
+            map.addControl(new maplibregl.NavigationControl(), "top-right");
+            map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
+
+            // Définitions des sources de tuiles pour les fonds de carte
+            const basemapSources = {
+                osm: {
+                    type: "raster",
+                    tiles: [
+                        "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                        "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                        "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                    ],
+                    tileSize: 256,
                     attribution: "© OpenStreetMap contributors",
-                    maxZoom: 19,
+                    maxzoom: 19,
                 },
-            );
-
-            // Fonds de carte alternatifs
-            const basemapTopo = L.tileLayer(
-                "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
-                {
-                    attribution:
-                        "Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap",
-                    maxZoom: 17,
+                topo: {
+                    type: "raster",
+                    tiles: [
+                        "https://a.tile.opentopomap.org/{z}/{x}/{y}.png",
+                        "https://b.tile.opentopomap.org/{z}/{x}/{y}.png",
+                        "https://c.tile.opentopomap.org/{z}/{x}/{y}.png",
+                    ],
+                    tileSize: 256,
+                    attribution: "Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap",
+                    maxzoom: 17,
                 },
-            );
-
-            const basemapPositron = L.tileLayer(
-                "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
-                {
+                positron: {
+                    type: "raster",
+                    tiles: [
+                        "https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+                        "https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+                        "https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+                        "https://d.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+                    ],
+                    tileSize: 256,
                     attribution: "© OpenStreetMap contributors, © CARTO",
-                    maxZoom: 19,
+                    maxzoom: 19,
                 },
-            );
-
-            // Définir les couches de base
-            const baseMaps = {
-                OpenStreetMap: basemapOSM,
-                OpenTopoMap: basemapTopo,
-                "CartoDB Positron": basemapPositron,
             };
 
-            // Ajouter le fond de carte par défaut
-            let currentBasemap = basemapOSM;
-            currentBasemap.addTo(map);
+            // Fond de carte actuel
+            let currentBasemap = "osm";
 
             /**
              * Change le fond de carte
              */
             function switchBasemap(type) {
-                // Retirer le fond de carte actuel
-                map.removeLayer(currentBasemap);
+                if (currentBasemap === type) return;
 
-                // Ajouter le nouveau fond de carte
-                switch (type) {
-                    case "osm":
-                        currentBasemap = basemapOSM;
-                        break;
-                    case "topo":
-                        currentBasemap = basemapTopo;
-                        break;
-                    case "positron":
-                        currentBasemap = basemapPositron;
-                        break;
+                // Vérifier que la carte est chargée
+                if (!map.isStyleLoaded()) {
+                    console.warn("Map not loaded yet, deferring basemap switch");
+                    map.once('load', () => switchBasemap(type));
+                    return;
                 }
 
-                currentBasemap.addTo(map);
+                // Retirer l'ancienne source et couche
+                if (map.getLayer(currentBasemap)) {
+                    map.removeLayer(currentBasemap);
+                }
+                if (map.getSource(currentBasemap)) {
+                    map.removeSource(currentBasemap);
+                }
+
+                // Ajouter la nouvelle source et couche
+                currentBasemap = type;
+                map.addSource(type, basemapSources[type]);
+                map.addLayer(
+                    {
+                        id: type,
+                        type: "raster",
+                        source: type,
+                    },
+                    // Ajouter sous toutes les autres couches
+                    getFirstLayerId()
+                );
+            }
+
+            /**
+             * Obtient l'ID de la première couche non-basemap
+             */
+            function getFirstLayerId() {
+                const layers = map.getStyle().layers;
+                for (const layer of layers) {
+                    if (!["osm", "topo", "positron"].includes(layer.id)) {
+                        return layer.id;
+                    }
+                }
+                return undefined;
             }
 
             // Palette de couleurs accessibles (compatible daltonisme)
@@ -1221,24 +1312,34 @@
              * Crée tous les graphiques dans le popup ouvert
              */
             function createChartsInPopup(feature, templateName, popup) {
-                if (!templateName || !popupTemplates[templateName]) return;
+                if (!templateName || !popupTemplates[templateName]) {
+                    console.log("Pas de template ou template introuvable:", templateName);
+                    return;
+                }
 
                 const template = popupTemplates[templateName];
                 const properties = feature.properties;
 
-                // Utiliser le popup spécifique passé en paramètre
+                // MapLibre popup - chercher dans le conteneur de contenu
                 const popupElement = popup.getElement();
-                if (!popupElement) return;
+                if (!popupElement) {
+                    console.warn("Popup element not found");
+                    return;
+                }
 
+                // Chercher les canvas dans tout le popup
                 const canvases = popupElement.querySelectorAll(
                     "canvas[data-chart-config]",
                 );
+
+                console.log(`Found ${canvases.length} canvas elements for charts`);
 
                 canvases.forEach((canvas) => {
                     try {
                         const sectionConfig = JSON.parse(
                             canvas.getAttribute("data-chart-config"),
                         );
+                        console.log("Creating chart for canvas:", canvas.id, sectionConfig);
                         createChart(canvas.id, sectionConfig, properties);
                     } catch (e) {
                         console.error(
@@ -1388,31 +1489,66 @@
             }
 
             /**
-             * Applique le style à une feature selon son type de géométrie
+             * Convertit une couleur hex en RGB
              */
-            function styleFeature(feature, color) {
-                const geometryType = feature.geometry.type;
+            function hexToRgb(hex) {
+                const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+                return result
+                    ? [
+                          parseInt(result[1], 16),
+                          parseInt(result[2], 16),
+                          parseInt(result[3], 16),
+                      ]
+                    : [0, 0, 0];
+            }
 
-                if (geometryType === "Point" || geometryType === "MultiPoint") {
-                    // Style pour les points
-                    return {
-                        radius: 6,
-                        fillColor: color,
-                        color: "#000",
-                        weight: 1,
-                        opacity: 1,
-                        fillOpacity: 0.7,
-                    };
-                } else {
-                    // Style pour les lignes et polygones
-                    return {
-                        color: color,
-                        weight: 2,
-                        opacity: 0.8,
-                        fillColor: color,
-                        fillOpacity: 0.3,
-                    };
-                }
+            /**
+             * Obtient le style de peinture pour les points
+             */
+            function getPointPaint(color) {
+                const rgb = hexToRgb(color);
+                return {
+                    "circle-radius": 6,
+                    "circle-color": `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`,
+                    "circle-stroke-color": "#000",
+                    "circle-stroke-width": 1,
+                    "circle-opacity": 0.7,
+                };
+            }
+
+            /**
+             * Obtient le style de peinture pour les lignes
+             */
+            function getLinePaint(color) {
+                const rgb = hexToRgb(color);
+                return {
+                    "line-color": `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`,
+                    "line-width": 2,
+                    "line-opacity": 0.8,
+                };
+            }
+
+            /**
+             * Obtient le style de peinture pour les polygones (remplissage)
+             */
+            function getFillPaint(color) {
+                const rgb = hexToRgb(color);
+                return {
+                    "fill-color": `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`,
+                    "fill-opacity": 0.3,
+                };
+            }
+
+            /**
+             * Obtient le style de peinture pour les contours de polygones
+             */
+            function getOutlinePaint(color) {
+                const rgb = hexToRgb(color);
+                return {
+                    "line-color": `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`,
+                    "line-width": 2,
+                    "line-opacity": 0.8,
+                };
             }
 
             /**
@@ -1425,47 +1561,211 @@
                 templateName = null,
                 url = null,
             ) {
-                const layer = L.geoJSON(geojson, {
-                    style: (feature) => styleFeature(feature, color),
-                    pointToLayer: (feature, latlng) => {
-                        return L.circleMarker(
-                            latlng,
-                            styleFeature(feature, color),
+                const layerId = `layer-${Date.now()}-${Math.random()}`;
+                const sourceId = `source-${layerId}`;
+
+                // Ajouter la source GeoJSON
+                map.addSource(sourceId, {
+                    type: "geojson",
+                    data: geojson,
+                });
+
+                // Déterminer les types de géométrie présents
+                const features =
+                    geojson.type === "FeatureCollection"
+                        ? geojson.features
+                        : [geojson];
+                const hasPoints = features.some((f) =>
+                    ["Point", "MultiPoint"].includes(f.geometry.type)
+                );
+                const hasLines = features.some((f) =>
+                    ["LineString", "MultiLineString"].includes(f.geometry.type)
+                );
+                const hasPolygons = features.some((f) =>
+                    ["Polygon", "MultiPolygon"].includes(f.geometry.type)
+                );
+
+                const layerIds = [];
+
+                // Ajouter les couches selon les types de géométrie
+                if (hasPolygons) {
+                    const fillLayerId = `${layerId}-fill`;
+                    map.addLayer({
+                        id: fillLayerId,
+                        type: "fill",
+                        source: sourceId,
+                        filter: ["in", "$type", "Polygon"],
+                        paint: getFillPaint(color),
+                    });
+                    layerIds.push(fillLayerId);
+
+                    const outlineLayerId = `${layerId}-outline`;
+                    map.addLayer({
+                        id: outlineLayerId,
+                        type: "line",
+                        source: sourceId,
+                        filter: ["in", "$type", "Polygon"],
+                        paint: getOutlinePaint(color),
+                    });
+                    layerIds.push(outlineLayerId);
+                }
+
+                if (hasLines) {
+                    const lineLayerId = `${layerId}-line`;
+                    map.addLayer({
+                        id: lineLayerId,
+                        type: "line",
+                        source: sourceId,
+                        filter: ["in", "$type", "LineString"],
+                        paint: getLinePaint(color),
+                    });
+                    layerIds.push(lineLayerId);
+                }
+
+                if (hasPoints) {
+                    const pointLayerId = `${layerId}-point`;
+                    map.addLayer({
+                        id: pointLayerId,
+                        type: "circle",
+                        source: sourceId,
+                        filter: ["in", "$type", "Point"],
+                        paint: getPointPaint(color),
+                    });
+                    layerIds.push(pointLayerId);
+                }
+
+                // Stocker la couche avec un ID unique
+                const layerInfo = {
+                    id: layerId,
+                    sourceId: sourceId,
+                    layerIds: layerIds,
+                    name: name,
+                    color: color,
+                    geojson: geojson,
+                    templateName: templateName,
+                    url: url,
+                    visible: true,
+                };
+                loadedLayers.push(layerInfo);
+
+                // Ajouter les gestionnaires de clic pour les popups
+                setupPopupHandlers(layerInfo);
+
+                // Mettre à jour le panneau des couches
+                updateLayerPanel();
+
+                // Zoom sur l'étendue des données (seulement si pas de config de vue)
+                if (!currentViewConfig) {
+                    fitBoundsToGeoJSON(geojson);
+                }
+
+                return layerInfo;
+            }
+
+            /**
+             * Ajuste la vue pour cadrer un GeoJSON
+             */
+            function fitBoundsToGeoJSON(geojson) {
+                try {
+                    // Pour les gros fichiers, calculer manuellement le bbox
+                    let minLng = Infinity, minLat = Infinity;
+                    let maxLng = -Infinity, maxLat = -Infinity;
+
+                    const features = geojson.type === "FeatureCollection"
+                        ? geojson.features
+                        : [geojson];
+
+                    // Limiter au premier 100 features pour les gros fichiers
+                    const sampleSize = Math.min(features.length, 100);
+
+                    for (let i = 0; i < sampleSize; i++) {
+                        const feature = features[i];
+                        if (!feature.geometry || !feature.geometry.coordinates) continue;
+
+                        const coords = feature.geometry.coordinates;
+
+                        // Fonction récursive pour extraire toutes les coordonnées
+                        const extractCoords = (arr) => {
+                            if (typeof arr[0] === 'number') {
+                                // C'est une coordonnée [lng, lat]
+                                minLng = Math.min(minLng, arr[0]);
+                                maxLng = Math.max(maxLng, arr[0]);
+                                minLat = Math.min(minLat, arr[1]);
+                                maxLat = Math.max(maxLat, arr[1]);
+                            } else {
+                                // C'est un tableau de coordonnées
+                                arr.forEach(extractCoords);
+                            }
+                        };
+
+                        extractCoords(coords);
+                    }
+
+                    if (isFinite(minLng) && isFinite(maxLng) && isFinite(minLat) && isFinite(maxLat)) {
+                        map.fitBounds(
+                            [
+                                [minLng, minLat],
+                                [maxLng, maxLat],
+                            ],
+                            { padding: 50 }
                         );
-                    },
-                    onEachFeature: (feature, layer) => {
-                        const popupContent = createPopup(feature, templateName);
-                        const popup = L.popup({
-                            maxWidth: Math.min(window.innerWidth * 0.8, 600),
-                            maxHeight: Math.round(window.innerHeight * 0.7),
-                        }).setContent(popupContent);
+                    } else {
+                        console.warn("Impossible de calculer les limites valides");
+                    }
+                } catch (e) {
+                    console.warn("Impossible de calculer les limites:", e);
+                }
+            }
 
-                        layer.bindPopup(popup);
+            /**
+             * Configure les gestionnaires de popup pour une couche
+             */
+            function setupPopupHandlers(layerInfo) {
+                layerInfo.layerIds.forEach((layerId) => {
+                    // Changer le curseur au survol
+                    map.on("mouseenter", layerId, () => {
+                        map.getCanvas().style.cursor = "pointer";
+                    });
 
-                        // Créer les graphiques quand le popup s'ouvre
-                        layer.on("popupopen", function (e) {
-                            // Utiliser requestAnimationFrame pour garantir que le popup est rendu
+                    map.on("mouseleave", layerId, () => {
+                        map.getCanvas().style.cursor = "";
+                    });
+
+                    // Gérer le clic pour afficher le popup
+                    map.on("click", layerId, (e) => {
+                        const feature = e.features[0];
+                        const popupContent = createPopup(
+                            feature,
+                            layerInfo.templateName
+                        );
+
+                        // Créer et afficher le popup
+                        const popup = new maplibregl.Popup({
+                            maxWidth: `${Math.min(window.innerWidth * 0.8, 600)}px`,
+                        })
+                            .setLngLat(e.lngLat)
+                            .setHTML(popupContent)
+                            .addTo(map);
+
+                        // MapLibre n'a pas d'événement 'open', créer les graphiques immédiatement
+                        // après l'ajout du popup au DOM
+                        requestAnimationFrame(() => {
                             requestAnimationFrame(() => {
-                                requestAnimationFrame(() => {
-                                    createChartsInPopup(
-                                        feature,
-                                        templateName,
-                                        e.popup,
-                                    );
-                                });
+                                createChartsInPopup(
+                                    feature,
+                                    layerInfo.templateName,
+                                    popup
+                                );
                             });
                         });
 
-                        // Nettoyer les graphiques quand le popup se ferme
-                        layer.on("popupclose", function () {
-                            // Détruire tous les graphiques Chart.js pour libérer la mémoire
-                            const popup = layer.getPopup();
-                            if (popup && popup.getElement()) {
-                                const canvases = popup
-                                    .getElement()
-                                    .querySelectorAll(
-                                        "canvas[data-chart-config]",
-                                    );
+                        // Nettoyer les graphiques à la fermeture
+                        popup.once("close", () => {
+                            const popupElement = popup.getElement();
+                            if (popupElement) {
+                                const canvases = popupElement.querySelectorAll(
+                                    "canvas[data-chart-config]"
+                                );
                                 canvases.forEach((canvas) => {
                                     const chart = Chart.getChart(canvas.id);
                                     if (chart) {
@@ -1474,37 +1774,8 @@
                                 });
                             }
                         });
-                    },
-                }).addTo(map);
-
-                // Stocker la couche avec un ID unique
-                const layerInfo = {
-                    id: Date.now() + Math.random(),
-                    layer: layer,
-                    name: name,
-                    color: color,
-                    geojson: geojson,
-                    templateName: templateName,
-                    url: url,
-                };
-                loadedLayers.push(layerInfo);
-
-                // Mettre à jour le panneau des couches
-                updateLayerPanel();
-
-                // Zoom sur l'étendue des données (seulement si pas de config de vue)
-                if (!currentViewConfig) {
-                    try {
-                        const bounds = layer.getBounds();
-                        if (bounds.isValid()) {
-                            map.fitBounds(bounds, { padding: [50, 50] });
-                        }
-                    } catch (e) {
-                        console.warn("Impossible de calculer les limites:", e);
-                    }
-                }
-
-                return layerInfo;
+                    });
+                });
             }
 
             /**
@@ -1555,6 +1826,7 @@
                         }
                     }
 
+                    showMessage("Parsing du GeoJSON...", "info");
                     const geojson = await response.json();
 
                     // Valider le GeoJSON
@@ -1565,6 +1837,10 @@
                     ) {
                         throw new Error("Format GeoJSON invalide");
                     }
+
+                    const featureCount = geojson.type === "FeatureCollection"
+                        ? geojson.features.length
+                        : 1;
 
                     // Extraire le nom du fichier depuis l'URL
                     const urlParts = url.split("/");
@@ -1578,11 +1854,13 @@
                     // Demander le nom
                     const layerName = await promptLayerName(defaultName);
 
+                    showMessage(`Ajout de ${featureCount} entités à la carte...`, "info");
+
                     // Ajouter la couche
                     const color = getNextColor();
                     addGeoJSONLayer(geojson, layerName, color, null, url);
 
-                    showMessage(`"${layerName}" chargé avec succès`, "success");
+                    showMessage(`"${layerName}" chargé avec succès (${featureCount} entités)`, "success");
                     document.getElementById("urlInput").value = "";
 
                     // Fermer le menu
@@ -1717,7 +1995,11 @@
 
                     // Appliquer la configuration de la vue
                     if (config.view.center && config.view.zoom) {
-                        map.setView(config.view.center, config.view.zoom);
+                        // Config uses [lat, lng] but MapLibre needs [lng, lat]
+                        const center = Array.isArray(config.view.center) && config.view.center.length === 2
+                            ? [config.view.center[1], config.view.center[0]]  // Swap to [lng, lat]
+                            : config.view.center;
+                        map.jumpTo({ center: center, zoom: config.view.zoom });
                     }
 
                     // Changer le fond de carte si spécifié
@@ -1755,8 +2037,11 @@
                             );
 
                             // Gérer la visibilité initiale
-                            if (layerConfig.visible === false) {
-                                map.removeLayer(layerInfo.layer);
+                            if (layerInfo && layerConfig.visible === false) {
+                                layerInfo.layerIds.forEach((layerId) => {
+                                    map.setLayoutProperty(layerId, "visibility", "none");
+                                });
+                                layerInfo.visible = false;
                             }
                         } catch (error) {
                             console.error(
@@ -1870,7 +2155,7 @@
                                 layerInfo.geojson.type === "FeatureCollection"
                                     ? layerInfo.geojson.features.length
                                     : 1;
-                            const isVisible = map.hasLayer(layerInfo.layer);
+                            const isVisible = layerInfo.visible;
                             return `
                 <div class="layer-item" style="border-left-color: ${layerInfo.color}" role="group" aria-label="Couche ${layerInfo.name}" draggable="true" data-index="${index}">
                     <div class="layer-item-header">
@@ -1892,8 +2177,8 @@
                             </button>
                             <button
                                 onclick="renameLayer(${index})"
-                                title="Renommer ${layerInfo.name}"
-                                aria-label="Renommer la couche ${layerInfo.name}"
+                                title="Éditer ${layerInfo.name}"
+                                aria-label="Éditer la couche ${layerInfo.name}"
                             >
                                 <span class="iconify" data-icon="mdi:pencil" style="font-size: 11px;" aria-hidden="true"></span>
                             </button>
@@ -2004,20 +2289,15 @@
                                 "Nom de la configuration:",
                                 "Ma configuration",
                             ) || "Configuration exportée",
-                        center: [map.getCenter().lat, map.getCenter().lng],
+                        center: [map.getCenter().lat, map.getCenter().lng],  // Export as [lat, lng] for compatibility
                         zoom: map.getZoom(),
-                        basemap:
-                            currentBasemap === basemapOSM
-                                ? "osm"
-                                : currentBasemap === basemapTopo
-                                  ? "topo"
-                                  : "positron",
+                        basemap: currentBasemap,
                     },
                     layers: loadedLayers.map((layerInfo) => ({
                         name: layerInfo.name,
                         url: layerInfo.url || "./votre-fichier.geojson", // URL par défaut si chargé localement
                         color: layerInfo.color,
-                        visible: map.hasLayer(layerInfo.layer),
+                        visible: layerInfo.visible,
                         popup_template: layerInfo.templateName || null,
                     })),
                     popup_templates:
@@ -2051,11 +2331,19 @@
             function toggleLayerVisibility(index) {
                 const layerInfo = loadedLayers[index];
 
-                if (map.hasLayer(layerInfo.layer)) {
-                    map.removeLayer(layerInfo.layer);
+                if (layerInfo.visible) {
+                    // Masquer toutes les couches associées
+                    layerInfo.layerIds.forEach((layerId) => {
+                        map.setLayoutProperty(layerId, "visibility", "none");
+                    });
+                    layerInfo.visible = false;
                     announceToScreenReader(`Couche ${layerInfo.name} masquée`);
                 } else {
-                    map.addLayer(layerInfo.layer);
+                    // Afficher toutes les couches associées
+                    layerInfo.layerIds.forEach((layerId) => {
+                        map.setLayoutProperty(layerId, "visibility", "visible");
+                    });
+                    layerInfo.visible = true;
                     announceToScreenReader(`Couche ${layerInfo.name} affichée`);
                 }
 
@@ -2116,31 +2404,59 @@
              * Réordonne les couches sur la carte après un drag-and-drop
              */
             function reorderMapLayers() {
-                const visibilityState = loadedLayers.map((l) =>
-                    map.hasLayer(l.layer),
+                // Dans MapLibre, l'ordre des couches est déterminé par l'ordre dans le style
+                // On doit réordonner en déplaçant les couches
+                const allLayerIds = loadedLayers.flatMap((l) => l.layerIds);
+
+                // Obtenir toutes les couches non-basemap
+                const nonBasemapLayers = map.getStyle().layers.filter(
+                    (layer) => !["osm", "topo", "positron"].includes(layer.id)
                 );
 
-                loadedLayers.forEach((layerInfo) => {
-                    if (map.hasLayer(layerInfo.layer)) {
-                        map.removeLayer(layerInfo.layer);
-                    }
-                });
-
-                loadedLayers.forEach((layerInfo, i) => {
-                    if (visibilityState[i]) {
-                        layerInfo.layer.addTo(map);
-                    }
+                // Reconstruire l'ordre
+                loadedLayers.forEach((layerInfo, index) => {
+                    layerInfo.layerIds.forEach((layerId) => {
+                        if (map.getLayer(layerId)) {
+                            // Retirer la couche
+                            const layer = map.getStyle().layers.find(l => l.id === layerId);
+                            if (layer) {
+                                map.removeLayer(layerId);
+                                // Rajouter la couche à la fin
+                                map.addLayer(layer);
+                            }
+                        }
+                    });
                 });
             }
 
             /**
-             * Renomme une couche
+             * Édite une couche (nom et couleur)
              */
             function renameLayer(index) {
                 const layerInfo = loadedLayers[index];
                 currentRenameLayer = layerInfo;
                 currentRenameIndex = index;
+
+                // Initialiser les champs
                 document.getElementById("renameInput").value = layerInfo.name;
+                document.getElementById("colorInput").value = layerInfo.color;
+                document.getElementById("colorInputText").value = layerInfo.color;
+
+                // Synchroniser color picker et text input
+                const colorInput = document.getElementById("colorInput");
+                const colorInputText = document.getElementById("colorInputText");
+
+                colorInput.oninput = function() {
+                    colorInputText.value = this.value.toUpperCase();
+                };
+
+                colorInputText.oninput = function() {
+                    const value = this.value.trim();
+                    if (/^#[0-9A-F]{6}$/i.test(value)) {
+                        colorInput.value = value;
+                    }
+                };
+
                 document.getElementById("renameModal").classList.add("show");
                 document.getElementById("renameInput").focus();
             }
@@ -2156,8 +2472,17 @@
                 );
 
                 if (proceed) {
-                    // Retirer de la carte
-                    map.removeLayer(layerInfo.layer);
+                    // Retirer toutes les couches MapLibre associées
+                    layerInfo.layerIds.forEach((layerId) => {
+                        if (map.getLayer(layerId)) {
+                            map.removeLayer(layerId);
+                        }
+                    });
+
+                    // Retirer la source
+                    if (map.getSource(layerInfo.sourceId)) {
+                        map.removeSource(layerInfo.sourceId);
+                    }
 
                     // Retirer du tableau
                     loadedLayers.splice(index, 1);
@@ -2187,7 +2512,17 @@
 
                 if (proceed) {
                     loadedLayers.forEach((layerInfo) => {
-                        map.removeLayer(layerInfo.layer);
+                        // Retirer toutes les couches MapLibre associées
+                        layerInfo.layerIds.forEach((layerId) => {
+                            if (map.getLayer(layerId)) {
+                                map.removeLayer(layerId);
+                            }
+                        });
+
+                        // Retirer la source
+                        if (map.getSource(layerInfo.sourceId)) {
+                            map.removeSource(layerInfo.sourceId);
+                        }
                     });
 
                     loadedLayers = [];
@@ -2197,7 +2532,7 @@
                     updateLayerPanel();
 
                     // Réinitialiser la vue
-                    map.setView([46.8, -71.2], 6);
+                    map.flyTo({ center: [-71.2, 46.8], zoom: 6 });
 
                     showMessage(
                         "Toutes les couches ont été effacées",
@@ -2226,35 +2561,82 @@
             }
 
             /**
-             * Confirme le renommage d'une couche
+             * Confirme l'édition d'une couche (nom et couleur)
              */
             function confirmRename() {
                 const newName = document
                     .getElementById("renameInput")
                     .value.trim();
+                const newColor = document
+                    .getElementById("colorInput")
+                    .value.toUpperCase();
 
                 if (!newName) {
                     showMessage("Le nom ne peut pas être vide", "error");
                     return;
                 }
 
+                if (!newColor || !/^#[0-9A-F]{6}$/i.test(newColor)) {
+                    showMessage("Couleur invalide (format: #RRGGBB)", "error");
+                    return;
+                }
+
                 if (currentRenameLayer && currentRenameIndex !== null) {
                     const oldName = currentRenameLayer.name;
+                    const oldColor = currentRenameLayer.color;
+                    const colorChanged = oldColor !== newColor;
 
-                    // Mettre à jour le nom dans l'objet
+                    // Mettre à jour le nom et la couleur dans l'objet
                     currentRenameLayer.name = newName;
+                    currentRenameLayer.color = newColor;
                     loadedLayers[currentRenameIndex].name = newName;
+                    loadedLayers[currentRenameIndex].color = newColor;
+
+                    // Si la couleur a changé, mettre à jour les styles sur la carte
+                    if (colorChanged) {
+                        updateLayerColor(currentRenameIndex, newColor);
+                    }
 
                     // Mettre à jour le panneau
                     updateLayerPanel();
 
-                    showMessage(
-                        `Couche renommée: "${oldName}" vers "${newName}"`,
-                        "success",
-                    );
+                    let message = `Couche "${newName}" mise à jour`;
+                    if (oldName !== newName && colorChanged) {
+                        message = `Couche renommée "${oldName}" → "${newName}" et couleur changée`;
+                    } else if (oldName !== newName) {
+                        message = `Couche renommée: "${oldName}" → "${newName}"`;
+                    } else if (colorChanged) {
+                        message = `Couleur de "${newName}" changée`;
+                    }
+
+                    showMessage(message, "success");
                 }
 
                 closeRenameModal();
+            }
+
+            /**
+             * Met à jour la couleur d'une couche sur la carte
+             */
+            function updateLayerColor(layerIndex, newColor) {
+                const layerInfo = loadedLayers[layerIndex];
+                const rgb = hexToRgb(newColor);
+                const rgbString = `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
+
+                layerInfo.layerIds.forEach((layerId) => {
+                    if (!map.getLayer(layerId)) return;
+
+                    const layer = map.getLayer(layerId);
+
+                    // Mettre à jour selon le type de couche
+                    if (layer.type === 'circle') {
+                        map.setPaintProperty(layerId, 'circle-color', rgbString);
+                    } else if (layer.type === 'line') {
+                        map.setPaintProperty(layerId, 'line-color', rgbString);
+                    } else if (layer.type === 'fill') {
+                        map.setPaintProperty(layerId, 'fill-color', rgbString);
+                    }
+                });
             }
 
             // Gérer la touche Entrée dans l'input URL
@@ -2289,7 +2671,7 @@
             // Pour simplifier, on utilise uniquement le système de prompt initial
             // Une version plus avancée pourrait utiliser des événements personnalisés
 
-            console.log("Visualiseur GeoJSON initialisé");
+            console.log("Visualiseur GeoJSON avec MapLibre GL JS initialisé");
             console.log("Palette de couleurs accessibles:", colorPalette);
 
             // ===== FONCTIONS D'ACCESSIBILITÉ =====
@@ -2619,7 +3001,11 @@
 
                         // Appliquer la configuration de la vue
                         if (config.view.center && config.view.zoom) {
-                            map.setView(config.view.center, config.view.zoom);
+                            // Config uses [lat, lng] but MapLibre needs [lng, lat]
+                            const center = Array.isArray(config.view.center) && config.view.center.length === 2
+                                ? [config.view.center[1], config.view.center[0]]  // Swap to [lng, lat]
+                                : config.view.center;
+                            map.jumpTo({ center: center, zoom: config.view.zoom });
                         }
 
                         // Changer le fond de carte si spécifié
@@ -2655,8 +3041,11 @@
                                     layerConfig.url,
                                 );
 
-                                if (layerConfig.visible === false) {
-                                    map.removeLayer(layerInfo.layer);
+                                if (layerInfo && layerConfig.visible === false) {
+                                    layerInfo.layerIds.forEach((layerId) => {
+                                        map.setLayoutProperty(layerId, "visibility", "none");
+                                    });
+                                    layerInfo.visible = false;
                                 }
                             } catch (error) {
                                 console.error(
@@ -2692,8 +3081,15 @@
                 }
             }
 
-            // Charger automatiquement la configuration au démarrage
-            autoLoadViewConfig();
+            // Attendre que la carte soit chargée avant d'initialiser
+            map.on('load', () => {
+                console.log("Carte MapLibre chargée et prête");
+                // Attendre un petit délai pour s'assurer que tout est prêt
+                setTimeout(() => {
+                    // Charger automatiquement la configuration au démarrage
+                    autoLoadViewConfig();
+                }, 100);
+            });
         </script>
     </body>
 </html>
