@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -I \"https://www.donneesquebec.ca/recherche/dataset/54733049-69e5-45e1-b20b-6fbc760b93f7/resource/5aa11a00-064e-459d-b330-d595589ecfd2/download/hydrographie_surfacique.geojson\")",
+      "Bash(curl -s \"https://www.donneesquebec.ca/recherche/dataset/54733049-69e5-45e1-b20b-6fbc760b93f7/resource/5aa11a00-064e-459d-b330-d595589ecfd2/download/hydrographie_surfacique.geojson\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

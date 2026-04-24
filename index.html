@@ -180,6 +180,95 @@
                 font-size: 0.9rem;
             }
 
+            .search-box {
+                padding: 0.4rem 0.5rem;
+                border-bottom: 1px solid #e2e8f0;
+                margin-bottom: 0.4rem;
+            }
+
+            .search-box input {
+                width: 100%;
+                padding: 0.35rem 0.5rem;
+                font-size: 0.8rem;
+                border: 1px solid #d1d5db;
+                border-radius: 4px;
+                background: white;
+                color: #2d3748;
+            }
+
+            .search-box input:focus {
+                outline: none;
+                border-color: #0072B2;
+                box-shadow: 0 0 0 2px rgba(0, 114, 178, 0.15);
+            }
+
+            .search-results {
+                margin-top: 0.4rem;
+                max-height: 40vh;
+                overflow-y: auto;
+                border: 1px solid #e2e8f0;
+                border-radius: 4px;
+                background: #fafafa;
+            }
+
+            .search-results:empty {
+                display: none;
+            }
+
+            .search-section-label {
+                font-size: 0.65rem;
+                font-weight: 600;
+                color: #6b7280;
+                padding: 0.35rem 0.5rem 0.2rem;
+                text-transform: uppercase;
+                letter-spacing: 0.03em;
+            }
+
+            .search-result {
+                padding: 0.3rem 0.5rem;
+                font-size: 0.78rem;
+                cursor: pointer;
+                border-top: 1px solid #edf0f3;
+                display: flex;
+                flex-direction: column;
+                gap: 0.1rem;
+            }
+
+            .search-result:hover {
+                background: #eef4fa;
+            }
+
+            .search-result-primary {
+                color: #2d3748;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .search-result-meta {
+                color: #718096;
+                font-size: 0.7rem;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .search-result-layer-dot {
+                display: inline-block;
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                margin-right: 0.3rem;
+                vertical-align: middle;
+            }
+
+            .search-empty {
+                padding: 0.5rem;
+                font-size: 0.75rem;
+                color: #9ca3af;
+                text-align: center;
+            }
+
             .message {
                 padding: 0.75rem 1rem;
                 margin: 0.5rem 2rem;
@@ -928,6 +1017,28 @@
                                 <span>CartoDB Positron</span>
                             </label>
                         </div>
+                    </div>
+
+                    <!-- Barre de recherche unifiée -->
+                    <div class="search-box">
+                        <div
+                            style="
+                                font-weight: 600;
+                                margin-bottom: 0.4rem;
+                                font-size: 0.75rem;
+                                color: #6b7280;
+                            "
+                        >
+                            RECHERCHE
+                        </div>
+                        <input
+                            type="search"
+                            id="searchInput"
+                            placeholder="Nom de couche ou valeur d'attribut…"
+                            aria-label="Rechercher une couche ou une entité"
+                            autocomplete="off"
+                        />
+                        <div id="searchResults" class="search-results" role="listbox" aria-label="Résultats de recherche"></div>
                     </div>
 
                     <!-- Section des couches de données -->
@@ -3080,6 +3191,234 @@
                     }
                 }
             }
+
+            // ===== Recherche unifiée (couches + entités par attribut) =====
+            const MAX_FEATURE_RESULTS = 15;
+            let searchDebounceTimer = null;
+
+            function escapeSearchHTML(str) {
+                return String(str)
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#39;");
+            }
+
+            function performUnifiedSearch(rawQuery) {
+                const resultsEl = document.getElementById("searchResults");
+                const query = (rawQuery || "").trim().toLowerCase();
+                if (!query) {
+                    resultsEl.innerHTML = "";
+                    return;
+                }
+                if (loadedLayers.length === 0) {
+                    resultsEl.innerHTML =
+                        '<div class="search-empty">Aucune couche chargée.</div>';
+                    return;
+                }
+
+                // Couches dont le nom matche
+                const layerMatches = [];
+                loadedLayers.forEach((layer, index) => {
+                    if (layer.name.toLowerCase().includes(query)) {
+                        layerMatches.push({ layer, index });
+                    }
+                });
+
+                // Entités dont une propriété contient la requête
+                const featureMatches = [];
+                outer: for (let li = 0; li < loadedLayers.length; li++) {
+                    const layer = loadedLayers[li];
+                    const features =
+                        layer.geojson.type === "FeatureCollection"
+                            ? layer.geojson.features
+                            : [layer.geojson];
+                    for (let fi = 0; fi < features.length; fi++) {
+                        const feature = features[fi];
+                        const props = feature.properties || {};
+                        for (const [key, value] of Object.entries(props)) {
+                            if (value == null) continue;
+                            const strVal = String(value).toLowerCase();
+                            if (strVal.includes(query)) {
+                                featureMatches.push({
+                                    layerIndex: li,
+                                    featureIndex: fi,
+                                    layer,
+                                    matchedField: key,
+                                    matchedValue: String(value),
+                                });
+                                if (featureMatches.length >= MAX_FEATURE_RESULTS)
+                                    break outer;
+                                break; // feature suivante (une seule entrée par feature)
+                            }
+                        }
+                    }
+                }
+
+                renderSearchResults(layerMatches, featureMatches);
+            }
+
+            function renderSearchResults(layerMatches, featureMatches) {
+                const resultsEl = document.getElementById("searchResults");
+                const parts = [];
+
+                if (layerMatches.length === 0 && featureMatches.length === 0) {
+                    resultsEl.innerHTML =
+                        '<div class="search-empty">Aucun résultat.</div>';
+                    return;
+                }
+
+                if (layerMatches.length > 0) {
+                    parts.push(
+                        `<div class="search-section-label">Couches (${layerMatches.length})</div>`
+                    );
+                    layerMatches.forEach(({ layer, index }) => {
+                        const visibleLabel = layer.visible ? "visible" : "masquée";
+                        parts.push(`
+                            <div class="search-result" role="option" tabindex="0"
+                                 onclick="selectLayerResult(${index})"
+                                 onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectLayerResult(${index})}"
+                                 title="Basculer la visibilité">
+                                <div class="search-result-primary">
+                                    <span class="search-result-layer-dot" style="background:${escapeSearchHTML(layer.color)}"></span>
+                                    ${escapeSearchHTML(layer.name)}
+                                </div>
+                                <div class="search-result-meta">${visibleLabel}</div>
+                            </div>
+                        `);
+                    });
+                }
+
+                if (featureMatches.length > 0) {
+                    const suffix =
+                        featureMatches.length >= MAX_FEATURE_RESULTS ? "+" : "";
+                    parts.push(
+                        `<div class="search-section-label">Entités (${featureMatches.length}${suffix})</div>`
+                    );
+                    featureMatches.forEach(
+                        ({ layerIndex, featureIndex, layer, matchedField, matchedValue }) => {
+                            parts.push(`
+                                <div class="search-result" role="option" tabindex="0"
+                                     onclick="selectFeatureResult(${layerIndex}, ${featureIndex})"
+                                     onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectFeatureResult(${layerIndex}, ${featureIndex})}"
+                                     title="Zoomer et afficher les détails">
+                                    <div class="search-result-primary">
+                                        <span class="search-result-layer-dot" style="background:${escapeSearchHTML(layer.color)}"></span>
+                                        ${escapeSearchHTML(matchedValue)}
+                                    </div>
+                                    <div class="search-result-meta">${escapeSearchHTML(layer.name)} &middot; ${escapeSearchHTML(matchedField)}</div>
+                                </div>
+                            `);
+                        }
+                    );
+                }
+
+                resultsEl.innerHTML = parts.join("");
+            }
+
+            function selectLayerResult(index) {
+                toggleLayerVisibility(index);
+                // Rafraîchir pour refléter le nouvel état (visible/masquée)
+                const input = document.getElementById("searchInput");
+                performUnifiedSearch(input.value);
+            }
+
+            function selectFeatureResult(layerIndex, featureIndex) {
+                const layer = loadedLayers[layerIndex];
+                if (!layer) return;
+                const features =
+                    layer.geojson.type === "FeatureCollection"
+                        ? layer.geojson.features
+                        : [layer.geojson];
+                const feature = features[featureIndex];
+                if (!feature || !feature.geometry) return;
+
+                // Rendre la couche visible si nécessaire
+                if (!layer.visible) {
+                    toggleLayerVisibility(layerIndex);
+                }
+
+                // Position représentative pour le popup
+                let lngLat = null;
+                try {
+                    if (feature.geometry.type === "Point") {
+                        lngLat = feature.geometry.coordinates;
+                    } else if (feature.geometry.type === "MultiPoint") {
+                        lngLat = feature.geometry.coordinates[0];
+                    } else if (window.turf && typeof turf.centroid === "function") {
+                        lngLat = turf.centroid(feature).geometry.coordinates;
+                    }
+                } catch (e) {
+                    console.warn("Centroïde impossible:", e);
+                }
+                if (!lngLat) return;
+
+                // Zoom : bbox pour lignes/polygones, flyTo pour les points
+                const geomType = feature.geometry.type;
+                const isExtended = [
+                    "Polygon",
+                    "MultiPolygon",
+                    "LineString",
+                    "MultiLineString",
+                ].includes(geomType);
+                if (isExtended && window.turf && typeof turf.bbox === "function") {
+                    try {
+                        const bbox = turf.bbox(feature);
+                        map.fitBounds(
+                            [
+                                [bbox[0], bbox[1]],
+                                [bbox[2], bbox[3]],
+                            ],
+                            { padding: 80, maxZoom: 15 }
+                        );
+                    } catch (e) {
+                        map.flyTo({ center: lngLat, zoom: Math.max(map.getZoom(), 13) });
+                    }
+                } else {
+                    map.flyTo({ center: lngLat, zoom: Math.max(map.getZoom(), 13) });
+                }
+
+                // Ouvrir le popup (même logique que le clic sur la carte)
+                const popupContent = createPopup(feature, layer.templateName);
+                const popup = new maplibregl.Popup({
+                    maxWidth: `${Math.min(window.innerWidth * 0.8, 600)}px`,
+                })
+                    .setLngLat(lngLat)
+                    .setHTML(popupContent)
+                    .addTo(map);
+
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        createChartsInPopup(feature, layer.templateName, popup);
+                    });
+                });
+
+                popup.once("close", () => {
+                    const popupElement = popup.getElement();
+                    if (popupElement) {
+                        const canvases = popupElement.querySelectorAll(
+                            "canvas[data-chart-config]"
+                        );
+                        canvases.forEach((canvas) => {
+                            const chart = Chart.getChart(canvas.id);
+                            if (chart) chart.destroy();
+                        });
+                    }
+                });
+            }
+
+            // Listener sur la barre de recherche (debounce 200ms)
+            document
+                .getElementById("searchInput")
+                .addEventListener("input", (e) => {
+                    clearTimeout(searchDebounceTimer);
+                    const value = e.target.value;
+                    searchDebounceTimer = setTimeout(
+                        () => performUnifiedSearch(value),
+                        200
+                    );
+                });
 
             // Attendre que la carte soit chargée avant d'initialiser
             map.on('load', () => {
