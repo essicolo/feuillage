@@ -25,6 +25,55 @@
         <script src="https://cdn.tailwindcss.com"></script>
 
         <style>
+            /* === Design tokens === */
+            :root {
+                /* Typography */
+                --font-stack:
+                    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                    Oxygen, Ubuntu, Cantarell, sans-serif;
+                --font-mono:
+                    ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+                --font-2xs: 0.7rem;    /* 11.2px — uppercase mini-labels, meta */
+                --font-xs: 0.75rem;    /* 12px   — small UI, button labels */
+                --font-sm: 0.8125rem;  /* 13px   — main UI text */
+                --font-md: 0.9rem;     /* 14.4px — panel header */
+                --font-lg: 1.1rem;     /* 17.6px — popup heading */
+                --font-xl: 1.25rem;    /* 20px   — modal heading */
+
+                /* Neutrals */
+                --color-bg: #f5f5f5;
+                --color-surface: #ffffff;
+                --color-surface-alt: #f7fafc;
+                --color-surface-soft: #f9fafb;
+                --color-border: #e2e8f0;
+                --color-border-strong: #d1d5db;
+                --color-divider: #edf0f3;
+                --color-text: #2d3748;
+                --color-text-secondary: #4b5563;
+                --color-text-muted: #6b7280;
+                --color-text-subtle: #9ca3af;
+
+                /* Brand & state */
+                --color-brand: #0072B2;
+                --color-brand-tint: rgba(0, 114, 178, 0.12);
+                --color-danger: #c53030;
+                --color-success: #276749;
+                --color-warning: #c05621;
+
+                /* Radii */
+                --radius-sm: 4px;
+                --radius-md: 6px;
+                --radius-lg: 8px;
+
+                /* Shadows */
+                --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+                --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.15);
+                --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+                /* Layout */
+                --panel-width: 260px;
+            }
+
             * {
                 margin: 0;
                 padding: 0;
@@ -32,13 +81,11 @@
             }
 
             body {
-                font-family:
-                    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-                    Oxygen, Ubuntu, Cantarell, sans-serif;
+                font-family: var(--font-stack);
+                font-size: var(--font-sm);
+                color: var(--color-text);
                 height: 100vh;
-                background-color: #f5f5f5;
-                margin: 0;
-                padding: 0;
+                background-color: var(--color-bg);
             }
 
             .map-container {
@@ -49,11 +96,12 @@
                 background-color: transparent;
             }
 
+            /* === Layer panel === */
             #layerPanel {
-                width: 260px;
-                min-width: 260px;
-                background-color: white;
-                border-right: 1px solid #d1d5db;
+                width: var(--panel-width);
+                min-width: var(--panel-width);
+                background-color: var(--color-surface);
+                border-right: 1px solid var(--color-border-strong);
                 display: flex;
                 flex-direction: column;
                 transition: margin-left 0.3s ease;
@@ -62,16 +110,52 @@
             }
 
             #layerPanel.collapsed {
-                margin-left: -260px;
+                margin-left: calc(-1 * var(--panel-width));
+            }
+
+            .panel-resize-handle {
+                position: absolute;
+                top: 0;
+                right: -3px;
+                width: 6px;
+                height: 100%;
+                cursor: col-resize;
+                z-index: 600;
+                background-color: transparent;
+                transition: background-color 0.15s;
+                touch-action: none;
+            }
+
+            .panel-resize-handle:hover,
+            .panel-resize-handle.resizing {
+                background-color: var(--color-brand-tint);
+            }
+
+            #layerPanel.collapsed .panel-resize-handle {
+                display: none;
+            }
+
+            /* Larger panel default when text is scaled up */
+            body.text-large {
+                --panel-width: 320px;
+            }
+
+            body.text-xlarge {
+                --panel-width: 380px;
+            }
+
+            /* Disable resize transition during drag for snappy feel */
+            #layerPanel.resizing {
+                transition: none;
             }
 
             .layer-panel-header {
                 padding: 0.75rem 1rem;
-                background-color: #f7fafc;
-                border-bottom: 1px solid #e2e8f0;
+                background-color: var(--color-surface-alt);
+                border-bottom: 1px solid var(--color-border);
                 font-weight: 600;
-                font-size: 0.95rem;
-                color: #2d3748;
+                font-size: var(--font-md);
+                color: var(--color-text);
             }
 
             .layer-panel-content {
@@ -80,11 +164,108 @@
                 padding: 0.5rem;
             }
 
+            .panel-section {
+                padding: 0.4rem 0.5rem;
+                border-bottom: 1px solid var(--color-border);
+                margin-bottom: 0.4rem;
+            }
+
+            .panel-section:last-child {
+                border-bottom: none;
+            }
+
+            .section-label {
+                font-weight: 600;
+                margin-bottom: 0.4rem;
+                font-size: var(--font-2xs);
+                color: var(--color-text-muted);
+                text-transform: uppercase;
+                letter-spacing: 0.04em;
+            }
+
+            /* Section enveloppant la liste des couches + fond de carte */
+            .layers-section {
+                padding: 0 0.5rem;
+            }
+
+            /* Ligne fond de carte (couche verrouillée à l'arrière-plan) */
+            .basemap-row {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 0.5rem;
+                margin-top: 0.5rem;
+                padding: 0.45rem 0.5rem;
+                background-color: var(--color-surface-alt);
+                border-radius: var(--radius-sm);
+                border-left: 3px solid var(--color-text-subtle);
+                border-top: 1px dashed var(--color-border);
+            }
+
+            .basemap-row-info {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                min-width: 0;
+                flex: 1;
+            }
+
+            .basemap-row-icon {
+                font-size: 18px;
+                color: var(--color-text-muted);
+                flex-shrink: 0;
+            }
+
+            .basemap-row-text {
+                display: flex;
+                flex-direction: column;
+                min-width: 0;
+            }
+
+            .basemap-row-label {
+                font-size: var(--font-2xs);
+                font-weight: 600;
+                color: var(--color-text-muted);
+                text-transform: uppercase;
+                letter-spacing: 0.04em;
+                line-height: 1.2;
+            }
+
+            .basemap-row-name {
+                font-size: var(--font-sm);
+                font-weight: 500;
+                color: var(--color-text);
+                line-height: 1.3;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .basemap-row-edit {
+                padding: 0.25rem 0.4rem;
+                font-size: var(--font-xs);
+                background-color: var(--color-surface);
+                color: var(--color-text-secondary);
+                border: 1px solid var(--color-border-strong);
+                border-radius: var(--radius-sm);
+                cursor: pointer;
+                transition: background-color 0.15s;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+            }
+
+            .basemap-row-edit:hover {
+                background-color: var(--color-surface-soft);
+            }
+
+            /* === Layer items === */
             .layer-item {
                 padding: 0.5rem;
                 margin-bottom: 0.4rem;
-                background-color: #f7fafc;
-                border-radius: 3px;
+                background-color: var(--color-surface-alt);
+                border-radius: var(--radius-sm);
                 border-left: 3px solid;
             }
 
@@ -104,7 +285,7 @@
 
             .layer-item-name {
                 font-weight: 500;
-                font-size: 0.85rem;
+                font-size: var(--font-sm);
                 word-break: break-word;
                 overflow: hidden;
                 text-overflow: ellipsis;
@@ -116,43 +297,50 @@
                 flex-shrink: 0;
             }
 
-            .layer-item-actions button {
+            .layer-item-actions button,
+            .eye-btn {
                 padding: 0.2rem 0.4rem;
-                font-size: 0.7rem;
-                background-color: white;
-                color: #4a5568;
-                border: 1px solid #d1d5db;
-                border-radius: 3px;
+                font-size: var(--font-xs);
+                background-color: var(--color-surface);
+                color: var(--color-text-secondary);
+                border: 1px solid var(--color-border-strong);
+                border-radius: var(--radius-sm);
                 cursor: pointer;
                 transition: background-color 0.15s;
             }
 
-            .layer-item-actions button:hover {
-                background-color: #f9fafb;
+            .layer-item-actions button:hover,
+            .eye-btn:hover {
+                background-color: var(--color-surface-soft);
             }
 
             .layer-item-actions button.danger {
-                color: #c53030;
+                color: var(--color-danger);
             }
 
-            /* Checkboxes et radio buttons en noir */
+            .eye-btn.hidden-layer {
+                color: var(--color-text-subtle);
+            }
+
+            /* Form controls */
             input[type="checkbox"],
             input[type="radio"] {
-                accent-color: #1f2937;
+                accent-color: var(--color-text);
             }
 
+            /* === Toggle panel button === */
             .toggle-panel-btn {
                 position: absolute;
                 bottom: 20px;
                 left: 20px;
                 z-index: 1000;
-                background-color: white;
-                color: #2d3748;
-                border: 1px solid #d1d5db;
-                border-radius: 6px;
+                background-color: var(--color-surface);
+                color: var(--color-text);
+                border: 1px solid var(--color-border-strong);
+                border-radius: var(--radius-md);
                 padding: 8px;
                 cursor: pointer;
-                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                box-shadow: var(--shadow-sm);
                 transition: all 0.2s;
                 display: flex;
                 align-items: center;
@@ -160,8 +348,8 @@
             }
 
             .toggle-panel-btn:hover {
-                background-color: #f9fafb;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+                background-color: var(--color-surface-soft);
+                box-shadow: var(--shadow-md);
             }
 
             #layerPanel.collapsed + .toggle-panel-btn {
@@ -176,39 +364,40 @@
             .empty-state {
                 padding: 2rem;
                 text-align: center;
-                color: #718096;
-                font-size: 0.9rem;
+                color: var(--color-text-muted);
+                font-size: var(--font-sm);
             }
 
+            /* === Search === */
             .search-box {
                 padding: 0.4rem 0.5rem;
-                border-bottom: 1px solid #e2e8f0;
+                border-bottom: 1px solid var(--color-border);
                 margin-bottom: 0.4rem;
             }
 
             .search-box input {
                 width: 100%;
                 padding: 0.35rem 0.5rem;
-                font-size: 0.8rem;
-                border: 1px solid #d1d5db;
-                border-radius: 4px;
-                background: white;
-                color: #2d3748;
+                font-size: var(--font-sm);
+                border: 1px solid var(--color-border-strong);
+                border-radius: var(--radius-sm);
+                background: var(--color-surface);
+                color: var(--color-text);
             }
 
             .search-box input:focus {
                 outline: none;
-                border-color: #0072B2;
-                box-shadow: 0 0 0 2px rgba(0, 114, 178, 0.15);
+                border-color: var(--color-brand);
+                box-shadow: 0 0 0 2px var(--color-brand-tint);
             }
 
             .search-results {
                 margin-top: 0.4rem;
                 max-height: 40vh;
                 overflow-y: auto;
-                border: 1px solid #e2e8f0;
-                border-radius: 4px;
-                background: #fafafa;
+                border: 1px solid var(--color-border);
+                border-radius: var(--radius-sm);
+                background: var(--color-surface-alt);
             }
 
             .search-results:empty {
@@ -216,38 +405,38 @@
             }
 
             .search-section-label {
-                font-size: 0.65rem;
+                font-size: var(--font-2xs);
                 font-weight: 600;
-                color: #6b7280;
+                color: var(--color-text-muted);
                 padding: 0.35rem 0.5rem 0.2rem;
                 text-transform: uppercase;
-                letter-spacing: 0.03em;
+                letter-spacing: 0.04em;
             }
 
             .search-result {
                 padding: 0.3rem 0.5rem;
-                font-size: 0.78rem;
+                font-size: var(--font-sm);
                 cursor: pointer;
-                border-top: 1px solid #edf0f3;
+                border-top: 1px solid var(--color-divider);
                 display: flex;
                 flex-direction: column;
                 gap: 0.1rem;
             }
 
             .search-result:hover {
-                background: #eef4fa;
+                background: var(--color-brand-tint);
             }
 
             .search-result-primary {
-                color: #2d3748;
+                color: var(--color-text);
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
             }
 
             .search-result-meta {
-                color: #718096;
-                font-size: 0.7rem;
+                color: var(--color-text-muted);
+                font-size: var(--font-2xs);
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
@@ -264,79 +453,206 @@
 
             .search-empty {
                 padding: 0.5rem;
-                font-size: 0.75rem;
-                color: #9ca3af;
+                font-size: var(--font-xs);
+                color: var(--color-text-subtle);
                 text-align: center;
             }
 
+            /* === Status bar (toast) === */
             .message {
-                padding: 0.75rem 1rem;
-                margin: 0.5rem 2rem;
-                border-radius: 4px;
-                display: none;
+                position: fixed;
+                bottom: 14px;
+                right: 10px;
+                padding: 0.25rem 0.6rem;
+                border-radius: var(--radius-sm);
+                font-size: var(--font-sm);
+                line-height: 1.4;
+                color: #fff;
+                background-color: rgba(45, 55, 72, 0.85);
+                box-shadow: var(--shadow-sm);
+                z-index: 1000;
+                max-width: calc(100% - 16px);
+                pointer-events: none;
+                opacity: 0;
+                visibility: hidden;
+                transform: translateY(6px);
+                transition:
+                    opacity 0.2s ease,
+                    transform 0.2s ease,
+                    visibility 0.2s;
             }
 
             .message.error {
-                background-color: #fed7d7;
-                color: #c53030;
-                border-left: 4px solid #c53030;
+                background-color: rgba(197, 48, 48, 0.9);
             }
 
             .message.success {
-                background-color: #c6f6d5;
-                color: #276749;
-                border-left: 4px solid #276749;
+                background-color: rgba(39, 103, 73, 0.9);
             }
 
             .message.warning {
-                background-color: #feebc8;
-                color: #c05621;
-                border-left: 4px solid #c05621;
+                background-color: rgba(192, 86, 33, 0.9);
             }
 
             .message.show {
-                display: block;
+                opacity: 1;
+                visibility: visible;
+                transform: translateY(0);
             }
 
-            /* Style pour les popups */
+            /* === Popups === */
+            /* MapLibre popup container */
+            .maplibregl-popup-content {
+                padding: 0.85rem 1rem 0.75rem;
+                border-radius: var(--radius-md);
+                box-shadow: var(--shadow-lg);
+                font-family: var(--font-stack);
+                font-size: var(--font-sm);
+                color: var(--color-text);
+            }
+
+            .maplibregl-popup-close-button {
+                position: absolute;
+                top: 4px;
+                right: 4px;
+                width: 28px;
+                height: 28px;
+                padding: 0;
+                font-size: 20px;
+                line-height: 1;
+                color: var(--color-text-muted);
+                background-color: transparent;
+                border: none;
+                border-radius: var(--radius-sm);
+                cursor: pointer;
+                transition:
+                    background-color 0.15s,
+                    color 0.15s;
+            }
+
+            .maplibregl-popup-close-button:hover,
+            .maplibregl-popup-close-button:focus {
+                background-color: var(--color-surface-alt);
+                color: var(--color-text);
+            }
+
             .popup-content {
                 max-height: 70vh;
                 overflow-y: auto;
-                min-width: min(300px, 80vw);
+                min-width: min(280px, 80vw);
+                padding-right: 1.75rem;
+                font-size: var(--font-sm);
+                color: var(--color-text);
             }
 
             .popup-content h3 {
-                margin: 0 0 0.5rem 0;
-                font-size: 1.1rem;
-                color: #2d3748;
+                margin: 0 0 0.6rem 0;
+                padding-bottom: 0.4rem;
+                border-bottom: 1px solid var(--color-border);
+                font-size: var(--font-md);
+                font-weight: 600;
+                color: var(--color-text);
+                letter-spacing: 0.01em;
             }
 
             .popup-content table {
                 width: 100%;
                 border-collapse: collapse;
-                margin-bottom: 1rem;
+                margin-bottom: 0.75rem;
+                font-size: var(--font-sm);
+            }
+
+            .popup-content table:last-child {
+                margin-bottom: 0;
             }
 
             .popup-content th,
             .popup-content td {
-                padding: 0.25rem 0.5rem;
+                padding: 0.3rem 0.5rem;
                 text-align: left;
-                border-bottom: 1px solid #eee;
+                vertical-align: top;
+                border-bottom: 1px solid var(--color-border);
+            }
+
+            .popup-content tr:last-child th,
+            .popup-content tr:last-child td {
+                border-bottom: none;
             }
 
             .popup-content th {
-                font-weight: 600;
-                background-color: #f7fafc;
+                font-weight: 500;
+                color: var(--color-text-muted);
+                background-color: transparent;
+                width: 40%;
+                white-space: nowrap;
+            }
+
+            .popup-content td {
+                color: var(--color-text);
+                word-break: break-word;
             }
 
             .popup-chart {
                 margin-top: 1rem;
                 padding-top: 1rem;
-                border-top: 1px solid #e2e8f0;
+                border-top: 1px solid var(--color-border);
             }
 
             .popup-chart canvas {
                 max-height: 250px;
+            }
+
+            .popup-chart-toolbar {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 0.5rem;
+            }
+
+            .chart-toggle-btn {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.25rem;
+                font-size: var(--font-xs);
+                padding: 0.25rem 0.5rem;
+                background-color: var(--color-surface-soft);
+                color: var(--color-text-secondary);
+                border: 1px solid var(--color-border-strong);
+                border-radius: var(--radius-sm);
+                cursor: pointer;
+                transition: background-color 0.15s;
+            }
+
+            .chart-toggle-btn:hover {
+                background-color: var(--color-border);
+            }
+
+            .popup-chart-table {
+                display: none;
+            }
+
+            .chart-data-table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: var(--font-sm);
+            }
+
+            .chart-data-table caption {
+                font-weight: 600;
+                text-align: left;
+                margin-bottom: 0.5rem;
+            }
+
+            .chart-data-table th,
+            .chart-data-table td {
+                border: 1px solid var(--color-border-strong);
+                padding: 0.25rem 0.5rem;
+                text-align: left;
+            }
+
+            .chart-data-table th {
+                background-color: var(--color-surface-alt);
+                font-weight: 600;
             }
 
             .popup-section {
@@ -347,7 +663,7 @@
                 margin-bottom: 0;
             }
 
-            /* Modal pour renommer */
+            /* === Modal === */
             .modal {
                 display: none;
                 position: fixed;
@@ -366,24 +682,80 @@
             }
 
             .modal-content {
-                background-color: white;
+                background-color: var(--color-surface);
                 padding: 2rem;
-                border-radius: 8px;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                border-radius: var(--radius-lg);
+                box-shadow: var(--shadow-lg);
                 min-width: 400px;
             }
 
             .modal-content h2 {
                 margin-bottom: 1rem;
-                font-size: 1.25rem;
+                font-size: var(--font-xl);
+                font-weight: 600;
+                color: var(--color-text);
             }
 
             .modal-content input {
                 width: 100%;
                 padding: 0.5rem;
                 margin-bottom: 1rem;
-                border: 1px solid #ccc;
-                border-radius: 4px;
+                border: 1px solid var(--color-border-strong);
+                border-radius: var(--radius-sm);
+                font-size: var(--font-sm);
+                color: var(--color-text);
+                background-color: var(--color-surface);
+            }
+
+            .form-select {
+                width: 100%;
+                padding: 0.5rem;
+                border: 1px solid var(--color-border-strong);
+                border-radius: var(--radius-sm);
+                font-size: var(--font-sm);
+                color: var(--color-text);
+                background-color: var(--color-surface);
+            }
+
+            .modal-hint {
+                font-size: var(--font-xs);
+                color: var(--color-text-muted);
+                margin: -0.25rem 0 1rem 0;
+                min-height: 1em;
+                line-height: 1.4;
+            }
+
+            .field-label {
+                display: block;
+                margin-bottom: 0.4rem;
+                font-weight: 600;
+                font-size: var(--font-sm);
+                color: var(--color-text-secondary);
+            }
+
+            .field-group {
+                margin-bottom: 1rem;
+            }
+
+            .color-picker-row {
+                display: flex;
+                gap: 0.5rem;
+                align-items: center;
+            }
+
+            .color-picker-row input.color-swatch {
+                width: 60px;
+                min-width: 60px;
+                height: 40px;
+                padding: 2px;
+                margin-bottom: 0;
+                cursor: pointer;
+            }
+
+            .color-picker-row input.color-hex {
+                flex: 1;
+                margin-bottom: 0;
+                font-family: var(--font-mono);
             }
 
             .modal-buttons {
@@ -392,18 +764,43 @@
                 justify-content: flex-end;
             }
 
+            .modal-buttons button {
+                padding: 0.45rem 0.9rem;
+                font-size: var(--font-sm);
+                font-weight: 500;
+                border-radius: var(--radius-sm);
+                border: 1px solid var(--color-border-strong);
+                background-color: var(--color-text);
+                color: var(--color-surface);
+                cursor: pointer;
+                transition: background-color 0.15s;
+            }
+
+            .modal-buttons button:hover {
+                background-color: #1a202c;
+            }
+
+            .modal-buttons button.secondary {
+                background-color: var(--color-surface);
+                color: var(--color-text);
+            }
+
+            .modal-buttons button.secondary:hover {
+                background-color: var(--color-surface-soft);
+            }
+
             .layer-edit-btn {
-                font-size: 0.8rem;
+                font-size: var(--font-sm);
                 padding: 0.25rem 0.5rem;
                 margin-left: 0.5rem;
-                background-color: #666;
+                background-color: var(--color-text-secondary);
             }
 
             .layer-edit-btn:hover {
-                background-color: #444;
+                background-color: var(--color-text);
             }
 
-            /* Accessibilité */
+            /* === Accessibility === */
             .sr-only {
                 position: absolute;
                 width: 1px;
@@ -427,9 +824,8 @@
                 white-space: normal;
             }
 
-            /* Focus visible pour navigation clavier */
             *:focus-visible {
-                outline: 3px solid #2563eb;
+                outline: 3px solid var(--color-brand);
                 outline-offset: 2px;
             }
 
@@ -517,23 +913,34 @@
                 border-bottom-color: #000 !important;
             }
 
+            body.high-contrast .maplibregl-popup-close-button {
+                background-color: #000 !important;
+                color: #fff !important;
+                border: 2px solid #fff !important;
+            }
+
+            body.high-contrast .maplibregl-popup-close-button:hover,
+            body.high-contrast .maplibregl-popup-close-button:focus {
+                background-color: #333 !important;
+            }
+
             body.high-contrast .maplibregl-ctrl-attrib {
                 background-color: #000 !important;
                 color: #fff !important;
                 border: 1px solid #fff !important;
             }
 
-            /* Panneau d'accessibilité */
+            /* === Accessibility panel === */
             #a11yPanel {
                 display: none;
                 position: fixed;
                 top: 64px;
                 right: 16px;
                 z-index: 1999;
-                background-color: white;
-                border-radius: 8px;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-                border: 1px solid #d1d5db;
+                background-color: var(--color-surface);
+                border-radius: var(--radius-lg);
+                box-shadow: var(--shadow-lg);
+                border: 1px solid var(--color-border-strong);
                 width: 320px;
                 max-height: 80vh;
                 overflow-y: auto;
@@ -545,7 +952,7 @@
 
             .a11y-section {
                 padding: 1rem;
-                border-bottom: 1px solid #e5e7eb;
+                border-bottom: 1px solid var(--color-border);
             }
 
             .a11y-section:last-child {
@@ -554,9 +961,9 @@
 
             .a11y-section h3 {
                 margin: 0 0 0.75rem 0;
-                font-size: 0.875rem;
+                font-size: var(--font-md);
                 font-weight: 600;
-                color: #374151;
+                color: var(--color-text);
             }
 
             .a11y-option {
@@ -567,12 +974,36 @@
             }
 
             .a11y-option label {
-                font-size: 0.8rem;
-                color: #4b5563;
+                font-size: var(--font-sm);
+                color: var(--color-text-secondary);
                 cursor: pointer;
             }
 
-            /* Tailles de texte */
+            .a11y-select {
+                padding: 0.25rem 0.4rem;
+                border: 1px solid var(--color-border-strong);
+                border-radius: var(--radius-sm);
+                font-size: var(--font-xs);
+                background-color: var(--color-surface);
+                color: var(--color-text);
+            }
+
+            .a11y-hint {
+                font-size: var(--font-xs);
+                color: var(--color-text-muted);
+                margin: 0;
+            }
+
+            .a11y-shortcuts {
+                font-size: var(--font-xs);
+                color: var(--color-text-secondary);
+            }
+
+            .a11y-shortcuts p {
+                margin: 0.25rem 0;
+            }
+
+            /* === Text size variants === */
             body.text-large,
             body.text-large * {
                 font-size: 1.15rem !important;
@@ -583,13 +1014,12 @@
                 font-size: 1.35rem !important;
             }
 
-            /* Exception pour les icônes */
             body.text-large .iconify,
             body.text-xlarge .iconify {
                 font-size: 20px !important;
             }
 
-            /* Réduction des animations */
+            /* Reduce motion */
             body.reduce-motion,
             body.reduce-motion * {
                 animation-duration: 0.01ms !important;
@@ -597,10 +1027,10 @@
                 transition-duration: 0.01ms !important;
             }
 
-            /* Drag handle */
+            /* === Drag handle === */
             .drag-handle {
                 cursor: grab;
-                color: #9ca3af;
+                color: var(--color-text-subtle);
                 padding: 0 2px 0 0;
                 display: flex;
                 align-items: center;
@@ -616,33 +1046,13 @@
             }
 
             .layer-item.drag-over {
-                border-top: 2px solid #2563eb;
+                border-top: 2px solid var(--color-brand);
                 margin-top: -2px;
             }
 
-            /* Bouton œil */
-            .eye-btn {
-                padding: 0.2rem 0.4rem;
-                font-size: 0.7rem;
-                background-color: white;
-                color: #4a5568;
-                border: 1px solid #d1d5db;
-                border-radius: 3px;
-                cursor: pointer;
-                transition: background-color 0.15s;
-            }
-
-            .eye-btn:hover {
-                background-color: #f9fafb;
-            }
-
-            .eye-btn.hidden-layer {
-                color: #9ca3af;
-            }
-
-            /* MapLibre controls positioning - offset to avoid overlapping with feuillage buttons */
+            /* === MapLibre controls positioning === */
             .maplibregl-ctrl-top-right {
-                top: 120px; /* Below the menu and accessibility buttons */
+                top: 65px;
                 right: 10px;
             }
 
@@ -713,9 +1123,7 @@
         >
             <div class="a11y-section">
                 <h3 id="a11yPanelTitle">Accessibilité</h3>
-                <p style="font-size: 0.75rem; color: #6b7280; margin: 0">
-                    Raccourci clavier: Alt+A
-                </p>
+                <p class="a11y-hint">Raccourci clavier: Alt+A</p>
             </div>
 
             <div class="a11y-section">
@@ -737,12 +1145,12 @@
                 </p>
 
                 <div class="a11y-option">
-                    <label>Taille du texte</label>
+                    <label for="textSizeSelect">Taille du texte</label>
                     <select
                         id="textSizeSelect"
+                        class="a11y-select"
                         onchange="changeTextSize(this.value)"
                         aria-label="Sélectionner la taille du texte"
-                        style="padding: 0.25rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.75rem"
                     >
                         <option value="normal">Normal</option>
                         <option value="large">Grand</option>
@@ -762,13 +1170,13 @@
 
             <div class="a11y-section">
                 <h3>Navigation</h3>
-                <div style="font-size: 0.75rem; color: #4b5563">
-                    <p style="margin: 0.25rem 0"><strong>Tab</strong> : Navigation entre éléments</p>
-                    <p style="margin: 0.25rem 0"><strong>Entrée/Espace</strong> : Activer</p>
-                    <p style="margin: 0.25rem 0"><strong>Échap</strong> : Fermer les menus</p>
-                    <p style="margin: 0.25rem 0"><strong>Alt+A</strong> : Menu accessibilité</p>
-                    <p style="margin: 0.25rem 0"><strong>Alt+L</strong> : Liste des couches</p>
-                    <p style="margin: 0.25rem 0"><strong>Alt+F</strong> : Liste des entités</p>
+                <div class="a11y-shortcuts">
+                    <p><strong>Tab</strong> : Navigation entre éléments</p>
+                    <p><strong>Entrée/Espace</strong> : Activer</p>
+                    <p><strong>Échap</strong> : Fermer les menus</p>
+                    <p><strong>Alt+A</strong> : Menu accessibilité</p>
+                    <p><strong>Alt+L</strong> : Liste des couches</p>
+                    <p><strong>Alt+F</strong> : Liste des entités</p>
                 </div>
             </div>
 
@@ -940,97 +1348,11 @@
                 <div
                     class="layer-panel-content"
                     role="region"
-                    aria-label="Liste des couches et fonds de carte"
+                    aria-label="Liste des couches et fond de carte"
                 >
-                    <!-- Section des fonds de carte -->
-                    <div
-                        style="
-                            padding: 0.4rem 0.5rem;
-                            border-bottom: 1px solid #e2e8f0;
-                            margin-bottom: 0.4rem;
-                        "
-                    >
-                        <div
-                            style="
-                                font-weight: 600;
-                                margin-bottom: 0.4rem;
-                                font-size: 0.75rem;
-                                color: #6b7280;
-                            "
-                        >
-                            FOND DE CARTE
-                        </div>
-                        <div id="basemapSelector">
-                            <label
-                                style="
-                                    display: flex;
-                                    align-items: center;
-                                    padding: 0.2rem 0;
-                                    cursor: pointer;
-                                    font-size: 0.8rem;
-                                "
-                            >
-                                <input
-                                    type="radio"
-                                    name="basemap"
-                                    value="osm"
-                                    checked
-                                    onchange="switchBasemap('osm')"
-                                    style="margin-right: 0.4rem"
-                                />
-                                <span>OpenStreetMap</span>
-                            </label>
-                            <label
-                                style="
-                                    display: flex;
-                                    align-items: center;
-                                    padding: 0.2rem 0;
-                                    cursor: pointer;
-                                    font-size: 0.8rem;
-                                "
-                            >
-                                <input
-                                    type="radio"
-                                    name="basemap"
-                                    value="topo"
-                                    onchange="switchBasemap('topo')"
-                                    style="margin-right: 0.4rem"
-                                />
-                                <span>OpenTopoMap</span>
-                            </label>
-                            <label
-                                style="
-                                    display: flex;
-                                    align-items: center;
-                                    padding: 0.2rem 0;
-                                    cursor: pointer;
-                                    font-size: 0.8rem;
-                                "
-                            >
-                                <input
-                                    type="radio"
-                                    name="basemap"
-                                    value="positron"
-                                    onchange="switchBasemap('positron')"
-                                    style="margin-right: 0.4rem"
-                                />
-                                <span>CartoDB Positron</span>
-                            </label>
-                        </div>
-                    </div>
-
                     <!-- Barre de recherche unifiée -->
                     <div class="search-box">
-                        <div
-                            style="
-                                font-weight: 600;
-                                margin-bottom: 0.4rem;
-                                font-size: 0.75rem;
-                                color: #6b7280;
-                            "
-                        >
-                            RECHERCHE
-                        </div>
+                        <div class="section-label">Recherche</div>
                         <input
                             type="search"
                             id="searchInput"
@@ -1042,27 +1364,58 @@
                     </div>
 
                     <!-- Section des couches de données -->
-                    <div style="padding: 0 0.5rem">
-                        <div
-                            style="
-                                font-weight: 600;
-                                margin-bottom: 0.4rem;
-                                font-size: 0.75rem;
-                                color: #6b7280;
-                            "
-                        >
-                            COUCHES
-                        </div>
+                    <div class="layers-section">
+                        <div class="section-label">Couches</div>
                         <div id="layerList">
-                            <div
-                                class="empty-state"
-                                style="padding: 1rem; font-size: 0.8rem"
-                            >
+                            <div class="empty-state">
                                 Aucune couche chargée.
                             </div>
                         </div>
+
+                        <!-- Couche fond de carte (verrouillée, toujours en arrière-plan) -->
+                        <div
+                            class="basemap-row"
+                            role="group"
+                            aria-label="Fond de carte"
+                        >
+                            <div class="basemap-row-info">
+                                <span
+                                    class="iconify basemap-row-icon"
+                                    data-icon="mdi:map-outline"
+                                    aria-hidden="true"
+                                ></span>
+                                <div class="basemap-row-text">
+                                    <div class="basemap-row-label">Fond de carte</div>
+                                    <div
+                                        id="basemapRowName"
+                                        class="basemap-row-name"
+                                    >OpenStreetMap</div>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                class="basemap-row-edit"
+                                onclick="openBasemapDialog()"
+                                title="Changer le fond de carte"
+                                aria-label="Changer le fond de carte"
+                            >
+                                <span
+                                    class="iconify"
+                                    data-icon="mdi:pencil"
+                                    style="font-size: 14px"
+                                    aria-hidden="true"
+                                ></span>
+                            </button>
+                        </div>
                     </div>
                 </div>
+                <div
+                    class="panel-resize-handle"
+                    role="separator"
+                    aria-orientation="vertical"
+                    aria-label="Redimensionner le panneau (double-clic pour réinitialiser)"
+                    title="Glisser pour redimensionner • Double-clic pour réinitialiser"
+                ></div>
             </nav>
 
             <!-- Bouton pour afficher/masquer le panneau (bas gauche) -->
@@ -1096,28 +1449,28 @@
         <div id="renameModal" class="modal">
             <div class="modal-content">
                 <h2>Éditer la couche</h2>
-                <div style="margin-bottom: 1rem;">
-                    <label for="renameInput" style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem;">Nom de la couche</label>
+                <div class="field-group">
+                    <label for="renameInput" class="field-label">Nom de la couche</label>
                     <input
                         type="text"
                         id="renameInput"
                         placeholder="Nouveau nom..."
                     />
                 </div>
-                <div style="margin-bottom: 1rem;">
-                    <label for="colorInput" style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem;">Couleur</label>
-                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <div class="field-group">
+                    <label for="colorInput" class="field-label">Couleur</label>
+                    <div class="color-picker-row">
                         <input
                             type="color"
                             id="colorInput"
-                            style="width: 60px; height: 40px; border: 1px solid #ccc; border-radius: 4px; cursor: pointer;"
+                            class="color-swatch"
                         />
                         <input
                             type="text"
                             id="colorInputText"
+                            class="color-hex"
                             placeholder="#0072B2"
                             maxlength="7"
-                            style="flex: 1; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-family: monospace;"
                         />
                     </div>
                 </div>
@@ -1130,6 +1483,33 @@
             </div>
         </div>
 
+        <!-- Modal pour choisir le fond de carte -->
+        <div id="basemapModal" class="modal">
+            <div class="modal-content">
+                <h2>Fond de carte</h2>
+                <div class="field-group">
+                    <label for="basemapSelect" class="field-label">Choisir un fond</label>
+                    <select id="basemapSelect" class="form-select">
+                        <option value="osm">OpenStreetMap</option>
+                        <option value="topo">OpenTopoMap</option>
+                        <option value="positron">CartoDB Positron</option>
+                        <option value="carto-dark">CartoDB Dark Matter</option>
+                        <option value="satellite">Satellite (Esri)</option>
+                        <option value="esri-topo">Esri Topo</option>
+                        <option value="stamen-toner">Stamen Toner</option>
+                        <option value="stamen-terrain">Stamen Terrain</option>
+                    </select>
+                </div>
+                <p id="basemapAttribution" class="modal-hint"></p>
+                <div class="modal-buttons">
+                    <button class="secondary" onclick="closeBasemapDialog()">
+                        Annuler
+                    </button>
+                    <button onclick="confirmBasemap()">Valider</button>
+                </div>
+            </div>
+        </div>
+
         <!-- MapLibre GL JS -->
         <script
             src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"
@@ -1137,9 +1517,22 @@
         ></script>
 
         <script>
+            // Restaurer la largeur du panneau avant de créer la carte pour
+            // que le canvas MapLibre soit dimensionné correctement dès le départ.
+            (function restorePanelWidth() {
+                const saved = localStorage.getItem("feuillage-panel-width");
+                if (saved && /^\d+(\.\d+)?px$/.test(saved.trim())) {
+                    document.documentElement.style.setProperty(
+                        "--panel-width",
+                        saved.trim()
+                    );
+                }
+            })();
+
             // Configuration de la carte MapLibre
             const map = new maplibregl.Map({
                 container: "map",
+                attributionControl: false,
                 style: {
                     version: 8,
                     sources: {
@@ -1207,6 +1600,66 @@
                     attribution: "© OpenStreetMap contributors, © CARTO",
                     maxzoom: 19,
                 },
+                "carto-dark": {
+                    type: "raster",
+                    tiles: [
+                        "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+                        "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+                        "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+                        "https://d.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+                    ],
+                    tileSize: 256,
+                    attribution: "© OpenStreetMap contributors, © CARTO",
+                    maxzoom: 19,
+                },
+                satellite: {
+                    type: "raster",
+                    tiles: [
+                        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+                    ],
+                    tileSize: 256,
+                    attribution: "Imagery © Esri, Maxar, Earthstar Geographics, GIS User Community",
+                    maxzoom: 19,
+                },
+                "esri-topo": {
+                    type: "raster",
+                    tiles: [
+                        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
+                    ],
+                    tileSize: 256,
+                    attribution: "© Esri — National Geographic, DeLorme, NAVTEQ",
+                    maxzoom: 19,
+                },
+                "stamen-toner": {
+                    type: "raster",
+                    tiles: [
+                        "https://tiles.stadiamaps.com/tiles/stamen_toner/{z}/{x}/{y}.png",
+                    ],
+                    tileSize: 256,
+                    attribution: "© Stadia Maps © Stamen Design © OpenMapTiles © OpenStreetMap contributors",
+                    maxzoom: 18,
+                },
+                "stamen-terrain": {
+                    type: "raster",
+                    tiles: [
+                        "https://tiles.stadiamaps.com/tiles/stamen_terrain/{z}/{x}/{y}.png",
+                    ],
+                    tileSize: 256,
+                    attribution: "© Stadia Maps © Stamen Design © OpenMapTiles © OpenStreetMap contributors",
+                    maxzoom: 18,
+                },
+            };
+
+            // Métadonnées d'affichage pour chaque fond de carte
+            const basemapLabels = {
+                osm: "OpenStreetMap",
+                topo: "OpenTopoMap",
+                positron: "CartoDB Positron",
+                "carto-dark": "CartoDB Dark Matter",
+                satellite: "Satellite (Esri)",
+                "esri-topo": "Esri Topo",
+                "stamen-toner": "Stamen Toner",
+                "stamen-terrain": "Stamen Terrain",
             };
 
             // Fond de carte actuel
@@ -1216,7 +1669,11 @@
              * Change le fond de carte
              */
             function switchBasemap(type) {
-                if (currentBasemap === type) return;
+                if (!basemapSources[type]) return;
+                if (currentBasemap === type) {
+                    updateBasemapRow();
+                    return;
+                }
 
                 // Vérifier que la carte est chargée
                 if (!map.isStyleLoaded()) {
@@ -1245,6 +1702,17 @@
                     // Ajouter sous toutes les autres couches
                     getFirstLayerId()
                 );
+                updateBasemapRow();
+            }
+
+            /**
+             * Met à jour la ligne du fond de carte dans le panneau
+             */
+            function updateBasemapRow() {
+                const nameEl = document.getElementById("basemapRowName");
+                if (nameEl) {
+                    nameEl.textContent = basemapLabels[currentBasemap] || currentBasemap;
+                }
             }
 
             /**
@@ -1252,8 +1720,9 @@
              */
             function getFirstLayerId() {
                 const layers = map.getStyle().layers;
+                const basemapIds = Object.keys(basemapSources);
                 for (const layer of layers) {
-                    if (!["osm", "topo", "positron"].includes(layer.id)) {
+                    if (!basemapIds.includes(layer.id)) {
                         return layer.id;
                     }
                 }
@@ -1396,10 +1865,11 @@
                             const tableId = `table-${chartId}`;
                             // Canvas avec dimensions fixes (pas de responsive pour éviter bugs)
                             html += `<div class="popup-chart">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                <div class="popup-chart-toolbar">
                                     <button
+                                        type="button"
+                                        class="chart-toggle-btn"
                                         onclick="toggleChartTable('${chartId}', '${tableId}')"
-                                        style="font-size: 0.7rem; padding: 0.25rem 0.5rem; background: #e5e7eb; border: 1px solid #d1d5db; border-radius: 3px; cursor: pointer;"
                                         aria-label="Basculer entre graphique et tableau"
                                     >
                                         <span class="iconify" data-icon="mdi:table" style="font-size: 12px;"></span>
@@ -1407,7 +1877,7 @@
                                     </button>
                                 </div>
                                 <canvas id="${chartId}" width="350" height="250" data-chart-config='${JSON.stringify(section)}' style="display: block;"></canvas>
-                                <div id="${tableId}" style="display: none;" role="table" aria-label="Données du graphique sous forme de tableau"></div>
+                                <div id="${tableId}" class="popup-chart-table" role="table" aria-label="Données du graphique sous forme de tableau"></div>
                             </div>`;
                         }
 
@@ -2116,11 +2586,6 @@
                     // Changer le fond de carte si spécifié
                     if (config.view.basemap) {
                         switchBasemap(config.view.basemap);
-                        // Mettre à jour le radio button
-                        const radio = document.querySelector(
-                            `input[name="basemap"][value="${config.view.basemap}"]`,
-                        );
-                        if (radio) radio.checked = true;
                     }
 
                     // Charger les couches
@@ -2520,8 +2985,9 @@
                 const allLayerIds = loadedLayers.flatMap((l) => l.layerIds);
 
                 // Obtenir toutes les couches non-basemap
+                const basemapIds = Object.keys(basemapSources);
                 const nonBasemapLayers = map.getStyle().layers.filter(
-                    (layer) => !["osm", "topo", "positron"].includes(layer.id)
+                    (layer) => !basemapIds.includes(layer.id)
                 );
 
                 // Reconstruire l'ordre
@@ -2669,6 +3135,45 @@
                 document.getElementById("renameModal").classList.remove("show");
                 currentRenameLayer = null;
                 currentRenameIndex = null;
+            }
+
+            /**
+             * Ouvre la boîte de dialogue de sélection du fond de carte
+             */
+            function openBasemapDialog() {
+                const select = document.getElementById("basemapSelect");
+                select.value = currentBasemap;
+                updateBasemapAttributionHint();
+                document.getElementById("basemapModal").classList.add("show");
+                select.focus();
+            }
+
+            function closeBasemapDialog() {
+                document.getElementById("basemapModal").classList.remove("show");
+            }
+
+            function confirmBasemap() {
+                const select = document.getElementById("basemapSelect");
+                const choice = select.value;
+                closeBasemapDialog();
+                if (choice !== currentBasemap) {
+                    switchBasemap(choice);
+                    showMessage(
+                        `Fond de carte: ${basemapLabels[choice] || choice}`,
+                        "success"
+                    );
+                }
+            }
+
+            /**
+             * Met à jour l'aide affichée sous le sélecteur (attribution)
+             */
+            function updateBasemapAttributionHint() {
+                const select = document.getElementById("basemapSelect");
+                const hint = document.getElementById("basemapAttribution");
+                if (!select || !hint) return;
+                const src = basemapSources[select.value];
+                hint.textContent = src && src.attribution ? src.attribution : "";
             }
 
             /**
@@ -2841,6 +3346,9 @@
                     document.body.classList.add("text-xlarge");
                 }
                 localStorage.setItem("textSize", size);
+                if (typeof map !== "undefined" && map && map.resize) {
+                    requestAnimationFrame(() => map.resize());
+                }
                 announceToScreenReader(`Taille du texte: ${size === "normal" ? "normale" : size === "large" ? "grande" : "très grande"}`);
             }
 
@@ -3004,8 +3512,14 @@
                     document.getElementById("menuToggle").setAttribute("aria-expanded", "false");
                     document.getElementById("a11yToggle").setAttribute("aria-expanded", "false");
                     closeRenameModal();
+                    closeBasemapDialog();
                 }
             });
+
+            // Live-update de l'attribution lorsqu'on change la sélection
+            document
+                .getElementById("basemapSelect")
+                .addEventListener("change", updateBasemapAttributionHint);
 
             /**
              * Bascule entre graphique et tableau
@@ -3032,18 +3546,12 @@
                 const table = document.getElementById(tableId);
                 if (!table) return;
 
-                let html = `<table style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
-                    <caption style="font-weight: 600; text-align: left; margin-bottom: 0.5rem;">
-                        ${options?.title || "Données"}
-                    </caption>
+                let html = `<table class="chart-data-table">
+                    <caption>${options?.title || "Données"}</caption>
                     <thead>
                         <tr>
-                            <th style="border: 1px solid #d1d5db; padding: 0.25rem; background: #f3f4f6;">
-                                ${options?.xlabel || "Label"}
-                            </th>
-                            <th style="border: 1px solid #d1d5db; padding: 0.25rem; background: #f3f4f6;">
-                                ${options?.ylabel || "Valeur"}
-                            </th>
+                            <th>${options?.xlabel || "Label"}</th>
+                            <th>${options?.ylabel || "Valeur"}</th>
                         </tr>
                     </thead>
                     <tbody>`;
@@ -3053,8 +3561,8 @@
 
                 labels.forEach((label, index) => {
                     html += `<tr>
-                        <td style="border: 1px solid #d1d5db; padding: 0.25rem;">${label}</td>
-                        <td style="border: 1px solid #d1d5db; padding: 0.25rem;">${values[index] || "N/A"}</td>
+                        <td>${label}</td>
+                        <td>${values[index] || "N/A"}</td>
                     </tr>`;
                 });
 
@@ -3064,6 +3572,94 @@
 
             // Restaurer les préférences au chargement
             restoreA11yPreferences();
+
+            /**
+             * Permet à l'utilisateur de redimensionner le panneau latéral
+             * en glissant la bordure droite. Double-clic pour réinitialiser.
+             */
+            (function setupPanelResize() {
+                const handle = document.querySelector(".panel-resize-handle");
+                const panel = document.getElementById("layerPanel");
+                const root = document.documentElement;
+                if (!handle || !panel) return;
+
+                const MIN_WIDTH = 200;
+                const MAX_WIDTH = 600;
+                let isResizing = false;
+                let rafPending = false;
+
+                function applyWidth(px) {
+                    const clamped = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, px));
+                    root.style.setProperty("--panel-width", clamped + "px");
+                    if (rafPending) return;
+                    rafPending = true;
+                    requestAnimationFrame(() => {
+                        rafPending = false;
+                        if (typeof map !== "undefined" && map && map.resize) {
+                            map.resize();
+                        }
+                    });
+                }
+
+                function startResize(e) {
+                    if (panel.classList.contains("collapsed")) return;
+                    isResizing = true;
+                    panel.classList.add("resizing");
+                    handle.classList.add("resizing");
+                    document.body.style.cursor = "col-resize";
+                    document.body.style.userSelect = "none";
+                    e.preventDefault();
+                }
+
+                function moveResize(e) {
+                    if (!isResizing) return;
+                    const x =
+                        e.clientX !== undefined
+                            ? e.clientX
+                            : e.touches && e.touches[0]
+                              ? e.touches[0].clientX
+                              : null;
+                    if (x === null) return;
+                    applyWidth(x);
+                }
+
+                function endResize() {
+                    if (!isResizing) return;
+                    isResizing = false;
+                    panel.classList.remove("resizing");
+                    handle.classList.remove("resizing");
+                    document.body.style.cursor = "";
+                    document.body.style.userSelect = "";
+                    const w = root.style.getPropertyValue("--panel-width").trim();
+                    if (w) localStorage.setItem("feuillage-panel-width", w);
+                }
+
+                handle.addEventListener("mousedown", startResize);
+                handle.addEventListener("touchstart", startResize, { passive: false });
+                document.addEventListener("mousemove", moveResize);
+                document.addEventListener("touchmove", moveResize, { passive: false });
+                document.addEventListener("mouseup", endResize);
+                document.addEventListener("touchend", endResize);
+                document.addEventListener("touchcancel", endResize);
+
+                // Double-clic : réinitialiser à la valeur par défaut (qui suit
+                // la taille du texte via les variables CSS).
+                handle.addEventListener("dblclick", () => {
+                    root.style.removeProperty("--panel-width");
+                    localStorage.removeItem("feuillage-panel-width");
+                    if (typeof map !== "undefined" && map && map.resize) {
+                        requestAnimationFrame(() => map.resize());
+                    }
+                    announceToScreenReader("Largeur du panneau réinitialisée");
+                });
+
+                // Redimensionner la carte quand le panneau s'ouvre/se ferme.
+                panel.addEventListener("transitionend", (e) => {
+                    if (e.propertyName === "margin-left" && map && map.resize) {
+                        map.resize();
+                    }
+                });
+            })();
 
             // ===== FIN DES FONCTIONS D'ACCESSIBILITÉ =====
 
@@ -3122,10 +3718,6 @@
                         // Changer le fond de carte si spécifié
                         if (config.view.basemap) {
                             switchBasemap(config.view.basemap);
-                            const radio = document.querySelector(
-                                `input[name="basemap"][value="${config.view.basemap}"]`,
-                            );
-                            if (radio) radio.checked = true;
                         }
 
                         // Charger les couches
