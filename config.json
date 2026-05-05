@@ -1,35 +1,56 @@
 {
   "view": {
-    "name": "Bassins versants avec graphiques - Québec",
-    "description": "Exemple de vue avec bassins versants et données de débits",
+    "name": "RQH 2026 — Tronçons hydrographiques (Québec)",
+    "description": "Débits journaliers du portrait RQH avec popup chronique 1962-2026",
     "center": [46.85, -71.25],
-    "zoom": 11,
+    "zoom": 6,
     "basemap": "osm"
   },
   "layers": [
     {
-      "name": "Bassins versants (avec graphiques)",
-      "url": "./geojson/bassins_versants_avec_graphiques.geojson",
+      "name": "Régions hydrographiques",
+      "url": "./data/rqh/regions.geojson",
+      "visible": true,
+      "color": "#eeeeee"
+    },
+    {
+      "name": "Tronçons RQH",
+      "url": "./data/rqh/troncons.pmtiles",
+      "type": "pmtiles",
+      "source_layer": "troncons",
+      "geometry_type": "line",
       "visible": true,
       "color": "#0072B2",
-      "popup_template": "bassin_versant"
+      "popup_template": "troncon_rqh"
     }
   ],
   "popup_templates": {
-    "bassin_versant": {
-      "title": "{properties.nom}",
+    "troncon_rqh": {
+      "title": "Tronçon {properties.IDTRONCON}",
       "sections": [
         {
           "type": "properties",
-          "fields": ["superficie_ha", "municipalite", "annee"]
+          "fields": ["IDTRONCON"]
         },
         {
           "type": "chart",
-          "chart_type": "bar",
-          "data_field": "debits_mensuels",
+          "chart_type": "line",
+          "data_source": {
+            "type": "zarr",
+            "store_url": "https://huggingface.co/datasets/essip/rqh/resolve/main",
+            "value_array": "discharge",
+            "feature_dim": "troncon_id",
+            "feature_id_property": "IDTRONCON",
+            "time_array": "time",
+            "series": [
+              { "name": "q25", "role": "lower", "indexers": { "percentile": 25 } },
+              { "name": "q50", "role": "main",  "indexers": { "percentile": 50 } },
+              { "name": "q75", "role": "upper", "indexers": { "percentile": 75 } }
+            ]
+          },
           "options": {
-            "title": "Débits mensuels moyens",
-            "xlabel": "Mois",
+            "title": "Débit médian journalier (m³/s) — 1962-2026",
+            "xlabel": "Date",
             "ylabel": "Débit (m³/s)"
           }
         }
