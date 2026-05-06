@@ -43,9 +43,6 @@
         <!-- Turf.js for geospatial calculations -->
         <script src="https://unpkg.com/@turf/turf@7.1.0/turf.min.js"></script>
 
-        <!-- Tailwind CSS -->
-        <script src="https://cdn.tailwindcss.com"></script>
-
         <style>
             /* === Design tokens — Système de design gouvernemental du Québec === */
             :root {
@@ -170,7 +167,160 @@
                 font-size: var(--font-sm);
                 color: var(--color-text);
                 height: 100vh;
+                overflow: hidden;
                 background-color: var(--color-bg);
+            }
+
+            /* === Utilities minimales === */
+            .hidden {
+                display: none !important;
+            }
+
+            /* === Skip link (a11y) === */
+            .skip-link {
+                position: absolute;
+                left: -10000px;
+                top: auto;
+                width: 1px;
+                height: 1px;
+                overflow: hidden;
+            }
+            .skip-link:focus {
+                position: fixed;
+                top: 8px;
+                left: 8px;
+                width: auto;
+                height: auto;
+                padding: 0.5rem 1rem;
+                background-color: var(--color-brand);
+                color: var(--color-white);
+                border-radius: var(--radius-sm);
+                z-index: 3000;
+                text-decoration: none;
+                font-weight: 600;
+            }
+
+            /* === Boutons icônes flottants (menu hamburger, a11y) === */
+            .icon-btn-fixed {
+                position: fixed;
+                top: 16px;
+                z-index: 2000;
+                background-color: var(--color-surface);
+                color: var(--color-text);
+                border: 1px solid var(--color-border);
+                border-radius: var(--radius-md);
+                padding: 10px;
+                box-shadow: var(--shadow-md);
+                cursor: pointer;
+                transition: background-color 0.15s, box-shadow 0.15s;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .icon-btn-fixed:hover {
+                background-color: var(--color-gray-pale);
+            }
+            .icon-btn-fixed.menu-toggle { right: 16px; }
+            .icon-btn-fixed.a11y-toggle { right: 64px; }
+
+            /* === Menu déroulant (panneau hamburger) === */
+            .menu-panel {
+                position: fixed;
+                top: 64px;
+                right: 16px;
+                z-index: 1999;
+                width: 320px;
+                max-height: 80vh;
+                overflow-y: auto;
+                background-color: var(--color-surface);
+                border: 1px solid var(--color-border);
+                border-radius: var(--radius-lg);
+                box-shadow: var(--shadow-lg);
+            }
+            .menu-panel-body {
+                display: flex;
+                flex-direction: column;
+                gap: 0.85rem;
+                padding: 0.85rem;
+            }
+            .menu-section-label {
+                display: block;
+                margin-bottom: 0.4rem;
+                font-size: var(--font-xs);
+                font-weight: 600;
+                color: var(--color-text-secondary);
+            }
+            .menu-input-row {
+                display: flex;
+                gap: 0.4rem;
+            }
+            .menu-input {
+                flex: 1;
+                padding: 0.4rem 0.6rem;
+                font-family: var(--font-stack);
+                font-size: var(--font-xs);
+                color: var(--color-text);
+                background-color: var(--color-surface);
+                border: 1px solid var(--color-border-strong);
+                border-radius: var(--radius-sm);
+                transition: border-color 0.15s, box-shadow 0.15s;
+            }
+            .menu-input:focus {
+                outline: none;
+                border-color: var(--color-brand);
+                box-shadow: 0 0 0 3px var(--color-focus-ring);
+            }
+            .menu-stack {
+                display: flex;
+                flex-direction: column;
+                gap: 0.4rem;
+            }
+            .menu-divider {
+                height: 1px;
+                background-color: var(--color-border);
+            }
+
+            /* === Boutons SDGQ (réutilisables) === */
+            .btn {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.4rem;
+                padding: 0.45rem 0.85rem;
+                font-family: var(--font-stack);
+                font-size: var(--font-xs);
+                font-weight: 600;
+                line-height: 1.2;
+                white-space: nowrap;
+                cursor: pointer;
+                border: 1px solid transparent;
+                border-radius: var(--radius-sm);
+                transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+            }
+            .btn-block { width: 100%; }
+            .btn-primary {
+                background-color: var(--color-brand);
+                color: var(--color-white);
+                border-color: var(--color-brand);
+            }
+            .btn-primary:hover {
+                background-color: var(--color-brand-hover);
+                border-color: var(--color-brand-hover);
+            }
+            .btn-secondary {
+                background-color: var(--color-white);
+                color: var(--color-text);
+                border-color: var(--color-border-strong);
+            }
+            .btn-secondary:hover {
+                background-color: var(--color-gray-pale);
+            }
+            .btn-secondary.btn-danger {
+                color: var(--color-danger-dark);
+            }
+            .btn-secondary.btn-danger:hover {
+                background-color: var(--color-danger-pale);
+                border-color: var(--color-danger);
             }
 
             .map-container {
@@ -1166,7 +1316,7 @@
             }
         </style>
     </head>
-    <body class="overflow-hidden">
+    <body>
         <!-- Région ARIA live pour les annonces aux lecteurs d'écran -->
         <div
             id="ariaAnnouncer"
@@ -1177,42 +1327,31 @@
         ></div>
 
         <!-- Skip link pour navigation rapide -->
-        <a
-            href="#map"
-            class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[3000] focus:bg-blue-600 focus:text-white focus:px-4 focus:py-2 focus:rounded"
-        >
-            Aller à la carte
-        </a>
+        <a href="#map" class="skip-link">Aller à la carte</a>
 
         <!-- Menu hamburger en haut à droite -->
         <button
             id="menuToggle"
             onclick="toggleMenu()"
-            class="fixed top-4 right-4 z-[2000] bg-white hover:bg-gray-50 text-gray-800 p-2.5 rounded-md shadow-md border border-gray-200 transition-colors"
+            class="icon-btn-fixed menu-toggle"
             aria-label="Ouvrir le menu principal"
             aria-expanded="false"
             aria-controls="menuPanel"
         >
-            <span class="material-symbols-outlined"
-                style="font-size: 20px"
-                aria-hidden="true"
-            >menu</span>
+            <span class="material-symbols-outlined" aria-hidden="true">menu</span>
         </button>
 
         <!-- Bouton d'accessibilité (Alt+A) -->
         <button
             id="a11yToggle"
             onclick="toggleA11yMenu()"
-            class="fixed top-4 right-16 z-[2000] bg-white hover:bg-gray-50 text-gray-800 p-2.5 rounded-md shadow-md border border-gray-200 transition-colors"
+            class="icon-btn-fixed a11y-toggle"
             aria-label="Ouvrir le menu d'accessibilité"
             aria-expanded="false"
             aria-controls="a11yPanel"
             title="Accessibilité (Alt+A)"
         >
-            <span class="material-symbols-outlined"
-                style="font-size: 20px"
-                aria-hidden="true"
-            >settings</span>
+            <span class="material-symbols-outlined" aria-hidden="true">settings</span>
         </button>
 
         <!-- Panneau d'accessibilité -->
@@ -1284,13 +1423,14 @@
                 <h3>Alternatives textuelles</h3>
                 <button
                     onclick="showLayersSummary()"
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-xs font-medium transition-colors"
+                    class="btn btn-primary btn-block"
                 >
                     Résumé des couches (Alt+L)
                 </button>
                 <button
                     onclick="showFeaturesList()"
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-xs font-medium transition-colors mt-2"
+                    class="btn btn-primary btn-block"
+                    style="margin-top: 0.5rem"
                 >
                     Liste des entités (Alt+F)
                 </button>
@@ -1302,26 +1442,20 @@
             id="menuPanel"
             role="menu"
             aria-labelledby="menuToggle"
-            class="hidden fixed top-16 right-4 z-[1999] bg-white rounded-lg shadow-xl border border-gray-200 w-80 max-h-[80vh] overflow-y-auto"
+            class="menu-panel hidden"
         >
-            <div class="p-3 space-y-3">
+            <div class="menu-panel-body">
                 <!-- Section URL -->
                 <div>
-                    <label
-                        class="block text-xs font-medium text-gray-600 mb-1.5"
-                        >Charger depuis une URL</label
-                    >
-                    <div class="flex gap-1.5">
+                    <label class="menu-section-label">Charger depuis une URL</label>
+                    <div class="menu-input-row">
                         <input
                             type="text"
                             id="urlInput"
                             placeholder="URL d'une couche (.geojson ou .pmtiles)..."
-                            class="flex-1 px-2.5 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-gray-400"
+                            class="menu-input"
                         />
-                        <button
-                            onclick="loadFromURL()"
-                            class="bg-gray-800 hover:bg-gray-900 text-white px-3 py-1.5 rounded text-xs font-medium transition-colors whitespace-nowrap"
-                        >
+                        <button onclick="loadFromURL()" class="btn btn-primary">
                             Ajouter
                         </button>
                     </div>
@@ -1329,10 +1463,7 @@
 
                 <!-- Section Fichier local -->
                 <div>
-                    <label
-                        class="block text-xs font-medium text-gray-600 mb-1.5"
-                        >Charger un fichier local</label
-                    >
+                    <label class="menu-section-label">Charger un fichier local</label>
                     <input
                         type="file"
                         id="fileInput"
@@ -1342,21 +1473,16 @@
                     />
                     <button
                         onclick="document.getElementById('fileInput').click()"
-                        class="w-full bg-gray-800 hover:bg-gray-900 text-white px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
+                        class="btn btn-primary btn-block"
                     >
-                        <span class="material-symbols-outlined"
-                            style="font-size: 14px"
-                        >folder_open</span>
+                        <span class="material-symbols-outlined" style="font-size: 16px">folder_open</span>
                         Charger un GeoJSON local
                     </button>
                 </div>
 
                 <!-- Section Vue/Configuration -->
                 <div>
-                    <label
-                        class="block text-xs font-medium text-gray-600 mb-1.5"
-                        >Configuration</label
-                    >
+                    <label class="menu-section-label">Configuration</label>
                     <input
                         type="file"
                         id="viewConfigInput"
@@ -1364,58 +1490,34 @@
                         onchange="loadViewConfig(this)"
                         class="hidden"
                     />
-                    <div class="space-y-1.5">
+                    <div class="menu-stack">
                         <button
-                            onclick="
-                                document
-                                    .getElementById('viewConfigInput')
-                                    .click()
-                            "
-                            class="w-full bg-white hover:bg-gray-50 text-gray-800 border border-gray-300 px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
+                            onclick="document.getElementById('viewConfigInput').click()"
+                            class="btn btn-secondary btn-block"
                         >
-                            <span class="material-symbols-outlined"
-                                style="font-size: 14px"
-                            >dashboard</span>
+                            <span class="material-symbols-outlined" style="font-size: 16px">dashboard</span>
                             Charger config
                         </button>
-                        <button
-                            onclick="exportConfig()"
-                            class="w-full bg-white hover:bg-gray-50 text-gray-800 border border-gray-300 px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
-                        >
-                            <span class="material-symbols-outlined"
-                                style="font-size: 14px"
-                            >download</span>
+                        <button onclick="exportConfig()" class="btn btn-secondary btn-block">
+                            <span class="material-symbols-outlined" style="font-size: 16px">download</span>
                             Exporter config
                         </button>
                     </div>
                 </div>
 
                 <!-- Séparateur -->
-                <div class="border-t border-gray-200"></div>
+                <div class="menu-divider"></div>
 
                 <!-- Actions rapides -->
                 <div>
-                    <label
-                        class="block text-xs font-medium text-gray-600 mb-1.5"
-                        >Actions</label
-                    >
-                    <div class="space-y-1.5">
-                        <button
-                            onclick="loadExample()"
-                            class="w-full bg-white hover:bg-gray-50 text-gray-800 border border-gray-300 px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
-                        >
-                            <span class="material-symbols-outlined"
-                                style="font-size: 14px"
-                            >star</span>
+                    <label class="menu-section-label">Actions</label>
+                    <div class="menu-stack">
+                        <button onclick="loadExample()" class="btn btn-secondary btn-block">
+                            <span class="material-symbols-outlined" style="font-size: 16px">star</span>
                             Exemple
                         </button>
-                        <button
-                            onclick="clearAll()"
-                            class="w-full bg-white hover:bg-gray-50 text-red-700 border border-gray-300 px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
-                        >
-                            <span class="material-symbols-outlined"
-                                style="font-size: 14px"
-                            >delete_sweep</span>
+                        <button onclick="clearAll()" class="btn btn-secondary btn-danger btn-block">
+                            <span class="material-symbols-outlined" style="font-size: 16px">delete_sweep</span>
                             Effacer tout
                         </button>
                     </div>
