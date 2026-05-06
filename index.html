@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Visualiseur GeoJSON</title>
+        <title>Feuillage</title>
 
         <!-- MapLibre GL CSS -->
         <link
@@ -15,8 +15,11 @@
         <!-- Iconify -->
         <script src="https://code.iconify.design/3/3.1.0/iconify.min.js"></script>
 
-        <!-- Chart.js -->
+        <!-- Chart.js + adaptateur date-fns + plugin zoom (molette/drag) -->
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 
         <!-- Turf.js for geospatial calculations -->
         <script src="https://unpkg.com/@turf/turf@7.1.0/turf.min.js"></script>
@@ -509,6 +512,10 @@
                 font-family: var(--font-stack);
                 font-size: var(--font-sm);
                 color: var(--color-text);
+                /* Limite la hauteur pour rester dans le viewport et au-dessus
+                   du contrôle d'attribution (bottom-right, ~30px). */
+                max-height: calc(100vh - 80px);
+                overflow-y: auto;
             }
 
             .maplibregl-popup-close-button {
@@ -599,7 +606,7 @@
             }
 
             .popup-chart canvas {
-                max-height: 250px;
+                max-height: 200px;
             }
 
             .popup-chart-toolbar {
@@ -1215,7 +1222,7 @@
                         <input
                             type="text"
                             id="urlInput"
-                            placeholder="URL du fichier GeoJSON..."
+                            placeholder="URL d'une couche (.geojson ou .pmtiles)..."
                             class="flex-1 px-2.5 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-gray-400"
                         />
                         <button
@@ -1249,7 +1256,7 @@
                             data-icon="mdi:folder-open"
                             style="font-size: 14px"
                         ></span>
-                        Fichier GeoJSON
+                        Charger un GeoJSON local
                     </button>
                 </div>
 
@@ -1343,7 +1350,7 @@
                 aria-label="Panneau de gestion des couches"
             >
                 <div class="layer-panel-header">
-                    <h1 id="viewTitle">Visualiseur GeoJSON</h1>
+                    <h1 id="viewTitle">Feuillage</h1>
                 </div>
                 <div
                     class="layer-panel-content"
@@ -1440,7 +1447,7 @@
             <main
                 id="map"
                 role="application"
-                aria-label="Carte interactive GeoJSON"
+                aria-label="Carte interactive"
                 tabindex="0"
             ></main>
         </div>
@@ -1516,6 +1523,9 @@
             crossorigin=""
         ></script>
 
+        <!-- PMTiles : protocole pour les couches vectorielles tuilées -->
+        <script src="https://unpkg.com/pmtiles@3.0.6/dist/pmtiles.js"></script>
+
         <script>
             // Restaurer la largeur du panneau avant de créer la carte pour
             // que le canvas MapLibre soit dimensionné correctement dès le départ.
@@ -1528,6 +1538,11 @@
                     );
                 }
             })();
+
+            // Enregistrer le protocole pmtiles:// auprès de MapLibre
+            // (instance partagée pour pouvoir lire les en-têtes — bbox, etc.)
+            const pmtilesProtocol = new pmtiles.Protocol();
+            maplibregl.addProtocol("pmtiles", pmtilesProtocol.tile);
 
             // Configuration de la carte MapLibre
             const map = new maplibregl.Map({
@@ -1666,7 +1681,7 @@
             let currentBasemap = "osm";
 
             /**
-             * Change le fond de carte
+             * Change le fond de carte (raster XYZ).
              */
             function switchBasemap(type) {
                 if (!basemapSources[type]) return;
@@ -1674,15 +1689,12 @@
                     updateBasemapRow();
                     return;
                 }
-
-                // Vérifier que la carte est chargée
                 if (!map.isStyleLoaded()) {
                     console.warn("Map not loaded yet, deferring basemap switch");
-                    map.once('load', () => switchBasemap(type));
+                    map.once("load", () => switchBasemap(type));
                     return;
                 }
 
-                // Retirer l'ancienne source et couche
                 if (map.getLayer(currentBasemap)) {
                     map.removeLayer(currentBasemap);
                 }
@@ -1690,17 +1702,11 @@
                     map.removeSource(currentBasemap);
                 }
 
-                // Ajouter la nouvelle source et couche
                 currentBasemap = type;
                 map.addSource(type, basemapSources[type]);
                 map.addLayer(
-                    {
-                        id: type,
-                        type: "raster",
-                        source: type,
-                    },
-                    // Ajouter sous toutes les autres couches
-                    getFirstLayerId()
+                    { id: type, type: "raster", source: type },
+                    getFirstLayerId(),
                 );
                 updateBasemapRow();
             }
@@ -1716,7 +1722,7 @@
             }
 
             /**
-             * Obtient l'ID de la première couche non-basemap
+             * Obtient l'ID de la première couche non-basemap.
              */
             function getFirstLayerId() {
                 const layers = map.getStyle().layers;
@@ -1869,15 +1875,24 @@
                                     <button
                                         type="button"
                                         class="chart-toggle-btn"
-                                        onclick="toggleChartTable('${chartId}', '${tableId}')"
-                                        aria-label="Basculer entre graphique et tableau"
+                                        onclick="downloadChartCSV('${chartId}')"
+                                        aria-label="Télécharger les données en CSV"
                                     >
-                                        <span class="iconify" data-icon="mdi:table" style="font-size: 12px;"></span>
-                                        Tableau
+                                        <span class="iconify" data-icon="mdi:download" style="font-size: 12px;"></span>
+                                        CSV
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="chart-toggle-btn"
+                                        onclick="downloadChartPNG('${chartId}')"
+                                        aria-label="Télécharger le graphique en PNG haute résolution"
+                                        title="PNG (3×) du graphique au zoom courant"
+                                    >
+                                        <span class="iconify" data-icon="mdi:image" style="font-size: 12px;"></span>
+                                        PNG
                                     </button>
                                 </div>
-                                <canvas id="${chartId}" width="350" height="250" data-chart-config='${JSON.stringify(section)}' style="display: block;"></canvas>
-                                <div id="${tableId}" class="popup-chart-table" role="table" aria-label="Données du graphique sous forme de tableau"></div>
+                                <canvas id="${chartId}" width="350" height="200" data-chart-config='${JSON.stringify(section)}' style="display: block;"></canvas>
                             </div>`;
                         }
 
@@ -1941,7 +1956,285 @@
             }
 
             /**
-             * Crée un graphique Chart.js dans un popup
+             * Construit les labels d'axe X à partir d'une série temporelle régulière
+             * (start_date + freq + n_days). Retourne un array d'objets Date.
+             */
+            function buildTimeLabels(startDate, freq, n) {
+                const start = new Date(startDate);
+                const stepMs = {
+                    "D": 86400000,        // jour
+                    "W": 7 * 86400000,    // semaine
+                    "M": 30 * 86400000,   // mois (approx)
+                    "Y": 365 * 86400000,  // année (approx)
+                }[freq] || 86400000;
+                const labels = new Array(n);
+                for (let i = 0; i < n; i++) {
+                    labels[i] = new Date(start.getTime() + i * stepMs);
+                }
+                return labels;
+            }
+
+            // ----- Accessors de données pour les popups -----
+            // Registry parallèle à `layerFormats` : pour brancher un nouveau
+            // backend de séries temporelles (zarr, autres), ajouter une entrée
+            // dans `dataAccessors` puis utiliser `data_source: { type, ... }`
+            // dans les templates de popup.
+
+            // Lazy-load de zarrita.js — uniquement quand un popup déclare
+            // `data_source.type === "zarr"`. v0.7.3+ requis pour le dtype
+            // standard "string" (vlen-utf8) côté coords.
+            let _zarritaPromise = null;
+            function loadZarrita() {
+                if (!_zarritaPromise) {
+                    _zarritaPromise = import(
+                        "https://cdn.jsdelivr.net/npm/zarrita@0.7.3/+esm"
+                    );
+                }
+                return _zarritaPromise;
+            }
+
+            // Cache par store_url : { z, root, coordCache }
+            const _zarrArchives = new Map();
+            async function _openZarrArchive(store_url) {
+                if (_zarrArchives.has(store_url))
+                    return _zarrArchives.get(store_url);
+                const promise = (async () => {
+                    const z = await loadZarrita();
+                    const baseStore = new z.FetchStore(store_url);
+                    // Active la metadata consolidée si présente (1 seul GET
+                    // pour découvrir tout le schéma, sinon N fetchs).
+                    // L'API a changé entre 0.5 et 0.7 — on supporte les deux.
+                    const consolidate =
+                        z.withMaybeConsolidatedMetadata ||
+                        z.tryWithConsolidated;
+                    const store = consolidate
+                        ? await consolidate(baseStore)
+                        : baseStore;
+                    const root = await z.open(store, { kind: "group" });
+                    return { z, root, coordCache: new Map() };
+                })();
+                _zarrArchives.set(store_url, promise);
+                return promise;
+            }
+
+            // Lit (et cache) un array zarr entier — typiquement une coord
+            // (time, troncon_id, percentile). À reconsidérer pour des coords
+            // de plusieurs MB.
+            async function _getZarrFullArray(archive, name) {
+                if (archive.coordCache.has(name))
+                    return archive.coordCache.get(name);
+                const promise = (async () => {
+                    const arr = await archive.z.open(
+                        archive.root.resolve(name),
+                        { kind: "array" },
+                    );
+                    const result = await archive.z.get(arr);
+                    return { array: arr, data: result.data };
+                })();
+                archive.coordCache.set(name, promise);
+                return promise;
+            }
+
+            // Comparaison "intelligente" : les coords int64 reviennent en
+            // BigInt64Array, donc `50n === 50` est false. On coerce.
+            const _eqLoose = (v, target) =>
+                typeof v === "bigint" ? v === BigInt(target) : v === target;
+
+            // Lit une seule slice (1 série) d'après un objet `indexers`.
+            async function _readZarrSlice(
+                archive,
+                valueArr,
+                dimNames,
+                feature_dim,
+                feature_idx,
+                indexers,
+            ) {
+                const selector = [];
+                for (const dim of dimNames) {
+                    if (dim === feature_dim) {
+                        selector.push(feature_idx);
+                    } else if (
+                        indexers &&
+                        Object.prototype.hasOwnProperty.call(indexers, dim)
+                    ) {
+                        const target = indexers[dim];
+                        const dc = await _getZarrFullArray(archive, dim);
+                        let idx = -1;
+                        for (let i = 0; i < dc.data.length; i++) {
+                            if (_eqLoose(dc.data[i], target)) {
+                                idx = i;
+                                break;
+                            }
+                        }
+                        if (idx < 0) {
+                            throw new Error(
+                                `Valeur ${target} introuvable dans "${dim}"`,
+                            );
+                        }
+                        selector.push(idx);
+                    } else {
+                        selector.push(null); // full slice
+                    }
+                }
+                const result = await archive.z.get(valueArr, selector);
+                return Array.from(result.data);
+            }
+
+            async function fetchZarrSeries(feature, source) {
+                const archive = await _openZarrArchive(source.store_url);
+                const { z, root } = archive;
+
+                // Trouve l'index de la feature dans la coord (ex. troncon_id)
+                const featCoord = await _getZarrFullArray(
+                    archive,
+                    source.feature_dim,
+                );
+                const featureId =
+                    feature.properties[source.feature_id_property];
+                let featureIdx = -1;
+                for (let i = 0; i < featCoord.data.length; i++) {
+                    if (_eqLoose(featCoord.data[i], featureId)) {
+                        featureIdx = i;
+                        break;
+                    }
+                }
+                if (featureIdx < 0) {
+                    throw new Error(
+                        `Feature id "${featureId}" introuvable dans "${source.feature_dim}"`,
+                    );
+                }
+
+                const valueArr = await z.open(
+                    root.resolve(source.value_array),
+                    { kind: "array" },
+                );
+                // v0.7+ : `dimensionNames`. v0.5 : `dim_names`. Compat les deux.
+                const dimNames =
+                    valueArr.dimensionNames || valueArr.dim_names || [];
+                if (dimNames.length === 0) {
+                    throw new Error(
+                        `L'array "${source.value_array}" n'expose pas de dimension_names.`,
+                    );
+                }
+
+                // Mode multi-séries : `series` est un tableau de slices, chacune
+                // avec son `indexers` et un `role` ("main", "lower", "upper").
+                // Mode legacy (single série) : `indexers` directement à la racine
+                // de data_source — un seul dataset rendu comme une ligne simple.
+                const seriesSpecs = source.series || [
+                    { name: "value", role: "main", indexers: source.indexers },
+                ];
+                const series = [];
+                for (const spec of seriesSpecs) {
+                    const values = await _readZarrSlice(
+                        archive,
+                        valueArr,
+                        dimNames,
+                        source.feature_dim,
+                        featureIdx,
+                        spec.indexers,
+                    );
+                    series.push({
+                        name: spec.name || "value",
+                        role: spec.role || "main",
+                        values,
+                    });
+                }
+
+                // Labels temporels — convertis en timestamps numériques (ms
+                // depuis epoch). Chart.js + decimation LTTB digère mal les
+                // objets Date en mode parsing:false ; les timestamps marchent
+                // bien et la time scale les parse via le date-fns adapter.
+                let labels;
+                if (source.time_array) {
+                    const t = await _getZarrFullArray(
+                        archive,
+                        source.time_array,
+                    );
+                    const units = t.array.attrs?.units;
+                    const cfMatch = units?.match(
+                        /^(seconds|minutes|hours|days)\s+since\s+(\S+(?:\s+\S+)?)/i,
+                    );
+                    if (cfMatch) {
+                        const unitMs = {
+                            seconds: 1000,
+                            minutes: 60000,
+                            hours: 3600000,
+                            days: 86400000,
+                        }[cfMatch[1].toLowerCase()];
+                        const epochMs = new Date(
+                            cfMatch[2].replace(" ", "T") + "Z",
+                        ).getTime();
+                        labels = Array.from(t.data, (v) => {
+                            const n = typeof v === "bigint" ? Number(v) : v;
+                            return epochMs + n * unitMs;
+                        });
+                    } else {
+                        // Fallback : datetime64[ns]
+                        labels = Array.from(t.data, (ns) =>
+                            typeof ns === "bigint"
+                                ? Number(ns / 1000000n)
+                                : ns / 1e6,
+                        );
+                    }
+                    labels._isTimestamps = true;
+                } else {
+                    labels = series[0].values.map((_, i) => i + 1);
+                }
+
+                return { labels, series };
+            }
+
+            // Registry des accesseurs. fetch(feature, source) → {labels, values}.
+            const dataAccessors = {
+                zarr: { fetch: fetchZarrSeries },
+            };
+
+            /**
+             * Cache des données fetchées (évite les re-fetch lors des re-render)
+             */
+            const _asyncDataCache = new Map();
+
+            /**
+             * Récupère les données d'un graphique async (fetch URL → JSON → labels+values).
+             * Convention de payload :
+             *   { start_date: "1962-01-01", freq: "D", n_days: 23424, q50: [...], ... }
+             * `section.data_field` indique la clé du tableau dans le JSON (ex: "q50").
+             */
+            async function fetchChartData(url, section) {
+                if (_asyncDataCache.has(url)) return _asyncDataCache.get(url);
+                const res = await fetch(url);
+                if (!res.ok) throw new Error(`HTTP ${res.status} sur ${url}`);
+                const payload = await res.json();
+                const valueKey = section.data_field || "values";
+                const values = payload[valueKey];
+                if (!Array.isArray(values)) {
+                    throw new Error(`Champ '${valueKey}' absent du payload ${url}`);
+                }
+                let labels;
+                if (Array.isArray(payload.labels)) {
+                    labels = payload.labels;
+                } else if (payload.start_date) {
+                    labels = buildTimeLabels(
+                        payload.start_date,
+                        payload.freq || "D",
+                        payload.n_days || values.length,
+                    );
+                } else {
+                    // Fallback : indices 1..N
+                    labels = values.map((_, i) => i + 1);
+                }
+                const result = { labels, values, _payload: payload };
+                _asyncDataCache.set(url, result);
+                return result;
+            }
+
+            /**
+             * Crée un graphique Chart.js dans un popup. Supporte deux modes :
+             *  - inline : section.data_field pointe vers properties[<champ>]
+             *  - async  : section.data_url_field pointe vers properties[<champ>]
+             *             qui contient une URL JSON ; section.data_field indique
+             *             la clé du tableau dans la réponse (ex: "q50").
              */
             function createChart(canvasId, section, properties) {
                 const canvas = document.getElementById(canvasId);
@@ -1989,7 +2282,74 @@
                     return;
                 }
 
-                // Récupérer les données du graphique
+                // Helper : affiche un état de chargement / erreur sur le canvas
+                const showLoading = () => {
+                    ctx.save();
+                    ctx.fillStyle = "#666";
+                    ctx.font = "13px sans-serif";
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+                    ctx.fillText(
+                        "Chargement…",
+                        canvas.width / 2,
+                        canvas.height / 2,
+                    );
+                    ctx.restore();
+                };
+                const showError = (msg) => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.save();
+                    ctx.fillStyle = "#c00";
+                    ctx.font = "12px sans-serif";
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+                    ctx.fillText(
+                        msg || "Erreur de chargement",
+                        canvas.width / 2,
+                        canvas.height / 2,
+                    );
+                    ctx.restore();
+                };
+
+                // Mode async : data_source registry (zarr, etc.)
+                // Reconstitue un objet feature minimal pour l'accesseur.
+                if (section.data_source && section.data_source.type) {
+                    const accessor = dataAccessors[section.data_source.type];
+                    if (!accessor) {
+                        showError(
+                            `data_source.type="${section.data_source.type}" inconnu`,
+                        );
+                        return;
+                    }
+                    showLoading();
+                    accessor
+                        .fetch({ properties }, section.data_source)
+                        .then((chartData) =>
+                            renderChart(canvasId, section, chartData),
+                        )
+                        .catch((e) => {
+                            console.error("data_source fetch failed:", e);
+                            showError();
+                        });
+                    return;
+                }
+
+                // Mode async legacy : URL pointée par data_url_field
+                if (section.data_url_field && properties[section.data_url_field]) {
+                    const url = properties[section.data_url_field];
+                    showLoading();
+                    fetchChartData(url, section)
+                        .then((chartData) => {
+                            renderChart(canvasId, section, chartData);
+                        })
+                        .catch((e) => {
+                            console.error(`Fetch chart data failed (${url}):`, e);
+                            showError();
+                        });
+                    return;
+                }
+
+                // Mode inline (legacy) : data dans properties[data_field]
                 let chartData;
                 if (section.data_field && properties[section.data_field]) {
                     const dataStr = properties[section.data_field];
@@ -2009,61 +2369,179 @@
                     console.error(`Données manquantes pour le graphique`);
                     return;
                 }
+                renderChart(canvasId, section, chartData);
+            }
 
-                // Créer le tableau de données alternatif
-                const tableId = canvasId.replace("chart-", "table-chart-");
-                createDataTable(tableId, chartData, section.options);
+            /**
+             * Rend le graphique Chart.js (commun aux modes inline et async).
+             * Si chartData.labels est un array de Date → axe X temporel automatique.
+             */
+            function renderChart(canvasId, section, chartData) {
+                const canvas = document.getElementById(canvasId);
+                if (!canvas) return;
+                const ctx = canvas.getContext("2d");
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                // Configuration du graphique
+                const labels = chartData.labels || [];
+                // Nouvelle forme : `series` (multi-séries avec rôles).
+                // Ancienne : `values` (single série, legacy).
+                const series =
+                    chartData.series ||
+                    (chartData.values
+                        ? [
+                              {
+                                  name: "value",
+                                  role: "main",
+                                  values: chartData.values,
+                              },
+                          ]
+                        : []);
+                const totalPoints = series[0]?.values.length || 0;
+
+                const isTimestamps = !!labels._isTimestamps;
+                const isTimeAxis =
+                    isTimestamps ||
+                    (labels.length > 0 && labels[0] instanceof Date);
+                const isDense = totalPoints > 500;
+                const chartType =
+                    section.chart_type || (isTimeAxis ? "line" : "bar");
+
+                // Construit les points d'une série pour Chart.js
+                const buildPoints = (values) => {
+                    if (!isTimeAxis) return values;
+                    return labels.map((d, i) => ({
+                        x: typeof d === "number" ? d : d.getTime(),
+                        y: values[i],
+                    }));
+                };
+
+                // Construit les datasets : envelope (lower+upper) en premier
+                // pour qu'elle soit dessinée derrière, puis main par-dessus.
+                const main =
+                    series.find((s) => s.role === "main") || series[0];
+                const lower = series.find((s) => s.role === "lower");
+                const upper = series.find((s) => s.role === "upper");
+
+                const datasets = [];
+                const envelopeColor = "rgba(37, 99, 235, 0.18)";
+                const mainColor = "rgba(37, 99, 235, 1)";
+
+                if (lower && upper && isTimeAxis) {
+                    datasets.push({
+                        label: lower.name,
+                        data: buildPoints(lower.values),
+                        parsing: false,
+                        borderColor: "rgba(0,0,0,0)",
+                        backgroundColor: envelopeColor,
+                        borderWidth: 0,
+                        pointRadius: 0,
+                        fill: false,
+                        tension: 0,
+                    });
+                    datasets.push({
+                        label: upper.name,
+                        data: buildPoints(upper.values),
+                        parsing: false,
+                        borderColor: "rgba(0,0,0,0)",
+                        backgroundColor: envelopeColor,
+                        borderWidth: 0,
+                        pointRadius: 0,
+                        fill: "-1", // remplit vers la dataset précédente (lower)
+                        tension: 0,
+                    });
+                }
+
+                if (main) {
+                    if (isTimeAxis) {
+                        datasets.push({
+                            label: main.name,
+                            data: buildPoints(main.values),
+                            parsing: false,
+                            borderColor: mainColor,
+                            backgroundColor: lower && upper
+                                ? "rgba(0,0,0,0)"
+                                : "rgba(37, 99, 235, 0.15)",
+                            borderWidth: 1,
+                            pointRadius: isDense ? 0 : 2,
+                            fill: !lower && chartType === "line",
+                            tension: 0,
+                        });
+                    } else {
+                        datasets.push({
+                            label: main.name,
+                            data: main.values,
+                            backgroundColor: "rgba(37, 99, 235, 0.5)",
+                            borderColor: mainColor,
+                            borderWidth: 2,
+                            fill: chartType === "line" ? false : true,
+                        });
+                    }
+                }
+
                 const options = section.options || {};
+                const xScale = isTimeAxis
+                    ? {
+                          type: "time",
+                          // Pas de `unit` hardcodé : Chart.js choisit
+                          // year/month/week/day selon le zoom courant.
+                          time: { tooltipFormat: "yyyy-MM-dd" },
+                          title: { display: !!options.xlabel, text: options.xlabel || "" },
+                      }
+                    : {
+                          title: { display: !!options.xlabel, text: options.xlabel || "" },
+                      };
+
                 try {
                     const chart = new Chart(ctx, {
-                        type: section.chart_type || "bar",
-                        data: {
-                            labels: chartData.labels || [],
-                            datasets: [
-                                {
-                                    label: options.title || "Données",
-                                    data: chartData.values || [],
-                                    backgroundColor: "rgba(37, 99, 235, 0.5)",
-                                    borderColor: "rgba(37, 99, 235, 1)",
-                                    borderWidth: 2,
-                                    fill:
-                                        section.chart_type === "line"
-                                            ? false
-                                            : true,
-                                },
-                            ],
-                        },
+                        type: chartType,
+                        data: { labels: isTimeAxis ? undefined : labels, datasets },
                         options: {
                             responsive: false,
                             maintainAspectRatio: true,
+                            animation: isDense ? false : undefined,
                             plugins: {
-                                legend: {
-                                    display: false,
-                                },
+                                legend: { display: false },
                                 title: {
                                     display: !!options.title,
                                     text: options.title || "",
                                 },
+                                decimation: isDense
+                                    ? { enabled: true, algorithm: "lttb", samples: 500 }
+                                    : { enabled: false },
+                                // Zoom à la molette + pan au drag, axe X
+                                // uniquement (utile sur des chroniques denses).
+                                // Double-clic réinitialise.
+                                zoom: isTimeAxis
+                                    ? {
+                                          zoom: {
+                                              wheel: { enabled: true },
+                                              pinch: { enabled: true },
+                                              drag: {
+                                                  enabled: true,
+                                                  modifierKey: "shift",
+                                              },
+                                              mode: "x",
+                                          },
+                                          pan: { enabled: true, mode: "x" },
+                                          limits: { x: { minRange: 86400000 * 30 } },
+                                      }
+                                    : undefined,
                             },
                             scales: {
                                 y: {
                                     beginAtZero: true,
-                                    title: {
-                                        display: !!options.ylabel,
-                                        text: options.ylabel || "",
-                                    },
+                                    title: { display: !!options.ylabel, text: options.ylabel || "" },
                                 },
-                                x: {
-                                    title: {
-                                        display: !!options.xlabel,
-                                        text: options.xlabel || "",
-                                    },
-                                },
+                                x: xScale,
                             },
                         },
                     });
+                    // Double-clic = reset du zoom (raccourci attendu)
+                    if (isTimeAxis) {
+                        canvas.addEventListener("dblclick", () =>
+                            chart.resetZoom(),
+                        );
+                    }
                 } catch (e) {
                     console.error(`Erreur création graphique Chart.js:`, e);
                 }
@@ -2299,6 +2777,195 @@
             }
 
             /**
+             * Ajoute une couche PMTiles vectorielle. Le nom de la `source-layer`
+             * (couche interne au PMTiles, fixée par tippecanoe) est dérivé du
+             * basename de l'URL si non spécifié. La géométrie doit être indiquée
+             * (`line` par défaut) car les vector tiles ne sont pas introspectables
+             * au moment de l'ajout.
+             */
+            function addPMTilesLayer(
+                url,
+                name,
+                color,
+                templateName = null,
+                options = {},
+            ) {
+                const layerId = `layer-${Date.now()}-${Math.random()}`;
+                const sourceId = `source-${layerId}`;
+                const sourceLayer =
+                    options.source_layer ||
+                    url
+                        .split("/")
+                        .pop()
+                        .replace(/\.pmtiles(\?.*)?$/i, "");
+                const geomType = options.geometry_type || "line";
+
+                map.addSource(sourceId, {
+                    type: "vector",
+                    url: `pmtiles://${url}`,
+                    attribution: options.attribution || "",
+                });
+
+                const layerIds = [];
+                if (geomType === "polygon") {
+                    const fillId = `${layerId}-fill`;
+                    map.addLayer({
+                        id: fillId,
+                        type: "fill",
+                        source: sourceId,
+                        "source-layer": sourceLayer,
+                        paint: getFillPaint(color),
+                    });
+                    layerIds.push(fillId);
+                    const outlineId = `${layerId}-outline`;
+                    map.addLayer({
+                        id: outlineId,
+                        type: "line",
+                        source: sourceId,
+                        "source-layer": sourceLayer,
+                        paint: getOutlinePaint(color),
+                    });
+                    layerIds.push(outlineId);
+                } else if (geomType === "point") {
+                    const pointId = `${layerId}-point`;
+                    map.addLayer({
+                        id: pointId,
+                        type: "circle",
+                        source: sourceId,
+                        "source-layer": sourceLayer,
+                        paint: getPointPaint(color),
+                    });
+                    layerIds.push(pointId);
+                } else {
+                    const lineId = `${layerId}-line`;
+                    map.addLayer({
+                        id: lineId,
+                        type: "line",
+                        source: sourceId,
+                        "source-layer": sourceLayer,
+                        paint: getLinePaint(color),
+                    });
+                    layerIds.push(lineId);
+                }
+
+                const layerInfo = {
+                    id: layerId,
+                    sourceId,
+                    layerIds,
+                    name,
+                    color,
+                    geojson: null,
+                    format: "pmtiles",
+                    sourceLayer,
+                    geometryType: geomType,
+                    templateName,
+                    url,
+                    visible: true,
+                };
+                loadedLayers.push(layerInfo);
+                setupPopupHandlers(layerInfo);
+                updateLayerPanel();
+
+                if (!currentViewConfig) {
+                    fitBoundsToPMTiles(url).catch((e) =>
+                        console.warn("PMTiles header read failed:", e),
+                    );
+                }
+                return layerInfo;
+            }
+
+            /**
+             * Cadre la vue sur les bounds déclarées dans l'en-tête PMTiles.
+             * L'instance PMTiles est partagée avec le protocole pour éviter
+             * de re-télécharger l'en-tête lors du rendu des tuiles.
+             */
+            async function fitBoundsToPMTiles(url) {
+                const archive = new pmtiles.PMTiles(url);
+                pmtilesProtocol.add(archive);
+                const header = await archive.getHeader();
+                if (header && header.minLon != null) {
+                    map.fitBounds(
+                        [
+                            [header.minLon, header.minLat],
+                            [header.maxLon, header.maxLat],
+                        ],
+                        { padding: 40, duration: 0 },
+                    );
+                }
+            }
+
+            /**
+             * Registry des formats de couches importables.
+             * Pour ajouter un format (FlatGeobuf, etc.), ajouter une entrée
+             * { match, load } ici — pas besoin de toucher loadViewConfig
+             * ni loadFromURL.
+             */
+            const layerFormats = {
+                geojson: {
+                    match: (url) => /\.(geo)?json(\?|#|$)/i.test(url),
+                    load: async (url, opts) => {
+                        const r = await fetch(url);
+                        if (!r.ok)
+                            throw new Error(`Erreur HTTP: ${r.status}`);
+                        const geojson = await r.json();
+                        if (
+                            !geojson.type ||
+                            (geojson.type !== "FeatureCollection" &&
+                                geojson.type !== "Feature")
+                        ) {
+                            throw new Error("Format GeoJSON invalide");
+                        }
+                        return addGeoJSONLayer(
+                            geojson,
+                            opts.name,
+                            opts.color,
+                            opts.templateName,
+                            url,
+                        );
+                    },
+                },
+                pmtiles: {
+                    match: (url) => /\.pmtiles(\?|#|$)/i.test(url),
+                    load: async (url, opts) =>
+                        addPMTilesLayer(
+                            url,
+                            opts.name,
+                            opts.color,
+                            opts.templateName,
+                            opts,
+                        ),
+                },
+            };
+
+            function detectLayerFormat(layerConfig) {
+                if (layerConfig.type && layerFormats[layerConfig.type]) {
+                    return layerConfig.type;
+                }
+                for (const [name, fmt] of Object.entries(layerFormats)) {
+                    if (fmt.match(layerConfig.url)) return name;
+                }
+                return null;
+            }
+
+            async function loadLayerFromConfig(layerConfig, color) {
+                const fmtName = detectLayerFormat(layerConfig);
+                if (!fmtName) {
+                    throw new Error(
+                        `Format non reconnu pour ${layerConfig.url}. ` +
+                            `Précisez "type" (geojson, pmtiles) dans la config.`,
+                    );
+                }
+                return layerFormats[fmtName].load(layerConfig.url, {
+                    name: layerConfig.name,
+                    color,
+                    templateName: layerConfig.popup_template,
+                    source_layer: layerConfig.source_layer,
+                    geometry_type: layerConfig.geometry_type,
+                    attribution: layerConfig.attribution,
+                });
+            }
+
+            /**
              * Configure les gestionnaires de popup pour une couche
              */
             function setupPopupHandlers(layerInfo) {
@@ -2380,71 +3047,61 @@
                     return;
                 }
 
+                // Dispatch via le registry de formats. Les PMTiles sont
+                // streamés (pas de pré-fetch ni warning de taille) ;
+                // le warning de taille reste pour le GeoJSON.
+                const fmtName = detectLayerFormat({ url });
+                if (!fmtName) {
+                    showMessage(
+                        "Format non reconnu (extensions supportées : .geojson, .json, .pmtiles)",
+                        "error",
+                    );
+                    return;
+                }
+
                 try {
                     showMessage("Chargement en cours...", "info");
 
-                    const response = await fetch(url);
-
-                    if (!response.ok) {
-                        throw new Error(`Erreur HTTP: ${response.status}`);
-                    }
-
-                    // Vérifier la taille
-                    const contentLength =
-                        response.headers.get("content-length");
-                    if (
-                        contentLength &&
-                        parseInt(contentLength) > MAX_FILE_SIZE
-                    ) {
-                        const proceed = confirm(
-                            `Ce fichier est volumineux (${(parseInt(contentLength) / 1024 / 1024).toFixed(2)} MB).\n` +
-                                `Le chargement pourrait ralentir votre navigateur.\n\n` +
-                                `Voulez-vous continuer ?`,
+                    if (fmtName === "geojson") {
+                        const head = await fetch(url, { method: "HEAD" }).catch(
+                            () => null,
                         );
-                        if (!proceed) {
-                            showMessage("Chargement annulé", "warning");
-                            return;
+                        const contentLength = head?.headers.get("content-length");
+                        if (
+                            contentLength &&
+                            parseInt(contentLength) > MAX_FILE_SIZE
+                        ) {
+                            const proceed = confirm(
+                                `Ce fichier est volumineux (${(parseInt(contentLength) / 1024 / 1024).toFixed(2)} MB).\n` +
+                                    `Le chargement pourrait ralentir votre navigateur.\n\n` +
+                                    `Voulez-vous continuer ?`,
+                            );
+                            if (!proceed) {
+                                showMessage("Chargement annulé", "warning");
+                                return;
+                            }
                         }
                     }
 
-                    showMessage("Parsing du GeoJSON...", "info");
-                    const geojson = await response.json();
-
-                    // Valider le GeoJSON
-                    if (
-                        !geojson.type ||
-                        (geojson.type !== "FeatureCollection" &&
-                            geojson.type !== "Feature")
-                    ) {
-                        throw new Error("Format GeoJSON invalide");
-                    }
-
-                    const featureCount = geojson.type === "FeatureCollection"
-                        ? geojson.features.length
-                        : 1;
-
-                    // Extraire le nom du fichier depuis l'URL
-                    const urlParts = url.split("/");
-                    const filename = urlParts[urlParts.length - 1].replace(
-                        /\.geojson|\.json/i,
-                        "",
-                    );
+                    const filename = url
+                        .split("/")
+                        .pop()
+                        .replace(/\.(geojson|json|pmtiles)(\?.*)?$/i, "");
                     const defaultName =
                         filename || `Couche ${loadedLayers.length + 1}`;
-
-                    // Demander le nom
                     const layerName = await promptLayerName(defaultName);
 
-                    showMessage(`Ajout de ${featureCount} entités à la carte...`, "info");
-
-                    // Ajouter la couche
                     const color = getNextColor();
-                    addGeoJSONLayer(geojson, layerName, color, null, url);
+                    await loadLayerFromConfig(
+                        { url, name: layerName, type: fmtName },
+                        color,
+                    );
 
-                    showMessage(`"${layerName}" chargé avec succès (${featureCount} entités)`, "success");
+                    showMessage(
+                        `"${layerName}" chargé avec succès`,
+                        "success",
+                    );
                     document.getElementById("urlInput").value = "";
-
-                    // Fermer le menu
                     document
                         .getElementById("menuPanel")
                         .classList.add("hidden");
@@ -2556,9 +3213,14 @@
                             input.value = "";
                             return;
                         }
-                        loadedLayers.forEach((layerInfo) =>
-                            map.removeLayer(layerInfo.layer),
-                        );
+                        loadedLayers.forEach((layerInfo) => {
+                            layerInfo.layerIds.forEach((id) => {
+                                if (map.getLayer(id)) map.removeLayer(id);
+                            });
+                            if (map.getSource(layerInfo.sourceId)) {
+                                map.removeSource(layerInfo.sourceId);
+                            }
+                        });
                         loadedLayers = [];
                         colorIndex = 0;
                     }
@@ -2588,34 +3250,23 @@
                         switchBasemap(config.view.basemap);
                     }
 
-                    // Charger les couches
+                    // Charger les couches via le registry de formats
                     for (const layerConfig of config.layers) {
                         try {
-                            const response = await fetch(layerConfig.url);
-                            if (!response.ok) {
-                                throw new Error(
-                                    `Erreur HTTP: ${response.status}`,
-                                );
-                            }
-
-                            const geojson = await response.json();
-
-                            // Utiliser la couleur spécifiée ou prendre la suivante dans la palette
-                            const color = layerConfig.color || getNextColor();
-
-                            // Ajouter la couche avec le template de popup si spécifié
-                            const layerInfo = addGeoJSONLayer(
-                                geojson,
-                                layerConfig.name,
+                            const color =
+                                layerConfig.color || getNextColor();
+                            const layerInfo = await loadLayerFromConfig(
+                                layerConfig,
                                 color,
-                                layerConfig.popup_template,
-                                layerConfig.url,
                             );
 
-                            // Gérer la visibilité initiale
                             if (layerInfo && layerConfig.visible === false) {
                                 layerInfo.layerIds.forEach((layerId) => {
-                                    map.setLayoutProperty(layerId, "visibility", "none");
+                                    map.setLayoutProperty(
+                                        layerId,
+                                        "visibility",
+                                        "none",
+                                    );
                                 });
                                 layerInfo.visible = false;
                             }
@@ -2727,10 +3378,14 @@
                 layerList.innerHTML = loadedLayers
                     .map(
                         (layerInfo, index) => {
-                            const featureCount =
-                                layerInfo.geojson.type === "FeatureCollection"
-                                    ? layerInfo.geojson.features.length
-                                    : 1;
+                            // PMTiles : pas de geojson en mémoire — on n'affiche
+                            // pas de compteur de features (les vector tiles ne
+                            // sont pas introspectables sans charger les tuiles).
+                            const featureCount = layerInfo.geojson
+                                ? (layerInfo.geojson.type === "FeatureCollection"
+                                      ? layerInfo.geojson.features.length
+                                      : 1)
+                                : null;
                             const isVisible = layerInfo.visible;
                             return `
                 <div class="layer-item" style="border-left-color: ${layerInfo.color}" role="group" aria-label="Couche ${layerInfo.name}" draggable="true" data-index="${index}">
@@ -2740,7 +3395,7 @@
                         </div>
                         <div class="layer-item-name-wrapper">
                             <span class="layer-item-name" title="${layerInfo.name}">${layerInfo.name}</span>
-                            <span class="sr-only">${featureCount} entité(s)</span>
+                            <span class="sr-only">${featureCount != null ? `${featureCount} entité(s)` : "couche vectorielle tuilée"}</span>
                         </div>
                         <div class="layer-item-actions">
                             <button
@@ -2869,13 +3524,21 @@
                         zoom: map.getZoom(),
                         basemap: currentBasemap,
                     },
-                    layers: loadedLayers.map((layerInfo) => ({
-                        name: layerInfo.name,
-                        url: layerInfo.url || "./votre-fichier.geojson", // URL par défaut si chargé localement
-                        color: layerInfo.color,
-                        visible: layerInfo.visible,
-                        popup_template: layerInfo.templateName || null,
-                    })),
+                    layers: loadedLayers.map((layerInfo) => {
+                        const entry = {
+                            name: layerInfo.name,
+                            url: layerInfo.url || "./votre-fichier.geojson",
+                            color: layerInfo.color,
+                            visible: layerInfo.visible,
+                            popup_template: layerInfo.templateName || null,
+                        };
+                        if (layerInfo.format === "pmtiles") {
+                            entry.type = "pmtiles";
+                            entry.source_layer = layerInfo.sourceLayer;
+                            entry.geometry_type = layerInfo.geometryType;
+                        }
+                        return entry;
+                    }),
                     popup_templates:
                         Object.keys(popupTemplates).length > 0
                             ? popupTemplates
@@ -3522,25 +4185,127 @@
                 .addEventListener("change", updateBasemapAttributionHint);
 
             /**
-             * Bascule entre graphique et tableau
+             * Télécharge les données du graphique sous forme de CSV. Une
+             * colonne par dataset Chart.js (ex. q25, q50, q75 pour une
+             * série multi-percentile), première colonne = date ISO si l'axe
+             * est temporel.
              */
-            function toggleChartTable(chartId, tableId) {
+            function downloadChartCSV(chartId) {
                 const canvas = document.getElementById(chartId);
-                const table = document.getElementById(tableId);
+                if (!canvas) return;
+                const chart = Chart.getChart(canvas);
+                if (!chart || chart.data.datasets.length === 0) return;
 
-                if (canvas.style.display === "none") {
-                    canvas.style.display = "block";
-                    table.style.display = "none";
-                    announceToScreenReader("Affichage graphique");
-                } else {
-                    canvas.style.display = "none";
-                    table.style.display = "block";
-                    announceToScreenReader("Affichage tableau");
+                const datasets = chart.data.datasets;
+                const first = datasets[0].data;
+                const isTimeAxis =
+                    first.length > 0 &&
+                    typeof first[0] === "object" &&
+                    first[0] !== null &&
+                    "x" in first[0];
+                const numRows = first.length;
+
+                const headers = ["x", ...datasets.map((d) => d.label || "value")];
+                const rows = [headers.join(",")];
+                for (let i = 0; i < numRows; i++) {
+                    const xRaw = isTimeAxis ? first[i].x : i + 1;
+                    const xStr = isTimeAxis
+                        ? new Date(xRaw).toISOString().slice(0, 10)
+                        : String(xRaw);
+                    const yVals = datasets.map((d) => {
+                        const v = isTimeAxis ? d.data[i]?.y : d.data[i];
+                        return Number.isFinite(v) ? v : "";
+                    });
+                    rows.push([xStr, ...yVals].join(","));
                 }
+
+                const csv = rows.join("\n");
+                const blob = new Blob([csv], {
+                    type: "text/csv;charset=utf-8",
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                const title =
+                    chart.options?.plugins?.title?.text || "chart";
+                a.download =
+                    title.replace(/[^a-z0-9_-]+/gi, "_").slice(0, 80) +
+                    ".csv";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
             }
 
             /**
-             * Crée un tableau de données alternatif pour un graphique
+             * Télécharge le graphique en PNG haute résolution (3× la taille
+             * du canvas du popup), avec le zoom courant appliqué. Re-rend
+             * dans un canvas off-screen pour ne pas perturber le popup.
+             */
+            async function downloadChartPNG(chartId) {
+                const canvas = document.getElementById(chartId);
+                if (!canvas) return;
+                const sourceChart = Chart.getChart(canvas);
+                if (!sourceChart) return;
+
+                const SCALE = 3;
+                const exportCanvas = document.createElement("canvas");
+                exportCanvas.width = canvas.width * SCALE;
+                exportCanvas.height = canvas.height * SCALE;
+                exportCanvas.style.position = "absolute";
+                exportCanvas.style.left = "-99999px";
+                document.body.appendChild(exportCanvas);
+
+                // Clone des options sans le plugin zoom (export = statique).
+                // La data peut rester partagée par référence — Chart.js ne
+                // mute pas les data arrays.
+                const srcOpts = sourceChart.config.options || {};
+                const exportOptions = {
+                    ...srcOpts,
+                    responsive: false,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    plugins: { ...(srcOpts.plugins || {}), zoom: undefined },
+                    scales: { ...(srcOpts.scales || {}) },
+                };
+
+                // Préserve l'intervalle x courant (zoom utilisateur)
+                const xS = sourceChart.scales?.x;
+                if (xS && exportOptions.scales.x) {
+                    exportOptions.scales.x = {
+                        ...exportOptions.scales.x,
+                        min: xS.min,
+                        max: xS.max,
+                    };
+                }
+
+                const exportChart = new Chart(exportCanvas, {
+                    type: sourceChart.config.type,
+                    data: sourceChart.config.data,
+                    options: exportOptions,
+                });
+                // Une frame pour s'assurer que le rendu est complet
+                await new Promise((r) => requestAnimationFrame(r));
+
+                const dataUrl = exportCanvas.toDataURL("image/png");
+                exportChart.destroy();
+                document.body.removeChild(exportCanvas);
+
+                const title =
+                    sourceChart.options?.plugins?.title?.text || "chart";
+                const a = document.createElement("a");
+                a.href = dataUrl;
+                a.download =
+                    title.replace(/[^a-z0-9_-]+/gi, "_").slice(0, 80) +
+                    ".png";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            }
+
+            /**
+             * (legacy — conservé pour les configs existantes qui pourraient
+             * encore appeler createDataTable). À supprimer si plus utilisé.
              */
             function createDataTable(tableId, chartData, options) {
                 const table = document.getElementById(tableId);
@@ -3720,33 +4485,23 @@
                             switchBasemap(config.view.basemap);
                         }
 
-                        // Charger les couches
+                        // Charger les couches via le registry de formats
+                        // (geojson, pmtiles, ...) — même chemin que loadViewConfig
                         for (const layerConfig of config.layers) {
                             try {
-                                const layerResponse = await fetch(
-                                    layerConfig.url,
-                                );
-                                if (!layerResponse.ok) {
-                                    throw new Error(
-                                        `Erreur HTTP: ${layerResponse.status}`,
-                                    );
-                                }
-
-                                const geojson = await layerResponse.json();
                                 const color =
                                     layerConfig.color || getNextColor();
-
-                                const layerInfo = addGeoJSONLayer(
-                                    geojson,
-                                    layerConfig.name,
+                                const layerInfo = await loadLayerFromConfig(
+                                    layerConfig,
                                     color,
-                                    layerConfig.popup_template,
-                                    layerConfig.url,
                                 );
-
                                 if (layerInfo && layerConfig.visible === false) {
                                     layerInfo.layerIds.forEach((layerId) => {
-                                        map.setLayoutProperty(layerId, "visibility", "none");
+                                        map.setLayoutProperty(
+                                            layerId,
+                                            "visibility",
+                                            "none",
+                                        );
                                     });
                                     layerInfo.visible = false;
                                 }
@@ -3754,6 +4509,10 @@
                                 console.error(
                                     `Erreur chargement couche "${layerConfig.name}":`,
                                     error,
+                                );
+                                showMessage(
+                                    `Erreur chargement "${layerConfig.name}": ${error.message}`,
+                                    "error",
                                 );
                             }
                         }

@@ -1,6 +1,6 @@
-# Visualiseur GeoJSON
+# Feuillage
 
-Application web 100% statique pour visualiser et gérer plusieurs fichiers GeoJSON sur une carte interactive MapLibre GL JS.
+Application web 100% statique pour visualiser et gérer plusieurs couches cartographiques (GeoJSON, PMTiles) sur une carte interactive MapLibre GL JS. Hébergeable sur GitHub Pages sans backend.
 
 ## Fonctionnalités
 
@@ -303,10 +303,73 @@ Créez un fichier `config.json` :
 
 **Paramètres disponibles** :
 
-- **view.basemap** : `"osm"`, `"topo"`, ou `"positron"`
+- **view.basemap** : `"osm"`, `"topo"`, `"positron"`, `"carto-dark"`, `"satellite"`, `"esri-topo"`, `"stamen-toner"`, `"stamen-terrain"`
 - **layers[].visible** : `true` ou `false` (visibilité initiale)
 - **layers[].color** : Code couleur hexadécimal (optionnel, palette auto sinon)
+- **layers[].type** : `"geojson"` ou `"pmtiles"` (optionnel — auto-détecté depuis l'extension)
+- **layers[].source_layer** : Nom de la couche interne PMTiles (par défaut : basename du fichier ; doit correspondre au `--layer` passé à tippecanoe)
+- **layers[].geometry_type** : `"line"` (défaut), `"point"` ou `"polygon"` — requis pour PMTiles car les vector tiles ne sont pas introspectables
+- **layers[].attribution** : Mention de source affichée dans la carte (optionnel)
 - **popup_templates** : Objet définissant les templates de popups (optionnel)
+
+### Couches PMTiles
+
+Les fichiers `.pmtiles` (générés par [tippecanoe](https://github.com/felt/tippecanoe)) sont streamés par range-fetch HTTP — un seul fichier statique servi par GitHub Pages, pas de serveur de tuiles requis. Exemple :
+
+```json
+{
+  "name": "Tronçons RQH",
+  "url": "./regions/slso/2010.pmtiles",
+  "type": "pmtiles",
+  "source_layer": "2010",
+  "geometry_type": "line",
+  "color": "#0072B2",
+  "popup_template": "troncon_rqh"
+}
+```
+
+Pour générer un PMTiles à partir d'un GeoJSON :
+
+```bash
+tippecanoe -o regions/slso/2010.pmtiles -l 2010 -zg \
+  --drop-densest-as-needed regions/slso/2010.geojson
+```
+
+Le `source_layer` du config doit correspondre à l'argument `-l` passé à tippecanoe. Si omis, Feuillage prend le basename du fichier par défaut.
+
+### Données de graphique : `data_source` (zarr et autres)
+
+Pour les chroniques temporelles servies depuis un store zarr (un fichier `.zarr` directory hébergé statiquement, p. ex. sur Hugging Face Datasets), utilisez un bloc `data_source` dans la section graphique du template :
+
+```json
+{
+  "type": "chart",
+  "chart_type": "line",
+  "data_source": {
+    "type": "zarr",
+    "store_url": "https://huggingface.co/datasets/<user>/<dataset>/resolve/main",
+    "value_array": "discharge",
+    "feature_dim": "troncon_id",
+    "feature_id_property": "id",
+    "indexers": { "percentile": 50 },
+    "time_array": "time"
+  },
+  "options": { "title": "Débit médian journalier", "ylabel": "m³/s" }
+}
+```
+
+Sémantique :
+
+- **store_url** : URL racine du zarr-répertoire (le dossier qui contient `zarr.json`)
+- **value_array** : nom du tableau zarr à lire (ex. `discharge`)
+- **feature_dim** : dimension le long de laquelle indexer par feature (ex. `troncon_id`)
+- **feature_id_property** : champ des `properties` de la feature à matcher contre la coord `feature_dim` (ex. `id` → `feature.properties.id`)
+- **indexers** : sélection par valeur sur d'autres dims (ex. `{"percentile": 50}` cible la valeur 50 dans la coord `percentile`)
+- **time_array** : (optionnel) nom de la coord temporelle pour générer les labels Date sur l'axe X
+
+Côté technique : zarrita.js est chargé en lazy-import à la première ouverture de popup zarr, la metadata consolidée est utilisée pour limiter à 1 fetch initial, et chaque popup déclenche range-fetch d'un seul chunk (~quelques centaines de kB compressés) puis une décompression blosc-zstd côté navigateur. L'archive et les coords sont mises en cache en mémoire pour les popups suivants.
+
+Le store doit servir avec **CORS ouvert et range requests supportés** : Hugging Face Datasets, Cloudflare R2 (avec CORS configuré), et la plupart des buckets S3 publics conviennent. pCloud / Google Drive / Dropbox **ne fonctionnent pas** car ils restreignent CORS au domaine du fournisseur.
 
 ### Types de graphiques supportés
 
@@ -428,6 +491,7 @@ feuillage/
 ## Technologies utilisées
 
 - **MapLibre GL JS 4.7.1** : Bibliothèque de cartographie interactive moderne avec rendu WebGL
+- **PMTiles 3.0.6** : Protocole de tuiles vectorielles range-readable (un seul fichier statique)
 - **Chart.js 4.4.1** : Bibliothèque de graphiques interactifs
 - **Turf.js 7.1.0** : Outils d'analyse géospatiale
 - **Iconify 3.1.0** : Icônes vectorielles
