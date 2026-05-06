@@ -9,7 +9,10 @@
   "layers": [
     {
       "name": "Régions hydrographiques",
-      "url": "./data/rqh/regions.geojson",
+      "url": "./data/rqh/regions.pmtiles",
+      "type": "pmtiles",
+      "source_layer": "regions",
+      "geometry_type": "polygon",
       "visible": true,
       "color": "#4d4d4d"
     },

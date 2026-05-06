@@ -3,7 +3,29 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta
+            name="description"
+            content="Feuillage — visualiseur cartographique léger pour couches GeoJSON et PMTiles, avec popups et graphiques temporels."
+        />
         <title>Feuillage</title>
+
+        <!-- Preconnect aux origines tierces critiques pour le LCP -->
+        <link rel="preconnect" href="https://a.tile.openstreetmap.org" crossorigin />
+        <link rel="preconnect" href="https://b.tile.openstreetmap.org" crossorigin />
+        <link rel="preconnect" href="https://c.tile.openstreetmap.org" crossorigin />
+        <link rel="preconnect" href="https://unpkg.com" crossorigin />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+        <!-- Polices SDGQ : Roboto (titres) + Open Sans (corps) + Material Symbols (icônes) -->
+        <link
+            rel="stylesheet"
+            href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&family=Roboto:wght@400;500;700&display=swap"
+        />
+        <link
+            rel="stylesheet"
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=arrow_drop_down,close,dashboard,delete,delete_sweep,distance,dock_to_left,download,drag_indicator,edit,folder_open,image,location_on,map,menu,save,search,settings,star,visibility,visibility_off&display=swap"
+        />
 
         <!-- MapLibre GL CSS -->
         <link
@@ -11,9 +33,6 @@
             href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
             crossorigin=""
         />
-
-        <!-- Iconify -->
-        <script src="https://code.iconify.design/3/3.1.0/iconify.min.js"></script>
 
         <!-- Chart.js + adaptateur date-fns + plugin zoom (molette/drag) -->
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -28,53 +47,116 @@
         <script src="https://cdn.tailwindcss.com"></script>
 
         <style>
-            /* === Design tokens === */
+            /* === Design tokens — Système de design gouvernemental du Québec === */
             :root {
-                /* Typography */
+                /* Typography (SDGQ : Roboto pour titres, Open Sans pour le corps) */
                 --font-stack:
-                    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-                    Oxygen, Ubuntu, Cantarell, sans-serif;
+                    "Open Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
+                    Roboto, sans-serif;
+                --font-stack-heading:
+                    "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI",
+                    sans-serif;
                 --font-mono:
                     ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-                --font-2xs: 0.7rem;    /* 11.2px — uppercase mini-labels, meta */
-                --font-xs: 0.75rem;    /* 12px   — small UI, button labels */
-                --font-sm: 0.8125rem;  /* 13px   — main UI text */
-                --font-md: 0.9rem;     /* 14.4px — panel header */
-                --font-lg: 1.1rem;     /* 17.6px — popup heading */
-                --font-xl: 1.25rem;    /* 20px   — modal heading */
+                --font-2xs: 0.7rem;
+                --font-xs: 0.75rem;
+                --font-sm: 0.8125rem;
+                --font-md: 0.9rem;
+                --font-lg: 1.1rem;
+                --font-xl: 1.25rem;
 
-                /* Neutrals */
-                --color-bg: #f5f5f5;
-                --color-surface: #ffffff;
-                --color-surface-alt: #f7fafc;
-                --color-surface-soft: #f9fafb;
-                --color-border: #e2e8f0;
-                --color-border-strong: #d1d5db;
-                --color-divider: #edf0f3;
-                --color-text: #2d3748;
-                --color-text-secondary: #4b5563;
-                --color-text-muted: #6b7280;
-                --color-text-subtle: #9ca3af;
+                /* SDGQ — Palette bleus (primaire) */
+                --color-blue-pale: #DAE6F0;
+                --color-blue-light: #4A98D9;
+                --color-blue: #1472BF;
+                --color-blue-piv: #095797;
+                --color-blue-medium: #19406C;
+                --color-blue-dark: #223654;
 
-                /* Brand & state */
-                --color-brand: #0072B2;
-                --color-brand-tint: rgba(0, 114, 178, 0.12);
-                --color-danger: #c53030;
-                --color-success: #276749;
-                --color-warning: #c05621;
+                /* SDGQ — Accent */
+                --color-accent: #E58271;
 
-                /* Radii */
+                /* SDGQ — Gris (neutres) */
+                --color-white: #FFFFFF;
+                --color-gray-pale: #F1F1F2;
+                --color-gray-light: #C5CAD2;
+                --color-gray: #8893A2;
+                --color-gray-medium: #6B778A;
+                --color-gray-dark: #4E5662;
+
+                /* SDGQ — États */
+                --color-success-pale: #D7F0BB;
+                --color-success: #4F813D;
+                --color-success-dark: #2C4024;
+                --color-danger-pale: #FFDBD6;
+                --color-danger: #CB381F;
+                --color-danger-dark: #692519;
+                --color-warning-pale: #F8E69A;
+                --color-warning: #E0AD03;
+                --color-warning-dark: #AD781C;
+                --color-info: #6B4FA1;
+
+                /* Aliases sémantiques */
+                --color-bg: var(--color-gray-pale);
+                --color-surface: var(--color-white);
+                --color-surface-alt: #F7FAFC;
+                --color-surface-soft: #F9FAFB;
+                --color-border: var(--color-gray-light);
+                --color-border-strong: var(--color-gray);
+                --color-divider: #EDF0F3;
+                --color-text: var(--color-blue-dark);
+                --color-text-secondary: var(--color-gray-dark);
+                --color-text-muted: var(--color-gray-medium);
+                --color-text-subtle: var(--color-gray);
+
+                --color-brand: var(--color-blue-piv);
+                --color-brand-hover: var(--color-blue-medium);
+                --color-brand-tint: rgba(9, 87, 151, 0.12);
+                --color-focus-ring: rgba(9, 87, 151, 0.35);
+
+                /* Radii (SDGQ — coins légèrement arrondis, cohérents) */
                 --radius-sm: 4px;
-                --radius-md: 6px;
+                --radius-md: 4px;
                 --radius-lg: 8px;
 
                 /* Shadows */
-                --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
-                --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.15);
-                --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.15);
+                --shadow-sm: 0 1px 3px rgba(34, 54, 84, 0.1);
+                --shadow-md: 0 2px 4px rgba(34, 54, 84, 0.15);
+                --shadow-lg: 0 4px 12px rgba(34, 54, 84, 0.15);
 
                 /* Layout */
                 --panel-width: 260px;
+            }
+
+            h1, h2, h3, h4, h5, h6 {
+                font-family: var(--font-stack-heading);
+                font-weight: 500;
+            }
+
+            /* Accessibilité : focus visible cohérent SDGQ */
+            *:focus-visible {
+                outline: 2px solid var(--color-brand);
+                outline-offset: 2px;
+                border-radius: var(--radius-sm);
+            }
+
+            /* Material Symbols (Google Fonts) — règles standard de rendu */
+            .material-symbols-outlined {
+                font-family: "Material Symbols Outlined";
+                font-weight: normal;
+                font-style: normal;
+                font-size: 20px;
+                line-height: 1;
+                letter-spacing: normal;
+                text-transform: none;
+                display: inline-block;
+                white-space: nowrap;
+                word-wrap: normal;
+                direction: ltr;
+                font-feature-settings: "liga";
+                -webkit-font-smoothing: antialiased;
+                vertical-align: middle;
+                user-select: none;
             }
 
             * {
@@ -328,7 +410,7 @@
             /* Form controls */
             input[type="checkbox"],
             input[type="radio"] {
-                accent-color: var(--color-text);
+                accent-color: var(--color-brand);
             }
 
             /* === Toggle panel button === */
@@ -461,17 +543,18 @@
                 text-align: center;
             }
 
-            /* === Status bar (toast) === */
+            /* === Status bar (toast) — palette d'états SDGQ === */
             .message {
                 position: fixed;
                 bottom: 14px;
                 right: 10px;
-                padding: 0.25rem 0.6rem;
+                padding: 0.4rem 0.75rem;
                 border-radius: var(--radius-sm);
                 font-size: var(--font-sm);
                 line-height: 1.4;
-                color: #fff;
-                background-color: rgba(45, 55, 72, 0.85);
+                color: var(--color-blue-dark);
+                background-color: var(--color-gray-pale);
+                border-left: 4px solid var(--color-blue-piv);
                 box-shadow: var(--shadow-sm);
                 z-index: 1000;
                 max-width: calc(100% - 16px);
@@ -486,15 +569,21 @@
             }
 
             .message.error {
-                background-color: rgba(197, 48, 48, 0.9);
+                background-color: var(--color-danger-pale);
+                border-left-color: var(--color-danger);
+                color: var(--color-danger-dark);
             }
 
             .message.success {
-                background-color: rgba(39, 103, 73, 0.9);
+                background-color: var(--color-success-pale);
+                border-left-color: var(--color-success);
+                color: var(--color-success-dark);
             }
 
             .message.warning {
-                background-color: rgba(192, 86, 33, 0.9);
+                background-color: var(--color-warning-pale);
+                border-left-color: var(--color-warning);
+                color: var(--color-warning-dark);
             }
 
             .message.show {
@@ -703,25 +792,29 @@
                 color: var(--color-text);
             }
 
-            .modal-content input {
+            .modal-content input,
+            .form-select {
                 width: 100%;
-                padding: 0.5rem;
+                padding: 0.5rem 0.65rem;
                 margin-bottom: 1rem;
                 border: 1px solid var(--color-border-strong);
                 border-radius: var(--radius-sm);
+                font-family: var(--font-stack);
                 font-size: var(--font-sm);
                 color: var(--color-text);
                 background-color: var(--color-surface);
+                transition: border-color 0.15s, box-shadow 0.15s;
             }
 
             .form-select {
-                width: 100%;
-                padding: 0.5rem;
-                border: 1px solid var(--color-border-strong);
-                border-radius: var(--radius-sm);
-                font-size: var(--font-sm);
-                color: var(--color-text);
-                background-color: var(--color-surface);
+                margin-bottom: 0;
+            }
+
+            .modal-content input:focus,
+            .form-select:focus {
+                outline: none;
+                border-color: var(--color-brand);
+                box-shadow: 0 0 0 3px var(--color-focus-ring);
             }
 
             .modal-hint {
@@ -771,29 +864,33 @@
                 justify-content: flex-end;
             }
 
+            /* Boutons SDGQ — primaire (bleu PIV) + secondaire (contour) */
             .modal-buttons button {
-                padding: 0.45rem 0.9rem;
+                padding: 0.5rem 1rem;
+                font-family: var(--font-stack);
                 font-size: var(--font-sm);
-                font-weight: 500;
+                font-weight: 600;
                 border-radius: var(--radius-sm);
-                border: 1px solid var(--color-border-strong);
-                background-color: var(--color-text);
-                color: var(--color-surface);
+                border: 1px solid var(--color-brand);
+                background-color: var(--color-brand);
+                color: var(--color-white);
                 cursor: pointer;
-                transition: background-color 0.15s;
+                transition: background-color 0.15s, border-color 0.15s;
             }
 
             .modal-buttons button:hover {
-                background-color: #1a202c;
+                background-color: var(--color-brand-hover);
+                border-color: var(--color-brand-hover);
             }
 
             .modal-buttons button.secondary {
-                background-color: var(--color-surface);
-                color: var(--color-text);
+                background-color: var(--color-white);
+                color: var(--color-brand);
+                border-color: var(--color-brand);
             }
 
             .modal-buttons button.secondary:hover {
-                background-color: var(--color-surface-soft);
+                background-color: var(--color-blue-pale);
             }
 
             .layer-edit-btn {
@@ -1021,8 +1118,8 @@
                 font-size: 1.35rem !important;
             }
 
-            body.text-large .iconify,
-            body.text-xlarge .iconify {
+            body.text-large .material-symbols-outlined,
+            body.text-xlarge .material-symbols-outlined {
                 font-size: 20px !important;
             }
 
@@ -1096,12 +1193,10 @@
             aria-expanded="false"
             aria-controls="menuPanel"
         >
-            <span
-                class="iconify"
-                data-icon="mdi:menu"
+            <span class="material-symbols-outlined"
                 style="font-size: 20px"
                 aria-hidden="true"
-            ></span>
+            >menu</span>
         </button>
 
         <!-- Bouton d'accessibilité (Alt+A) -->
@@ -1114,12 +1209,10 @@
             aria-controls="a11yPanel"
             title="Accessibilité (Alt+A)"
         >
-            <span
-                class="iconify"
-                data-icon="material-symbols:settings-applications-outline"
+            <span class="material-symbols-outlined"
                 style="font-size: 20px"
                 aria-hidden="true"
-            ></span>
+            >settings</span>
         </button>
 
         <!-- Panneau d'accessibilité -->
@@ -1251,11 +1344,9 @@
                         onclick="document.getElementById('fileInput').click()"
                         class="w-full bg-gray-800 hover:bg-gray-900 text-white px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
                     >
-                        <span
-                            class="iconify"
-                            data-icon="mdi:folder-open"
+                        <span class="material-symbols-outlined"
                             style="font-size: 14px"
-                        ></span>
+                        >folder_open</span>
                         Charger un GeoJSON local
                     </button>
                 </div>
@@ -1282,22 +1373,18 @@
                             "
                             class="w-full bg-white hover:bg-gray-50 text-gray-800 border border-gray-300 px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
                         >
-                            <span
-                                class="iconify"
-                                data-icon="mdi:view-dashboard"
+                            <span class="material-symbols-outlined"
                                 style="font-size: 14px"
-                            ></span>
+                            >dashboard</span>
                             Charger config
                         </button>
                         <button
                             onclick="exportConfig()"
                             class="w-full bg-white hover:bg-gray-50 text-gray-800 border border-gray-300 px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
                         >
-                            <span
-                                class="iconify"
-                                data-icon="mdi:download"
+                            <span class="material-symbols-outlined"
                                 style="font-size: 14px"
-                            ></span>
+                            >download</span>
                             Exporter config
                         </button>
                     </div>
@@ -1317,22 +1404,18 @@
                             onclick="loadExample()"
                             class="w-full bg-white hover:bg-gray-50 text-gray-800 border border-gray-300 px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
                         >
-                            <span
-                                class="iconify"
-                                data-icon="mdi:map-marker-star"
+                            <span class="material-symbols-outlined"
                                 style="font-size: 14px"
-                            ></span>
+                            >star</span>
                             Exemple
                         </button>
                         <button
                             onclick="clearAll()"
                             class="w-full bg-white hover:bg-gray-50 text-red-700 border border-gray-300 px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
                         >
-                            <span
-                                class="iconify"
-                                data-icon="mdi:delete-sweep"
+                            <span class="material-symbols-outlined"
                                 style="font-size: 14px"
-                            ></span>
+                            >delete_sweep</span>
                             Effacer tout
                         </button>
                     </div>
@@ -1342,7 +1425,7 @@
 
         <div id="message" class="message"></div>
 
-        <div class="map-container">
+        <main class="map-container" aria-label="Visualiseur cartographique">
             <!-- Panneau de gestion des couches -->
             <nav
                 id="layerPanel"
@@ -1387,10 +1470,9 @@
                         >
                             <div class="basemap-row-info">
                                 <span
-                                    class="iconify basemap-row-icon"
-                                    data-icon="mdi:map-outline"
+                                    class="material-symbols-outlined basemap-row-icon"
                                     aria-hidden="true"
-                                ></span>
+                                >map</span>
                                 <div class="basemap-row-text">
                                     <div class="basemap-row-label">Fond de carte</div>
                                     <div
@@ -1406,12 +1488,10 @@
                                 title="Changer le fond de carte"
                                 aria-label="Changer le fond de carte"
                             >
-                                <span
-                                    class="iconify"
-                                    data-icon="mdi:pencil"
+                                <span class="material-symbols-outlined"
                                     style="font-size: 14px"
                                     aria-hidden="true"
-                                ></span>
+                                >edit</span>
                             </button>
                         </div>
                     </div>
@@ -1435,22 +1515,20 @@
                 aria-expanded="true"
                 aria-controls="layerPanel"
             >
-                <span
-                    class="iconify"
-                    data-icon="mdi:dock-left"
+                <span class="material-symbols-outlined"
                     style="font-size: 20px"
                     aria-hidden="true"
-                ></span>
+                >dock_to_left</span>
             </button>
 
             <!-- Carte -->
-            <main
+            <div
                 id="map"
                 role="application"
                 aria-label="Carte interactive"
                 tabindex="0"
-            ></main>
-        </div>
+            ></div>
+        </main>
 
         <!-- Modal pour éditer une couche -->
         <div id="renameModal" class="modal">
@@ -1878,7 +1956,7 @@
                                         onclick="downloadChartCSV('${chartId}')"
                                         aria-label="Télécharger les données en CSV"
                                     >
-                                        <span class="iconify" data-icon="mdi:download" style="font-size: 12px;"></span>
+                                        <span class="material-symbols-outlined" style="font-size: 12px;">download</span>
                                         CSV
                                     </button>
                                     <button
@@ -1888,7 +1966,7 @@
                                         aria-label="Télécharger le graphique en PNG haute résolution"
                                         title="PNG (3×) du graphique au zoom courant"
                                     >
-                                        <span class="iconify" data-icon="mdi:image" style="font-size: 12px;"></span>
+                                        <span class="material-symbols-outlined" style="font-size: 12px;">image</span>
                                         PNG
                                     </button>
                                 </div>
@@ -3391,7 +3469,7 @@
                 <div class="layer-item" style="border-left-color: ${layerInfo.color}" role="group" aria-label="Couche ${layerInfo.name}" draggable="true" data-index="${index}">
                     <div class="layer-item-header">
                         <div class="drag-handle" aria-hidden="true" title="Glisser pour réordonner">
-                            <span class="iconify" data-icon="mdi:drag-vertical" style="font-size: 14px;"></span>
+                            <span class="material-symbols-outlined" style="font-size: 14px;">drag_indicator</span>
                         </div>
                         <div class="layer-item-name-wrapper">
                             <span class="layer-item-name" title="${layerInfo.name}">${layerInfo.name}</span>
@@ -3404,14 +3482,14 @@
                                 aria-label="${isVisible ? 'Masquer' : 'Afficher'} la couche ${layerInfo.name}"
                                 class="eye-btn${isVisible ? '' : ' hidden-layer'}"
                             >
-                                <span class="iconify" data-icon="${isVisible ? 'mdi:eye' : 'mdi:eye-off'}" style="font-size: 11px;" aria-hidden="true"></span>
+                                <span class="material-symbols-outlined" style="font-size: 11px;" aria-hidden="true">${isVisible ? 'visibility' : 'visibility_off'}</span>
                             </button>
                             <button
                                 onclick="renameLayer(${index})"
                                 title="Éditer ${layerInfo.name}"
                                 aria-label="Éditer la couche ${layerInfo.name}"
                             >
-                                <span class="iconify" data-icon="mdi:pencil" style="font-size: 11px;" aria-hidden="true"></span>
+                                <span class="material-symbols-outlined" style="font-size: 11px;" aria-hidden="true">edit</span>
                             </button>
                             <button
                                 class="danger"
@@ -3419,7 +3497,7 @@
                                 title="Supprimer ${layerInfo.name}"
                                 aria-label="Supprimer la couche ${layerInfo.name}"
                             >
-                                <span class="iconify" data-icon="mdi:delete" style="font-size: 11px;" aria-hidden="true"></span>
+                                <span class="material-symbols-outlined" style="font-size: 11px;" aria-hidden="true">delete</span>
                             </button>
                         </div>
                     </div>
@@ -3438,7 +3516,6 @@
             function toggleLayerPanel() {
                 const panel = document.getElementById("layerPanel");
                 const btn = document.getElementById("togglePanelBtn");
-                const icon = btn.querySelector(".iconify");
 
                 panel.classList.toggle("collapsed");
 
@@ -3446,13 +3523,11 @@
                     btn.title = "Afficher le panneau";
                     btn.setAttribute("aria-label", "Afficher le panneau des couches");
                     btn.setAttribute("aria-expanded", "false");
-                    icon.setAttribute("data-icon", "mdi:dock-left");
                     announceToScreenReader("Panneau des couches masqué");
                 } else {
                     btn.title = "Masquer le panneau";
                     btn.setAttribute("aria-label", "Masquer le panneau des couches");
                     btn.setAttribute("aria-expanded", "true");
-                    icon.setAttribute("data-icon", "mdi:dock-left");
                     announceToScreenReader("Panneau des couches affiché");
                 }
             }
