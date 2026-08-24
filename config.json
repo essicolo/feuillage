@@ -48,6 +48,28 @@
             "C_f",
             "T_melt"
           ]
+        },
+        {
+          "type": "chart",
+          "chart_type": "line",
+          "data_source": {
+            "type": "zarr",
+            "store_url": "https://huggingface.co/datasets/essip/meandre/resolve/main",
+            "value_array": "discharge",
+            "feature_dim": "troncon_id",
+            "feature_id_property": "IDTRONCON",
+            "time_array": "time",
+            "series": [
+              { "name": "q25", "role": "lower", "indexers": { "percentile": 25 } },
+              { "name": "q50", "role": "main",  "indexers": { "percentile": 50 } },
+              { "name": "q75", "role": "upper", "indexers": { "percentile": 75 } }
+            ]
+          },
+          "options": {
+            "title": "Débit journalier simulé (m³/s) — bande de confiance q25-q75",
+            "xlabel": "Date",
+            "ylabel": "Débit (m³/s)"
+          }
         }
       ]
     },
