@@ -1,6 +1,6 @@
 {
   "view": {
-    "name": "meandre 1.0 — Québec",
+    "name": "meandre 1.0 - Québec",
     "description": "Réseau modélisé, paramètres appris, effet des prélèvements et rejets",
     "center": [
       47.5,
@@ -66,7 +66,7 @@
             ]
           },
           "options": {
-            "title": "Débit journalier simulé (m³/s) — bande de confiance q25-q75",
+            "title": "Débit journalier simulé (m³/s), bande de confiance q25-q75",
             "xlabel": "Date",
             "ylabel": "Débit (m³/s)"
           }
@@ -74,7 +74,7 @@
       ]
     },
     "zone_rouge": {
-      "title": "Zone rouge — prélèvement {properties.prelev_rel_pct} % du débit",
+      "title": "Zone rouge, prélèvement {properties.prelev_rel_pct} % du débit",
       "sections": [
         {
           "type": "properties",
@@ -97,7 +97,7 @@
       ]
     },
     "station": {
-      "title": "Station {properties.station} — KGE {properties.kge}",
+      "title": "Station {properties.station}, KGE {properties.kge}",
       "sections": [
         {
           "type": "properties",
