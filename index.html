@@ -7,7 +7,19 @@
             name="description"
             content="Feuillage — visualiseur cartographique léger pour couches GeoJSON et PMTiles, avec popups et graphiques temporels."
         />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="Feuillage" />
+        <meta
+            property="og:description"
+            content="Feuillage — visualiseur cartographique léger pour couches GeoJSON et PMTiles, avec popups et graphiques temporels."
+        />
         <title>Feuillage</title>
+
+        <link
+            rel="icon"
+            type="image/svg+xml"
+            href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23095797'/%3E%3Cpath d='M8 22c8-1 13-6 14-14-8 1-13 6-14 14z' fill='%23DAE6F0'/%3E%3Cpath d='M8 22c3-4 6-7 12-11' stroke='%23095797' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"
+        />
 
         <!-- Preconnect aux origines tierces critiques pour le LCP -->
         <link rel="preconnect" href="https://a.tile.openstreetmap.org" crossorigin />
@@ -212,13 +224,16 @@
                 padding: 10px;
                 box-shadow: var(--shadow-md);
                 cursor: pointer;
-                transition: background-color 0.15s, box-shadow 0.15s;
+                transition: background-color 0.15s, box-shadow 0.15s, transform 0.1s;
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
             }
             .icon-btn-fixed:hover {
                 background-color: var(--color-gray-pale);
+            }
+            .icon-btn-fixed:active {
+                transform: scale(0.94);
             }
             .icon-btn-fixed.menu-toggle { right: 16px; }
             .icon-btn-fixed.a11y-toggle { right: 64px; }
@@ -295,7 +310,10 @@
                 cursor: pointer;
                 border: 1px solid transparent;
                 border-radius: var(--radius-sm);
-                transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+                transition: background-color 0.15s, border-color 0.15s, color 0.15s, transform 0.1s;
+            }
+            .btn:active {
+                transform: scale(0.97);
             }
             .btn-block { width: 100%; }
             .btn-primary {
@@ -1025,12 +1043,72 @@
                 background-color: var(--color-brand);
                 color: var(--color-white);
                 cursor: pointer;
-                transition: background-color 0.15s, border-color 0.15s;
+                transition: background-color 0.15s, border-color 0.15s, transform 0.1s;
             }
 
             .modal-buttons button:hover {
                 background-color: var(--color-brand-hover);
                 border-color: var(--color-brand-hover);
+            }
+
+            .modal-buttons button:active {
+                transform: scale(0.97);
+            }
+
+            /* === Modal d'information (résumés, listes) === */
+            .modal-content.modal-content-wide {
+                min-width: min(560px, calc(100vw - 32px));
+                max-width: min(720px, calc(100vw - 32px));
+            }
+
+            .info-modal-body {
+                max-height: min(60vh, 480px);
+                overflow-y: auto;
+                margin-bottom: 1rem;
+                padding-right: 0.25rem;
+                border: 1px solid var(--color-divider);
+                border-radius: var(--radius-sm);
+            }
+
+            .info-modal-section {
+                padding: 0.6rem 0.85rem;
+                border-bottom: 1px solid var(--color-divider);
+            }
+
+            .info-modal-section:last-child {
+                border-bottom: none;
+            }
+
+            .info-modal-section h3 {
+                font-size: var(--font-sm);
+                font-weight: 600;
+                color: var(--color-text);
+                margin-bottom: 0.3rem;
+            }
+
+            .info-modal-section dl {
+                display: grid;
+                grid-template-columns: max-content 1fr;
+                gap: 0.15rem 0.6rem;
+                font-size: var(--font-xs);
+                color: var(--color-text-secondary);
+                margin: 0;
+            }
+
+            .info-modal-section dt {
+                color: var(--color-text-muted);
+            }
+
+            .info-modal-section dd {
+                margin: 0;
+                font-variant-numeric: tabular-nums;
+            }
+
+            .info-modal-empty {
+                padding: 1.5rem 0.85rem;
+                text-align: center;
+                color: var(--color-text-muted);
+                font-size: var(--font-sm);
             }
 
             .modal-buttons button.secondary {
@@ -1693,6 +1771,17 @@
                         Annuler
                     </button>
                     <button onclick="confirmBasemap()">Valider</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal générique pour les résumés / listes (remplace window.alert) -->
+        <div id="infoModal" class="modal">
+            <div class="modal-content modal-content-wide">
+                <h2 id="infoModalTitle">Information</h2>
+                <div id="infoModalBody" class="info-modal-body"></div>
+                <div class="modal-buttons">
+                    <button onclick="closeInfoModal()">Fermer</button>
                 </div>
             </div>
         </div>
@@ -4216,27 +4305,38 @@
              */
             function showLayersSummary() {
                 if (loadedLayers.length === 0) {
-                    alert("Aucune couche chargée.");
+                    openInfoModal(
+                        "Résumé des couches",
+                        `<p class="info-modal-empty">Aucune couche chargée.</p>`,
+                    );
                     return;
                 }
 
-                let summary = `=== RÉSUMÉ DES COUCHES ===\n\n`;
-                summary += `Nombre total de couches: ${loadedLayers.length}\n\n`;
+                const body = loadedLayers
+                    .map((layerInfo, index) => {
+                        const visible = map.hasLayer(layerInfo.layer)
+                            ? "Visible"
+                            : "Masquée";
+                        const featureCount =
+                            layerInfo.geojson.type === "FeatureCollection"
+                                ? layerInfo.geojson.features.length
+                                : 1;
+                        return `
+                            <div class="info-modal-section">
+                                <h3>${index + 1}. ${escapeHtml(layerInfo.name)}</h3>
+                                <dl>
+                                    <dt>État</dt><dd>${visible}</dd>
+                                    <dt>Entités</dt><dd>${featureCount}</dd>
+                                    <dt>Couleur</dt><dd>${escapeHtml(layerInfo.color)}</dd>
+                                </dl>
+                            </div>`;
+                    })
+                    .join("");
 
-                loadedLayers.forEach((layerInfo, index) => {
-                    const visible = map.hasLayer(layerInfo.layer) ? "✓" : "✗";
-                    const featureCount =
-                        layerInfo.geojson.type === "FeatureCollection"
-                            ? layerInfo.geojson.features.length
-                            : 1;
-
-                    summary += `${index + 1}. ${layerInfo.name}\n`;
-                    summary += `   Visible: ${visible}\n`;
-                    summary += `   Nombre d'entités: ${featureCount}\n`;
-                    summary += `   Couleur: ${layerInfo.color}\n\n`;
-                });
-
-                alert(summary);
+                openInfoModal(
+                    `Résumé des couches (${loadedLayers.length})`,
+                    body,
+                );
                 announceToScreenReader(
                     `Résumé affiché pour ${loadedLayers.length} couches`,
                 );
@@ -4247,51 +4347,72 @@
              */
             function showFeaturesList() {
                 if (loadedLayers.length === 0) {
-                    alert("Aucune couche chargée.");
+                    openInfoModal(
+                        "Liste des entités",
+                        `<p class="info-modal-empty">Aucune couche chargée.</p>`,
+                    );
                     return;
                 }
 
-                let list = `=== LISTE DES ENTITÉS ===\n\n`;
+                const visibleLayers = loadedLayers.filter((layerInfo) =>
+                    map.hasLayer(layerInfo.layer),
+                );
 
-                loadedLayers.forEach((layerInfo, layerIndex) => {
-                    if (!map.hasLayer(layerInfo.layer)) return;
+                if (visibleLayers.length === 0) {
+                    openInfoModal(
+                        "Liste des entités",
+                        `<p class="info-modal-empty">Aucune couche visible.</p>`,
+                    );
+                    return;
+                }
 
-                    list += `\n--- ${layerInfo.name} ---\n\n`;
+                const body = visibleLayers
+                    .map((layerInfo) => {
+                        const features =
+                            layerInfo.geojson.type === "FeatureCollection"
+                                ? layerInfo.geojson.features
+                                : [layerInfo.geojson];
 
-                    const features =
-                        layerInfo.geojson.type === "FeatureCollection"
-                            ? layerInfo.geojson.features
-                            : [layerInfo.geojson];
+                        const items = features
+                            .slice(0, 10)
+                            .map((feature, index) => {
+                                const props = feature.properties || {};
+                                const name =
+                                    props.name ||
+                                    props.nom ||
+                                    props.id ||
+                                    props.ID ||
+                                    `Entité ${index + 1}`;
+                                const extraProps = Object.entries(props)
+                                    .slice(0, 3)
+                                    .map(
+                                        ([key, value]) =>
+                                            `<dt>${escapeHtml(key)}</dt><dd>${escapeHtml(value)}</dd>`,
+                                    )
+                                    .join("");
+                                return `
+                                    <div>
+                                        <strong>${index + 1}. ${escapeHtml(name)}</strong>
+                                        ${extraProps ? `<dl>${extraProps}</dl>` : ""}
+                                    </div>`;
+                            })
+                            .join("");
 
-                    features.slice(0, 10).forEach((feature, index) => {
-                        list += `${index + 1}. `;
+                        const more =
+                            features.length > 10
+                                ? `<p class="info-modal-empty">… et ${features.length - 10} autres entités</p>`
+                                : "";
 
-                        // Essayer de trouver un nom ou ID
-                        const props = feature.properties || {};
-                        const name =
-                            props.name ||
-                            props.nom ||
-                            props.id ||
-                            props.ID ||
-                            `Entité ${index + 1}`;
+                        return `
+                            <div class="info-modal-section">
+                                <h3>${escapeHtml(layerInfo.name)}</h3>
+                                ${items}
+                                ${more}
+                            </div>`;
+                    })
+                    .join("");
 
-                        list += `${name}\n`;
-
-                        // Afficher quelques propriétés importantes
-                        const importantProps = Object.entries(props)
-                            .slice(0, 3)
-                            .map(([key, value]) => `   ${key}: ${value}`)
-                            .join("\n");
-
-                        list += importantProps + "\n\n";
-                    });
-
-                    if (features.length > 10) {
-                        list += `... et ${features.length - 10} autres entités\n`;
-                    }
-                });
-
-                alert(list);
+                openInfoModal("Liste des entités", body);
                 announceToScreenReader("Liste des entités affichée");
             }
 
@@ -4353,8 +4474,29 @@
                     document.getElementById("a11yToggle").setAttribute("aria-expanded", "false");
                     closeRenameModal();
                     closeBasemapDialog();
+                    closeInfoModal();
                 }
             });
+
+            function escapeHtml(value) {
+                const div = document.createElement("div");
+                div.textContent = String(value);
+                return div.innerHTML;
+            }
+
+            /**
+             * Ouvre le modal générique d'information (résumés, listes),
+             * en remplacement de window.alert().
+             */
+            function openInfoModal(title, bodyHTML) {
+                document.getElementById("infoModalTitle").textContent = title;
+                document.getElementById("infoModalBody").innerHTML = bodyHTML;
+                document.getElementById("infoModal").classList.add("show");
+            }
+
+            function closeInfoModal() {
+                document.getElementById("infoModal").classList.remove("show");
+            }
 
             // Live-update de l'attribution lorsqu'on change la sélection
             document
