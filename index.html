@@ -521,12 +521,19 @@
             }
 
             /* === Layer items === */
+            /* Couleur/texte fixés en inline style (voir updateLayerPanel) :
+               toute la tuile prend la couleur de la couche, avec un texte
+               noir ou blanc calculé selon le contraste. */
             .layer-item {
                 padding: 0.5rem;
                 margin-bottom: 0.4rem;
-                background-color: var(--color-surface-alt);
                 border-radius: var(--radius-sm);
-                border-left: 3px solid;
+                box-shadow: var(--shadow-sm);
+            }
+
+            .layer-item .drag-handle {
+                color: inherit;
+                opacity: 0.65;
             }
 
             .layer-item-header {
@@ -3665,7 +3672,7 @@
                                 : null;
                             const isVisible = layerInfo.visible;
                             return `
-                <div class="layer-item" style="border-left-color: ${layerInfo.color}" role="group" aria-label="Couche ${layerInfo.name}" draggable="true" data-index="${index}">
+                <div class="layer-item" style="background-color: ${layerInfo.color}; color: ${getContrastTextColor(layerInfo.color)};" role="group" aria-label="Couche ${layerInfo.name}" draggable="true" data-index="${index}">
                     <div class="layer-item-header">
                         <div class="drag-handle" aria-hidden="true" title="Glisser pour réordonner">
                             <span class="material-symbols-outlined" style="font-size: 14px;">drag_indicator</span>
@@ -4485,6 +4492,25 @@
                     closeInfoModal();
                 }
             });
+
+            /**
+             * Retourne "#000000" ou "#FFFFFF" selon la luminosité perçue de
+             * la couleur passée (formule YIQ), pour un texte toujours lisible
+             * sur une tuile de couche colorée.
+             */
+            function getContrastTextColor(hexColor) {
+                const hex = (hexColor || "").replace("#", "");
+                const full =
+                    hex.length === 3
+                        ? hex.split("").map((c) => c + c).join("")
+                        : hex;
+                if (!/^[0-9a-fA-F]{6}$/.test(full)) return "#000000";
+                const r = parseInt(full.slice(0, 2), 16);
+                const g = parseInt(full.slice(2, 4), 16);
+                const b = parseInt(full.slice(4, 6), 16);
+                const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+                return yiq >= 150 ? "#000000" : "#FFFFFF";
+            }
 
             function escapeHtml(value) {
                 const div = document.createElement("div");
