@@ -36,7 +36,7 @@
         />
         <link
             rel="stylesheet"
-            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=arrow_drop_down,close,dashboard,delete,delete_sweep,distance,dock_to_left,download,drag_indicator,edit,folder_open,image,location_on,map,menu,save,search,settings,star,visibility,visibility_off&display=swap"
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=arrow_drop_down,close,close_fullscreen,dashboard,delete,delete_sweep,distance,dock_to_left,download,drag_indicator,edit,folder_open,fullscreen,image,location_on,map,menu,save,search,settings,star,visibility,visibility_off&display=swap"
         />
 
         <!-- MapLibre GL CSS -->
@@ -881,10 +881,18 @@
                 max-height: 200px;
             }
 
+            /* Le bouton "Agrandir" retire le plafond une fois la taille du
+               canvas augmentée via chart.resize() (voir toggleChartSize). */
+            .popup-chart.is-enlarged canvas {
+                max-height: none;
+            }
+
             .popup-chart-toolbar {
                 display: flex;
-                justify-content: space-between;
+                flex-wrap: wrap;
+                justify-content: flex-end;
                 align-items: center;
+                gap: 0.4rem;
                 margin-bottom: 0.5rem;
             }
 
@@ -2154,8 +2162,19 @@
                             const chartId = `chart-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
                             const tableId = `table-${chartId}`;
                             // Canvas avec dimensions fixes (pas de responsive pour éviter bugs)
-                            html += `<div class="popup-chart">
+                            html += `<div class="popup-chart" id="container-${chartId}">
                                 <div class="popup-chart-toolbar">
+                                    <button
+                                        type="button"
+                                        class="chart-toggle-btn"
+                                        id="resize-btn-${chartId}"
+                                        onclick="toggleChartSize('${chartId}')"
+                                        aria-label="Agrandir le graphique"
+                                        title="Agrandir/réduire le graphique"
+                                    >
+                                        <span class="material-symbols-outlined" style="font-size: 12px;">fullscreen</span>
+                                        Agrandir
+                                    </button>
                                     <button
                                         type="button"
                                         class="chart-toggle-btn"
@@ -2929,6 +2948,11 @@
                 );
 
                 const layerIds = [];
+                // Sous-ensemble de layerIds qui reçoit les gestionnaires de
+                // clic/survol (voir setupPopupHandlers). Pour les lignes, on
+                // veut cibler la couche "hit" invisible et élargie plutôt que
+                // la ligne fine visible, sinon le survol est trop précis.
+                const interactiveLayerIds = [];
 
                 // Ajouter les couches selon les types de géométrie
                 if (hasPolygons) {
@@ -2941,6 +2965,7 @@
                         paint: getFillPaint(color),
                     });
                     layerIds.push(fillLayerId);
+                    interactiveLayerIds.push(fillLayerId);
 
                     const outlineLayerId = `${layerId}-outline`;
                     map.addLayer({
@@ -2963,6 +2988,22 @@
                         paint: getLinePaint(color),
                     });
                     layerIds.push(lineLayerId);
+
+                    // Couche invisible et large superposée à la ligne fine,
+                    // seulement pour élargir la zone cliquable/survolable.
+                    const lineHitLayerId = `${layerId}-line-hit`;
+                    map.addLayer({
+                        id: lineHitLayerId,
+                        type: "line",
+                        source: sourceId,
+                        filter: ["in", "$type", "LineString"],
+                        paint: {
+                            "line-width": 16,
+                            "line-opacity": 0,
+                        },
+                    });
+                    layerIds.push(lineHitLayerId);
+                    interactiveLayerIds.push(lineHitLayerId);
                 }
 
                 if (hasPoints) {
@@ -2975,6 +3016,7 @@
                         paint: getPointPaint(color),
                     });
                     layerIds.push(pointLayerId);
+                    interactiveLayerIds.push(pointLayerId);
                 }
 
                 // Stocker la couche avec un ID unique
@@ -2982,6 +3024,7 @@
                     id: layerId,
                     sourceId: sourceId,
                     layerIds: layerIds,
+                    interactiveLayerIds: interactiveLayerIds,
                     name: name,
                     color: color,
                     geojson: geojson,
@@ -3091,6 +3134,7 @@
                 });
 
                 const layerIds = [];
+                const interactiveLayerIds = [];
                 if (geomType === "polygon") {
                     const fillId = `${layerId}-fill`;
                     map.addLayer({
@@ -3101,6 +3145,7 @@
                         paint: getFillPaint(color),
                     });
                     layerIds.push(fillId);
+                    interactiveLayerIds.push(fillId);
                     const outlineId = `${layerId}-outline`;
                     map.addLayer({
                         id: outlineId,
@@ -3120,6 +3165,7 @@
                         paint: getPointPaint(color),
                     });
                     layerIds.push(pointId);
+                    interactiveLayerIds.push(pointId);
                 } else {
                     const lineId = `${layerId}-line`;
                     map.addLayer({
@@ -3130,12 +3176,29 @@
                         paint: getLinePaint(color),
                     });
                     layerIds.push(lineId);
+
+                    // Couche invisible et large pour élargir la zone
+                    // cliquable/survolable des tronçons (lignes fines).
+                    const lineHitId = `${layerId}-line-hit`;
+                    map.addLayer({
+                        id: lineHitId,
+                        type: "line",
+                        source: sourceId,
+                        "source-layer": sourceLayer,
+                        paint: {
+                            "line-width": 16,
+                            "line-opacity": 0,
+                        },
+                    });
+                    layerIds.push(lineHitId);
+                    interactiveLayerIds.push(lineHitId);
                 }
 
                 const layerInfo = {
                     id: layerId,
                     sourceId,
                     layerIds,
+                    interactiveLayerIds,
                     name,
                     color,
                     geojson: null,
@@ -3253,7 +3316,12 @@
              * Configure les gestionnaires de popup pour une couche
              */
             function setupPopupHandlers(layerInfo) {
-                layerInfo.layerIds.forEach((layerId) => {
+                // N'écoute que sur le sous-ensemble "interactif" (fill pour les
+                // polygones, couche hit élargie pour les lignes, cercle pour les
+                // points) pour éviter les doubles popups et rater les tronçons fins.
+                const targetLayerIds =
+                    layerInfo.interactiveLayerIds || layerInfo.layerIds;
+                targetLayerIds.forEach((layerId) => {
                     // Changer le curseur au survol
                     map.on("mouseenter", layerId, () => {
                         map.getCanvas().style.cursor = "pointer";
@@ -3272,8 +3340,10 @@
                         );
 
                         // Créer et afficher le popup
+                        // Plafond généreux (au lieu de 600px) pour laisser de
+                        // la place au bouton "Agrandir" des graphiques.
                         const popup = new maplibregl.Popup({
-                            maxWidth: `${Math.min(window.innerWidth * 0.8, 600)}px`,
+                            maxWidth: `${Math.min(window.innerWidth * 0.9, 760)}px`,
                         })
                             .setLngLat(e.lngLat)
                             .setHTML(popupContent)
@@ -4536,6 +4606,45 @@
             document
                 .getElementById("basemapSelect")
                 .addEventListener("change", updateBasemapAttributionHint);
+
+            /**
+             * Agrandit/réduit un graphique de popup. Les canvas Chart.js sont
+             * en taille fixe ici (responsive:false, voir createChart) pour
+             * éviter les boucles de redimensionnement dans un popup MapLibre
+             * qui se repositionne lui-même ; l'agrandissement est donc un
+             * chart.resize() explicite et ponctuel, déclenché par l'utilisateur,
+             * jamais automatique.
+             */
+            function toggleChartSize(chartId) {
+                const canvas = document.getElementById(chartId);
+                const container = document.getElementById(`container-${chartId}`);
+                const btn = document.getElementById(`resize-btn-${chartId}`);
+                const chart = Chart.getChart(chartId);
+                if (!canvas || !container || !chart) return;
+
+                const isEnlarged = container.classList.toggle("is-enlarged");
+
+                let width, height;
+                if (isEnlarged) {
+                    width = Math.round(Math.min(window.innerWidth * 0.8, 700));
+                    height = Math.round(width * (200 / 350));
+                } else {
+                    width = 350;
+                    height = 200;
+                }
+
+                chart.resize(width, height);
+
+                if (btn) {
+                    btn.setAttribute(
+                        "aria-label",
+                        isEnlarged ? "Réduire le graphique" : "Agrandir le graphique",
+                    );
+                    btn.innerHTML = `
+                        <span class="material-symbols-outlined" style="font-size: 12px;">${isEnlarged ? "close_fullscreen" : "fullscreen"}</span>
+                        ${isEnlarged ? "Réduire" : "Agrandir"}`;
+                }
+            }
 
             /**
              * Télécharge les données du graphique sous forme de CSV. Une
