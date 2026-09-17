@@ -1,46 +1,60 @@
 {
   "view": {
-    "name": "RQH 2026 — Tronçons hydrographiques (Québec)",
-    "description": "Débits journaliers du portrait RQH avec popup chronique 1962-2026",
-    "center": [46.85, -71.25],
+    "name": "meandre 1.0",
+    "description": "Réseau modélisé, paramètres appris, effet des prélèvements et rejets",
+    "center": [
+      47.5,
+      -73.5
+    ],
     "zoom": 6,
     "basemap": "osm"
   },
   "layers": [
     {
-      "name": "Régions hydrographiques",
-      "url": "./data/rqh/regions.pmtiles",
-      "type": "pmtiles",
-      "source_layer": "regions",
-      "geometry_type": "polygon",
+      "name": "Réseau (effet des prélèvements, %)",
+      "url": "./data/meandre/reseau.geojson",
       "visible": true,
-      "color": "#4d4d4d"
+      "color_by": "effet_prelev_pct",
+      "popup_template": "troncon"
     },
     {
-      "name": "Tronçons RQH",
-      "url": "./data/rqh/troncons.pmtiles",
-      "type": "pmtiles",
-      "source_layer": "troncons",
-      "geometry_type": "line",
+      "name": "Zones rouges (prélèvement relatif)",
+      "url": "./data/meandre/zones_rouges.geojson",
       "visible": true,
-      "color": "#0072B2",
-      "popup_template": "troncon_rqh"
+      "color": "#d62728",
+      "popup_template": "zone_rouge"
+    },
+    {
+      "name": "Stations (KGE tenu de côté)",
+      "url": "./data/meandre/stations.geojson",
+      "visible": true,
+      "color_by": "kge",
+      "popup_template": "station"
     }
   ],
   "popup_templates": {
-    "troncon_rqh": {
-      "title": "Tronçon {properties.IDTRONCON}",
+    "troncon": {
+      "title": "Tronçon",
       "sections": [
         {
           "type": "properties",
-          "fields": ["IDTRONCON"]
+          "fields": [
+            "q_annuel",
+            "effet_prelev_pct",
+            "prelev_rel_pct",
+            "krec",
+            "K_sat_1",
+            "k_gw",
+            "C_f",
+            "T_melt"
+          ]
         },
         {
           "type": "chart",
           "chart_type": "line",
           "data_source": {
             "type": "zarr",
-            "store_url": "https://huggingface.co/datasets/essip/rqh/resolve/main",
+            "store_url": "https://huggingface.co/datasets/essip/meandre/resolve/main",
             "value_array": "discharge",
             "feature_dim": "troncon_id",
             "feature_id_property": "IDTRONCON",
@@ -52,9 +66,57 @@
             ]
           },
           "options": {
-            "title": "Débit médian journalier (m³/s) — 1962-2026",
+            "title": "Débit journalier simulé (m³/s), bande de confiance q25-q75",
             "xlabel": "Date",
             "ylabel": "Débit (m³/s)"
+          }
+        }
+      ]
+    },
+    "zone_rouge": {
+      "title": "Zone rouge, prélèvement {properties.prelev_rel_pct} % du débit",
+      "sections": [
+        {
+          "type": "properties",
+          "fields": [
+            "prelev_rel_pct",
+            "effet_prelev_pct"
+          ]
+        },
+        {
+          "type": "chart",
+          "chart_type": "line",
+          "data_field": "q_mensuel_avec",
+          "compare_field": "q_mensuel_renature",
+          "options": {
+            "title": "Débit mensuel : avec prélèvements vs renaturalisé",
+            "xlabel": "Mois",
+            "ylabel": "m³/s"
+          }
+        }
+      ]
+    },
+    "station": {
+      "title": "Station {properties.station}, KGE {properties.kge}",
+      "sections": [
+        {
+          "type": "properties",
+          "fields": [
+            "kge",
+            "r",
+            "beta",
+            "gamma"
+          ]
+        },
+        {
+          "type": "chart",
+          "chart_type": "line",
+          "data_field": "cycle_sim",
+          "compare_field": "cycle_obs",
+          "options": {
+            "title": "Cycle mensuel simulé vs observé",
+            "xlabel": "Mois",
+            "ylabel": "m³/s"
           }
         }
       ]
