@@ -371,6 +371,61 @@ Côté technique : zarrita.js est chargé en lazy-import à la première ouvertu
 
 Le store doit servir avec **CORS ouvert et range requests supportés** : Hugging Face Datasets, Cloudflare R2 (avec CORS configuré), et la plupart des buckets S3 publics conviennent. pCloud / Google Drive / Dropbox **ne fonctionnent pas** car ils restreignent CORS au domaine du fournisseur.
 
+### Fiche en panneau latéral : `"display": "sidebar"`
+
+Un template de popup qui déclare `"display": "sidebar"` s'ouvre dans un
+panneau à droite de la carte (440 px, la carte cède la place) au lieu d'une
+bulle : mêmes sections, plus d'espace. « Agrandir » élargit le panneau
+(760 px max), Échap ou × le ferme. Sans `display`, rien ne change : bulle.
+
+### Séries et tables lues d'un service web
+
+**`data_source.type: "json"`** — une requête HTTP par entité, réponse en
+tableaux parallèles (`{"dates": [...], "q25": [...], "q50": [...], ...}`) :
+
+```json
+"data_source": {
+  "type": "json",
+  "url": "http://127.0.0.1:8100/api/portrait/{properties.IDTRONCON}",
+  "time_field": "dates",
+  "series": [
+    { "name": "q25", "role": "lower", "field": "q25" },
+    { "name": "q50", "role": "main",  "field": "q50" },
+    { "name": "q75", "role": "upper", "field": "q75" }
+  ]
+}
+```
+
+**Section `"type": "remote_table"`** — une table alimentée par une URL JSON :
+`rows` est le chemin des lignes dans la réponse (tableau → une ligne par
+élément ; objet → table champ/valeur), `columns` des chemins pointés ou des
+objets `{ "path", "label", "link", "text" }` (`link` = chemin d'une URL à
+mettre en lien, `text` = libellé fixe du lien). `empty` : message si aucune
+ligne.
+
+```json
+{
+  "type": "remote_table",
+  "title": "Indicateurs",
+  "url": "http://127.0.0.1:8100/api/indicateurs/{properties.IDTRONCON}",
+  "rows": "indicateurs",
+  "columns": [
+    { "path": "indicateur", "label": "Indicateur" },
+    { "path": "ampleur.h80.rcp8", "label": "2071-2100" }
+  ]
+}
+```
+
+Dans les URL, `{properties.X}` est remplacé (et encodé) par la propriété de
+l'entité cliquée. Si le serveur répond en erreur avec un champ `detail`
+(ex. « tronçon masqué »), c'est ce message qui s'affiche. Le serveur doit
+autoriser CORS.
+
+Exemple complet : `config-atlas-service.json` (service web de l'Atlas
+hydroclimatique en local) — ouvrir `index.html?config=config-atlas-service.json`
+via un serveur qui gère les requêtes Range (PMTiles), p. ex.
+`npx http-server -p 8765`.
+
 ### Types de graphiques supportés
 
 - **bar** : Graphique à barres
