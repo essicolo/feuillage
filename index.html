@@ -725,7 +725,8 @@
             }
 
             /* Sections distantes (remote_table) et erreurs de graphique */
-            .remote-section h4 {
+            .remote-section h4,
+            .popup-chart h4 {
                 margin: 0 0 0.4rem;
                 font-size: var(--font-sm);
                 font-weight: 600;
@@ -2963,6 +2964,13 @@
                 const showError = (msg, info = false) => {
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                     canvas.style.display = "none";
+                    const cont = canvas.closest(".popup-chart");
+                    cont?.querySelector(".popup-chart-toolbar")?.remove();
+                    if (section.options?.title) {
+                        const h = document.createElement("h4");
+                        h.textContent = section.options.title;
+                        canvas.before(h);
+                    }
                     const p = document.createElement("p");
                     p.className = info ? "chart-error is-info" : "chart-error";
                     p.textContent = msg || "Erreur de chargement";
