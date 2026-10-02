@@ -648,9 +648,23 @@
                 display: none;
             }
 
-            /* Sur body (pas sur le panneau) : les boutons fixes suivent */
-            body.feature-panel-wide {
-                --feature-panel-width: min(760px, 60vw);
+            /* Poignée du bord gauche (même comportement que celle des couches) */
+            .feature-panel-resize-handle {
+                position: absolute;
+                top: 0;
+                left: -3px;
+                width: 6px;
+                height: 100%;
+                cursor: col-resize;
+                z-index: 600;
+                background-color: transparent;
+                transition: background-color 0.15s;
+                touch-action: none;
+            }
+
+            .feature-panel-resize-handle:hover,
+            .feature-panel-resize-handle.resizing {
+                background-color: var(--color-brand-tint);
             }
 
             .feature-panel-header {
@@ -763,6 +777,11 @@
             .remote-status.is-error,
             .chart-error {
                 color: var(--color-danger-dark);
+            }
+
+            /* Donnée absente pour cette entité : information, pas erreur */
+            .chart-error.is-info {
+                color: var(--color-text-muted);
             }
 
             .empty-state {
@@ -1886,6 +1905,13 @@
                     >×</button>
                 </div>
                 <div id="featurePanelBody" class="feature-panel-body"></div>
+                <div
+                    class="feature-panel-resize-handle"
+                    role="separator"
+                    aria-orientation="vertical"
+                    aria-label="Redimensionner la fiche (double-clic pour réinitialiser)"
+                    title="Glisser pour redimensionner • Double-clic pour réinitialiser"
+                ></div>
             </aside>
         </main>
 
@@ -1978,12 +2004,22 @@
             // Restaurer la largeur du panneau avant de créer la carte pour
             // que le canvas MapLibre soit dimensionné correctement dès le départ.
             (function restorePanelWidth() {
-                const saved = localStorage.getItem("feuillage-panel-width");
-                if (saved && /^\d+(\.\d+)?px$/.test(saved.trim())) {
-                    document.documentElement.style.setProperty(
-                        "--panel-width",
-                        saved.trim()
-                    );
+                for (const [cle, variable] of [
+                    ["feuillage-panel-width", "--panel-width"],
+                    ["feuillage-feature-panel-width", "--feature-panel-width"],
+                ]) {
+                    let saved = null;
+                    try {
+                        saved = localStorage.getItem(cle);
+                    } catch (e) {
+                        /* stockage indisponible */
+                    }
+                    if (saved && /^\d+(\.\d+)?px$/.test(saved.trim())) {
+                        document.documentElement.style.setProperty(
+                            variable,
+                            saved.trim()
+                        );
+                    }
                 }
             })();
 
@@ -2351,7 +2387,7 @@
                                         PNG
                                     </button>
                                 </div>
-                                <canvas id="${chartId}" width="350" height="200" data-chart-config='${JSON.stringify(section)}' style="display: block;"></canvas>
+                                <canvas id="${chartId}" width="350" height="200" data-chart-config="${escapeAttr(JSON.stringify(section))}" style="display: block;"></canvas>
                             </div>`;
                         } else if (section.type === "remote_table") {
                             // Section alimentée par une URL JSON, remplie après
@@ -2416,11 +2452,21 @@
                 renderRemoteSectionsIn(root, properties);
             }
 
-            // Remplace {properties.X} dans une URL, valeurs encodées.
-            function fillUrlTemplate(url, properties) {
-                return url.replace(/\{properties\.(\w+)\}/g, (m, key) =>
-                    encodeURIComponent(properties[key] ?? ""),
-                );
+            // Remplace {properties.X} dans une URL, valeurs encodées. Si une
+            // propriété manque (ex. station sans tronçon), pas de requête :
+            // erreur « info » portant le message `missing` de la section.
+            function fillUrlTemplate(url, properties, missing) {
+                return url.replace(/\{properties\.(\w+)\}/g, (m, key) => {
+                    const v = properties[key];
+                    if (v === null || v === undefined || v === "") {
+                        const e = new Error(
+                            missing || `Propriété « ${key} » absente`,
+                        );
+                        e.info = true;
+                        throw e;
+                    }
+                    return encodeURIComponent(v);
+                });
             }
 
             // Lit un chemin pointé ("ampleur.h30.rcp8") dans un objet.
@@ -2469,9 +2515,10 @@
              *   url     : gabarit avec {properties.X}
              *   rows    : chemin vers les lignes dans la réponse. Tableau →
              *             une ligne par élément ; objet → table champ/valeur.
-             *   columns : chemins (ou { path, label, link, text }) lus dans
-             *             chaque ligne ; `link` = chemin d'une URL à mettre
-             *             en lien, `text` = libellé fixe de ce lien.
+             *   columns : chemins (ou { path, label, link, text, raw }) lus
+             *             dans chaque ligne ; `link` = chemin d'une URL à
+             *             mettre en lien, `text` = libellé fixe de ce lien,
+             *             `raw` = valeur telle quelle (ex. une année).
              */
             function renderRemoteSectionsIn(root, properties) {
                 root.querySelectorAll(".remote-section[data-remote-config]")
@@ -2483,7 +2530,7 @@
                                 el.getAttribute("data-remote-config"),
                             );
                             const payload = await fetchJsonOrDetail(
-                                fillUrlTemplate(section.url, properties),
+                                fillUrlTemplate(section.url, properties, section.missing),
                             );
                             const data = resolvePath(payload, section.rows);
                             const columns = (section.columns || []).map((c) =>
@@ -2495,10 +2542,13 @@
                                 const v = resolvePath(row, c.path);
                                 const href = c.link && resolvePath(row, c.link);
                                 const cls = typeof v === "number" ? ' class="num"' : "";
-                                const label = c.text ? escapeHtml(c.text) : formatCell(v);
+                                const valeur = c.raw
+                                    ? escapeHtml(v ?? "—")
+                                    : formatCell(v);
+                                const label = c.text ? escapeHtml(c.text) : valeur;
                                 return href
                                     ? `<td${cls}><a href="${escapeAttr(href)}" target="_blank" rel="noopener">${label}</a></td>`
-                                    : `<td${cls}>${formatCell(v)}</td>`;
+                                    : `<td${cls}>${valeur}</td>`;
                             };
                             let html;
                             if (Array.isArray(data)) {
@@ -2517,8 +2567,8 @@
                             }
                             status.outerHTML = html;
                         } catch (e) {
-                            console.error("remote_table:", e);
-                            status.classList.add("is-error");
+                            if (!e.info) console.error("remote_table:", e);
+                            if (!e.info) status.classList.add("is-error");
                             status.textContent = e.message;
                         }
                     });
@@ -2772,7 +2822,7 @@
              */
             async function fetchJsonSeries(feature, source) {
                 const payload = await fetchJsonOrDetail(
-                    fillUrlTemplate(source.url, feature.properties),
+                    fillUrlTemplate(source.url, feature.properties, source.missing),
                 );
                 const specs = source.series || [
                     { name: "value", role: "main", field: source.value_field },
@@ -2910,11 +2960,11 @@
                 // L'erreur s'affiche en texte sous le canvas (masqué) : un
                 // message serveur (« tronçon masqué… ») tient rarement dans
                 // une ligne de canvas.
-                const showError = (msg) => {
+                const showError = (msg, info = false) => {
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                     canvas.style.display = "none";
                     const p = document.createElement("p");
-                    p.className = "chart-error";
+                    p.className = info ? "chart-error is-info" : "chart-error";
                     p.textContent = msg || "Erreur de chargement";
                     canvas.after(p);
                 };
@@ -2936,8 +2986,8 @@
                             renderChart(canvasId, section, chartData),
                         )
                         .catch((e) => {
-                            console.error("data_source fetch failed:", e);
-                            showError(e.message);
+                            if (!e.info) console.error("data_source fetch failed:", e);
+                            showError(e.message, e.info);
                         });
                     return;
                 }
@@ -3175,11 +3225,13 @@
             function getPointPaint(color) {
                 const rgb = hexToRgb(color);
                 return {
+                    // Couleur pleine et liseré blanc : la translucidité
+                    // salissait la teinte sur les fonds verts/beiges.
                     "circle-radius": 6,
                     "circle-color": `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`,
-                    "circle-stroke-color": "#000",
-                    "circle-stroke-width": 1,
-                    "circle-opacity": 0.7,
+                    "circle-stroke-color": "#FFFFFF",
+                    "circle-stroke-width": 1.5,
+                    "circle-opacity": 0.95,
                 };
             }
 
@@ -3723,6 +3775,9 @@
                 body.scrollTop = 0;
                 if (wasHidden) map.resize();
 
+                body.querySelectorAll('[id^="resize-btn-"]').forEach((b) =>
+                    b.remove(),
+                );
                 const { width, height } = featurePanelChartSize();
                 body.querySelectorAll("canvas[data-chart-config]").forEach(
                     (canvas) => {
@@ -3741,11 +3796,17 @@
                 if (panel.hidden) return;
                 destroyChartsIn(panel);
                 panel.hidden = true;
-                document.body.classList.remove(
-                    "feature-panel-open",
-                    "feature-panel-wide",
-                );
+                document.body.classList.remove("feature-panel-open");
                 map.resize();
+            }
+
+            // Les graphiques du panneau (non responsive) suivent sa largeur.
+            function resizeFeaturePanelCharts() {
+                const body = document.getElementById("featurePanelBody");
+                const { width, height } = featurePanelChartSize();
+                body.querySelectorAll("canvas[data-chart-config]").forEach(
+                    (canvas) => Chart.getChart(canvas)?.resize(width, height),
+                );
             }
 
             /**
@@ -5002,17 +5063,7 @@
                 const isEnlarged = container.classList.toggle("is-enlarged");
 
                 let width, height;
-                const panel = container.closest("#featurePanel");
-                if (panel) {
-                    // Dans le panneau : c'est le panneau qui s'élargit, le
-                    // graphique suit sa largeur.
-                    document.body.classList.toggle(
-                        "feature-panel-wide",
-                        isEnlarged,
-                    );
-                    map.resize();
-                    ({ width, height } = featurePanelChartSize());
-                } else if (isEnlarged) {
+                if (isEnlarged) {
                     width = Math.round(Math.min(window.innerWidth * 0.8, 700));
                     height = Math.round(width * (200 / 350));
                 } else {
@@ -5272,6 +5323,96 @@
                     if (e.propertyName === "margin-left" && map && map.resize) {
                         map.resize();
                     }
+                });
+            })();
+
+            /**
+             * Poignée du bord gauche de la fiche : glisser pour élargir ou
+             * rétrécir (la carte et les graphiques suivent), double-clic
+             * pour revenir à la largeur par défaut. Largeur mémorisée.
+             */
+            (function setupFeaturePanelResize() {
+                const panel = document.getElementById("featurePanel");
+                const handle = panel?.querySelector(".feature-panel-resize-handle");
+                const root = document.documentElement;
+                if (!handle) return;
+
+                const MIN_WIDTH = 320;
+                let isResizing = false;
+                let rafPending = false;
+
+                function applyWidth(px) {
+                    const max = Math.max(MIN_WIDTH, window.innerWidth * 0.8);
+                    const clamped = Math.max(MIN_WIDTH, Math.min(max, px));
+                    root.style.setProperty(
+                        "--feature-panel-width",
+                        Math.round(clamped) + "px",
+                    );
+                    if (rafPending) return;
+                    rafPending = true;
+                    requestAnimationFrame(() => {
+                        rafPending = false;
+                        map.resize();
+                        resizeFeaturePanelCharts();
+                    });
+                }
+
+                function startResize(e) {
+                    isResizing = true;
+                    handle.classList.add("resizing");
+                    document.body.style.cursor = "col-resize";
+                    document.body.style.userSelect = "none";
+                    e.preventDefault();
+                }
+
+                function moveResize(e) {
+                    if (!isResizing) return;
+                    const x =
+                        e.clientX !== undefined
+                            ? e.clientX
+                            : e.touches && e.touches[0]
+                              ? e.touches[0].clientX
+                              : null;
+                    if (x === null) return;
+                    applyWidth(window.innerWidth - x);
+                }
+
+                function endResize() {
+                    if (!isResizing) return;
+                    isResizing = false;
+                    handle.classList.remove("resizing");
+                    document.body.style.cursor = "";
+                    document.body.style.userSelect = "";
+                    const w = root.style
+                        .getPropertyValue("--feature-panel-width")
+                        .trim();
+                    try {
+                        if (w) localStorage.setItem("feuillage-feature-panel-width", w);
+                    } catch (e) {
+                        /* stockage indisponible */
+                    }
+                }
+
+                handle.addEventListener("mousedown", startResize);
+                handle.addEventListener("touchstart", startResize, { passive: false });
+                document.addEventListener("mousemove", moveResize);
+                document.addEventListener("touchmove", moveResize, { passive: false });
+                document.addEventListener("mouseup", endResize);
+                document.addEventListener("touchend", endResize);
+                document.addEventListener("touchcancel", endResize);
+
+                handle.addEventListener("dblclick", () => {
+                    root.style.removeProperty("--feature-panel-width");
+                    try {
+                        localStorage.removeItem("feuillage-feature-panel-width");
+                    } catch (e) {
+                        /* stockage indisponible */
+                    }
+                    requestAnimationFrame(() => {
+                        map.resize();
+                        resizeFeaturePanelCharts();
+                    });
+                    announceToScreenReader("Largeur de la fiche réinitialisée");
                 });
             })();
 

@@ -375,8 +375,9 @@ Le store doit servir avec **CORS ouvert et range requests supportés** : Hugging
 
 Un template de popup qui déclare `"display": "sidebar"` s'ouvre dans un
 panneau à droite de la carte (440 px, la carte cède la place) au lieu d'une
-bulle : mêmes sections, plus d'espace. « Agrandir » élargit le panneau
-(760 px max), Échap ou × le ferme. Sans `display`, rien ne change : bulle.
+bulle : mêmes sections, plus d'espace. Glisser son bord gauche l'élargit ou
+le rétrécit (les graphiques suivent ; largeur mémorisée, double-clic pour
+réinitialiser), Échap ou × le ferme. Sans `display`, rien ne change : bulle.
 
 ### Séries et tables lues d'un service web
 
@@ -399,8 +400,9 @@ tableaux parallèles (`{"dates": [...], "q25": [...], "q50": [...], ...}`) :
 **Section `"type": "remote_table"`** — une table alimentée par une URL JSON :
 `rows` est le chemin des lignes dans la réponse (tableau → une ligne par
 élément ; objet → table champ/valeur), `columns` des chemins pointés ou des
-objets `{ "path", "label", "link", "text" }` (`link` = chemin d'une URL à
-mettre en lien, `text` = libellé fixe du lien). `empty` : message si aucune
+objets `{ "path", "label", "link", "text", "raw" }` (`link` = chemin d'une
+URL à mettre en lien, `text` = libellé fixe du lien, `raw` = valeur affichée
+telle quelle, ex. une année). `empty` : message si aucune
 ligne.
 
 ```json
@@ -417,7 +419,8 @@ ligne.
 ```
 
 Dans les URL, `{properties.X}` est remplacé (et encodé) par la propriété de
-l'entité cliquée. Si le serveur répond en erreur avec un champ `detail`
+l'entité cliquée. Si la propriété est vide (ex. station sans tronçon), aucune
+requête n'est faite et la section affiche son message `missing`. Si le serveur répond en erreur avec un champ `detail`
 (ex. « tronçon masqué »), c'est ce message qui s'affiche. Le serveur doit
 autoriser CORS.
 
