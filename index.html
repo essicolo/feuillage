@@ -642,6 +642,9 @@
                 flex-direction: column;
                 position: relative;
                 z-index: 500;
+                /* Hauteur bornée à celle de la carte : le contenu défile dans le corps. */
+                min-height: 0;
+                max-height: 100vh;
             }
 
             #featurePanel[hidden] {
@@ -695,6 +698,10 @@
 
             .feature-panel-body {
                 flex: 1;
+                /* Sans hauteur minimale nulle, l'enfant d'une colonne flexible s'étire à
+                   son contenu et ne défile jamais : élargir la barre agrandit les
+                   graphiques, et le bas de la fiche devenait inaccessible. */
+                min-height: 0;
                 overflow-y: auto;
                 padding: 0.75rem 1rem 1.5rem;
             }
