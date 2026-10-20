@@ -8,15 +8,6 @@
   },
   "layers": [
     {
-      "name": "Régions hydrographiques",
-      "url": "./data/rqh/regions.pmtiles",
-      "type": "pmtiles",
-      "source_layer": "regions",
-      "geometry_type": "polygon",
-      "visible": true,
-      "color": "#4d4d4d"
-    },
-    {
       "name": "Tronçons RQH",
       "url": "./data/rqh/troncons.pmtiles",
       "type": "pmtiles",
@@ -25,6 +16,15 @@
       "visible": true,
       "color": "#0072B2",
       "popup_template": "troncon_rqh"
+    },
+        {
+      "name": "Régions hydrographiques",
+      "url": "./data/rqh/regions.pmtiles",
+      "type": "pmtiles",
+      "source_layer": "regions",
+      "geometry_type": "polygon",
+      "visible": true,
+      "color": "#4d4d4d"
     }
   ],
   "popup_templates": {
