@@ -283,7 +283,8 @@ Créez un fichier `config.json` :
       "sections": [
         {
           "type": "properties",
-          "fields": ["champ1", "champ2", "champ3"]
+          "fields": ["champ1", "champ2", "champ3"],
+          "labels": { "champ1": "Libellé du champ 1" }
         },
         {
           "type": "chart",
@@ -312,6 +313,7 @@ Créez un fichier `config.json` :
 - **layers[].attribution** : Mention de source affichée dans la carte (optionnel)
 - **popup_templates** : Objet définissant les templates de popups (optionnel)
 - **popup_templates.\*.display** : `"popup"` pour garder la bulle sur la carte ; sans cette clé, la fiche s'ouvre dans le panneau latéral droit
+- **sections[].labels** (section `"properties"`) : libellés lisibles par champ, ex. `{"superficie_km2": "Bassin (km²)"}` ; sans cela, le nom du champ sert d'en-tête
 
 ### Couches PMTiles
 
@@ -367,6 +369,9 @@ Sémantique :
 - **feature_id_property** : champ des `properties` de la feature à matcher contre la coord `feature_dim` (ex. `id` → `feature.properties.id`)
 - **indexers** : sélection par valeur sur d'autres dims (ex. `{"percentile": 50}` cible la valeur 50 dans la coord `percentile`)
 - **time_array** : (optionnel) nom de la coord temporelle pour générer les labels Date sur l'axe X
+- **missing** : (optionnel) message affiché si la propriété clé est absente (ex. station sans tronçon) ou si l'entité est introuvable dans la coord — sans erreur en console
+
+`store_url` peut être relatif au visualiseur (ex. `./data/atlas/debits_observes.zarr`) : le zarr devient un simple dossier servi par l'hébergeur statique, lu comme un store distant.
 
 Côté technique : zarrita.js est chargé en lazy-import à la première ouverture de popup zarr, la metadata consolidée est utilisée pour limiter à 1 fetch initial, et chaque popup déclenche range-fetch d'un seul chunk (~quelques centaines de kB compressés) puis une décompression blosc-zstd côté navigateur. L'archive et les coords sont mises en cache en mémoire pour les popups suivants.
 
@@ -440,6 +445,57 @@ Exemple complet : `config-atlas-service.json` (service web de l'Atlas
 hydroclimatique en local) — ouvrir `index.html?config=config-atlas-service.json`
 via un serveur qui gère les requêtes Range (PMTiles), p. ex.
 `npx http-server -p 8765`.
+
+### Tables lues d'un fichier parquet statique
+
+**Section `"type": "parquet_table"`** — l'équivalent statique de
+`remote_table` : la table est lue directement dans un fichier parquet
+hébergé (range requests via [hyparquet](https://github.com/hyparam/hyparquet)),
+sans service web :
+
+```json
+{
+  "type": "parquet_table",
+  "url": "./data/atlas/indicateurs_ampleur.parquet",
+  "key": { "column": "troncon_id", "value": "{properties.IDTRONCON}" },
+  "empty": "Tronçon masqué : indicateurs non publiés.",
+  "columns": [
+    { "path": "indicateur", "label": "Indicateur" },
+    { "path": "amp_h80_rcp8", "label": "2071-2100" }
+  ]
+}
+```
+
+- **key** : colonne de filtrage et sa valeur ; `{properties.X}` est remplacé
+  par la propriété de l'entité cliquée (absente → message `missing`, pas de
+  lecture).
+- **layout** : `"record"` affiche la première ligne en table champ/valeur
+  (fiche descriptive) ; par défaut, une ligne par résultat.
+- **columns**, **empty** : mêmes sémantiques que `remote_table`.
+- Le fichier doit être **trié par la colonne clé** et compressé en snappy ou
+  non compressé (les autres codecs exigeraient un module WASM). Le lecteur
+  ne télécharge que les colonnes demandées et élimine par les statistiques
+  du footer les groupes de lignes hors [min, max] de la clé : ~25 Ko par
+  fiche sur une table de 46 Mo. Le footer (~1 Mo pour 359 groupes de lignes)
+  est mis en cache une fois par session et par fichier.
+- L'hébergeur doit gérer les requêtes Range (GitHub Pages, Netlify, etc. ;
+  en local, `npx http-server -p 8765`).
+
+Exemple complet : `config-atlas-statique.json` (Atlas hydroclimatique sans
+service web — fiches et indicateurs en parquet, portrait RQH en zarr) —
+ouvrir `index.html?config=config-atlas-statique.json`.
+
+### Chroniques observées des stations (zarr statique)
+
+La fiche station de `config-atlas-statique.json` montre aussi le débit
+journalier **observé** (BDH, MELCCFP) : `data/atlas/debits_observes.zarr`
+est un zarr v3 de 148 stations × 20 747 jours (1970-2026), construit par
+`export_statique_stations.py` (repo atlas2027) à partir des NetCDF du run
+RQH — une station = un chunk = un range fetch (~15 Ko). Mêmes conventions
+que le store zarr du portrait (metadata consolidée, blosc-zstd, `time`
+int64 en « days since 1970-01-01 »). Les stations sans mesure (Niveau,
+fermées avant la fenêtre d'acquisition) ne sont pas dans le zarr : la
+fiche affiche le message `missing` du `data_source`.
 
 ### Types de graphiques supportés
 
