@@ -1970,8 +1970,6 @@
                     <select id="basemapSelect" class="form-select">
                         <option value="osm">OpenStreetMap</option>
                         <option value="topo">OpenTopoMap</option>
-                        <option value="positron">CartoDB Positron</option>
-                        <option value="carto-dark">CartoDB Dark Matter</option>
                         <option value="satellite">Satellite (Esri)</option>
                         <option value="esri-topo">Esri Topo</option>
                         <option value="stamen-toner">Stamen Toner</option>
@@ -2095,30 +2093,6 @@
                     attribution: "Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap",
                     maxzoom: 17,
                 },
-                positron: {
-                    type: "raster",
-                    tiles: [
-                        "https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
-                        "https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
-                        "https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
-                        "https://d.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
-                    ],
-                    tileSize: 256,
-                    attribution: "© OpenStreetMap contributors, © CARTO",
-                    maxzoom: 19,
-                },
-                "carto-dark": {
-                    type: "raster",
-                    tiles: [
-                        "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-                        "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-                        "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-                        "https://d.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-                    ],
-                    tileSize: 256,
-                    attribution: "© OpenStreetMap contributors, © CARTO",
-                    maxzoom: 19,
-                },
                 satellite: {
                     type: "raster",
                     tiles: [
@@ -2161,8 +2135,6 @@
             const basemapLabels = {
                 osm: "OpenStreetMap",
                 topo: "OpenTopoMap",
-                positron: "CartoDB Positron",
-                "carto-dark": "CartoDB Dark Matter",
                 satellite: "Satellite (Esri)",
                 "esri-topo": "Esri Topo",
                 "stamen-toner": "Stamen Toner",

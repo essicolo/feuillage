@@ -34,7 +34,7 @@ Application web 100% statique pour visualiser et gérer plusieurs couches cartog
 - **Palette accessible** : Couleurs distinctes respectant les principes WCAG
 - **Support multi-géométries** : Point, LineString, Polygon, MultiPoint, etc.
 - **Style adaptatif** : Styles différenciés selon le type de géométrie
-- **Fonds de carte** : OpenStreetMap, OpenTopoMap, CartoDB Positron
+- **Fonds de carte** : OpenStreetMap, OpenTopoMap, satellite et topo Esri, Stamen
 
 ### Vues configurables
 - **Fichiers de configuration** : Chargement de vues pré-configurées (JSON)
@@ -146,7 +146,7 @@ https://www.donneesquebec.ca/recherche/dataset/.../vdq-hydrobassinversant.geojso
 - **Cliquez** sur n'importe quelle feature pour voir ses propriétés dans la fiche latérale
 - **Zoomez/Déplacez** la carte pour naviguer
 - Le zoom s'ajuste automatiquement lors du chargement
-- **Changez le fond de carte** dans le panneau latéral (OpenStreetMap, OpenTopoMap, CartoDB)
+- **Changez le fond de carte** dans le panneau latéral (OpenStreetMap, OpenTopoMap, Esri, Stamen)
 
 ### 8. Charger l'exemple
 
@@ -303,7 +303,7 @@ Créez un fichier `config.json` :
 
 **Paramètres disponibles** :
 
-- **view.basemap** : `"osm"`, `"topo"`, `"positron"`, `"carto-dark"`, `"satellite"`, `"esri-topo"`, `"stamen-toner"`, `"stamen-terrain"`
+- **view.basemap** : `"osm"`, `"topo"`, `"satellite"`, `"esri-topo"`, `"stamen-toner"`, `"stamen-terrain"`
 - **layers[].visible** : `true` ou `false` (visibilité initiale)
 - **layers[].color** : Code couleur hexadécimal (optionnel, palette auto sinon)
 - **layers[].type** : `"geojson"` ou `"pmtiles"` (optionnel — auto-détecté depuis l'extension)
