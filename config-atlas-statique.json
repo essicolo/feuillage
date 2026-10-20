@@ -1,7 +1,7 @@
 {
   "view": {
     "name": "Atlas hydroclimatique — statique",
-    "description": "Tronçons PMTiles, stations GeoJSON ; fiches et indicateurs lus par range requests dans des parquet statiques (hyparquet), portrait RQH en zarr — sans service web",
+    "description": "Tronçons PMTiles, stations GeoJSON ; fiches et indicateurs lus par range requests dans des parquet statiques (hyparquet), débits observés aux stations et portrait RQH en zarr — sans service web",
     "center": [47.2, -71.5],
     "zoom": 6,
     "basemap": "osm"
@@ -127,6 +127,27 @@
             "debut": "Début des mesures",
             "fin": "Fin des mesures",
             "troncon_id": "Tronçon de l'Atlas"
+          }
+        },
+        {
+          "type": "chart",
+          "chart_type": "line",
+          "data_source": {
+            "type": "zarr",
+            "store_url": "./data/atlas/debits_observes.zarr",
+            "value_array": "discharge",
+            "feature_dim": "station_id",
+            "feature_id_property": "station_id",
+            "time_array": "time",
+            "missing": "Pas de débit observé disponible pour cette station.",
+            "series": [
+              { "name": "Débit observé", "role": "main" }
+            ]
+          },
+          "options": {
+            "title": "Débit journalier observé (m³/s)",
+            "xlabel": "Date",
+            "ylabel": "Débit (m³/s)"
           }
         },
         {

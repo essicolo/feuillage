@@ -371,6 +371,8 @@ Sémantique :
 - **time_array** : (optionnel) nom de la coord temporelle pour générer les labels Date sur l'axe X
 - **missing** : (optionnel) message affiché si la propriété clé est absente (ex. station sans tronçon) ou si l'entité est introuvable dans la coord — sans erreur en console
 
+`store_url` peut être relatif au visualiseur (ex. `./data/atlas/debits_observes.zarr`) : le zarr devient un simple dossier servi par l'hébergeur statique, lu comme un store distant.
+
 Côté technique : zarrita.js est chargé en lazy-import à la première ouverture de popup zarr, la metadata consolidée est utilisée pour limiter à 1 fetch initial, et chaque popup déclenche range-fetch d'un seul chunk (~quelques centaines de kB compressés) puis une décompression blosc-zstd côté navigateur. L'archive et les coords sont mises en cache en mémoire pour les popups suivants.
 
 Le store doit servir avec **CORS ouvert et range requests supportés** : Hugging Face Datasets, Cloudflare R2 (avec CORS configuré), et la plupart des buckets S3 publics conviennent. pCloud / Google Drive / Dropbox **ne fonctionnent pas** car ils restreignent CORS au domaine du fournisseur.
@@ -482,6 +484,18 @@ sans service web :
 Exemple complet : `config-atlas-statique.json` (Atlas hydroclimatique sans
 service web — fiches et indicateurs en parquet, portrait RQH en zarr) —
 ouvrir `index.html?config=config-atlas-statique.json`.
+
+### Chroniques observées des stations (zarr statique)
+
+La fiche station de `config-atlas-statique.json` montre aussi le débit
+journalier **observé** (BDH, MELCCFP) : `data/atlas/debits_observes.zarr`
+est un zarr v3 de 148 stations × 20 747 jours (1970-2026), construit par
+`export_statique_stations.py` (repo atlas2027) à partir des NetCDF du run
+RQH — une station = un chunk = un range fetch (~15 Ko). Mêmes conventions
+que le store zarr du portrait (metadata consolidée, blosc-zstd, `time`
+int64 en « days since 1970-01-01 »). Les stations sans mesure (Niveau,
+fermées avant la fenêtre d'acquisition) ne sont pas dans le zarr : la
+fiche affiche le message `missing` du `data_source`.
 
 ### Types de graphiques supportés
 
