@@ -2325,7 +2325,9 @@
                                         properties[field] !== undefined
                                             ? properties[field]
                                             : "<em>N/A</em>";
-                                    return `<tr><th>${field}</th><td>${value}</td></tr>`;
+                                    // section.labels : libellé lisible par champ.
+                                    const label = section.labels?.[field] || field;
+                                    return `<tr><th>${escapeHtml(label)}</th><td>${value}</td></tr>`;
                                 })
                                 .join("");
                             html += `<table>${rows}</table>`;
@@ -2373,6 +2375,14 @@
                             // Section alimentée par une URL JSON, remplie après
                             // insertion dans le DOM (voir renderRemoteSectionsIn).
                             html += `<div class="remote-section" data-remote-config="${escapeAttr(JSON.stringify(section))}">
+                                ${section.title ? `<h4>${escapeHtml(section.title)}</h4>` : ""}
+                                <p class="remote-status">Chargement…</p>
+                            </div>`;
+                        } else if (section.type === "parquet_table") {
+                            // Section lue d'un fichier parquet statique (range
+                            // requests, hyparquet), remplie après insertion
+                            // dans le DOM (voir renderParquetSectionsIn).
+                            html += `<div class="remote-section parquet-section" data-parquet-config="${escapeAttr(JSON.stringify(section))}">
                                 ${section.title ? `<h4>${escapeHtml(section.title)}</h4>` : ""}
                                 <p class="remote-status">Chargement…</p>
                             </div>`;
@@ -2430,6 +2440,7 @@
                     }
                 });
                 renderRemoteSectionsIn(root, properties);
+                renderParquetSectionsIn(root, properties);
             }
 
             // Remplace {properties.X} dans une URL, valeurs encodées. Si une
@@ -2490,15 +2501,56 @@
                 return escapeHtml(value);
             }
 
+            // Normalise les `columns` d'une section de table (remote_table,
+            // parquet_table) : un chemin nu devient { path, label }.
+            function normaliseSectionColumns(columns) {
+                return (columns || []).map((c) =>
+                    typeof c === "string"
+                        ? { path: c, label: c.split(".").pop() }
+                        : { label: c.path, ...c },
+                );
+            }
+
+            // Cellule d'une table de section : `link` = chemin d'une URL à
+            // mettre en lien, `text` = libellé fixe du lien, `raw` = valeur
+            // telle quelle (ex. une année).
+            function sectionTableCell(row, c) {
+                const v = resolvePath(row, c.path);
+                const href = c.link && resolvePath(row, c.link);
+                const cls = typeof v === "number" ? ' class="num"' : "";
+                const valeur = c.raw
+                    ? escapeHtml(v ?? "—")
+                    : formatCell(v);
+                const label = c.text ? escapeHtml(c.text) : valeur;
+                return href
+                    ? `<td${cls}><a href="${escapeAttr(href)}" target="_blank" rel="noopener">${label}</a></td>`
+                    : `<td${cls}>${valeur}</td>`;
+            }
+
+            // Construit la table d'une section : un tableau → une ligne par
+            // élément ; un objet → table champ/valeur.
+            function sectionTableHtml(data, columns, emptyMessage) {
+                if (Array.isArray(data)) {
+                    if (data.length === 0) {
+                        return `<p class="remote-status">${escapeHtml(emptyMessage || "Aucune donnée.")}</p>`;
+                    }
+                    return `<div class="remote-scroll"><table class="remote-list">
+                        <thead><tr>${columns.map((c) => `<th>${escapeHtml(c.label)}</th>`).join("")}</tr></thead>
+                        <tbody>${data.map((row) => `<tr>${columns.map((c) => sectionTableCell(row, c)).join("")}</tr>`).join("")}</tbody>
+                    </table></div>`;
+                }
+                return `<table>${columns
+                    .map((c) => `<tr><th>${escapeHtml(c.label)}</th>${sectionTableCell(data, c)}</tr>`)
+                    .join("")}</table>`;
+            }
+
             /**
              * Section "remote_table" : une table alimentée par une URL JSON.
              *   url     : gabarit avec {properties.X}
              *   rows    : chemin vers les lignes dans la réponse. Tableau →
              *             une ligne par élément ; objet → table champ/valeur.
              *   columns : chemins (ou { path, label, link, text, raw }) lus
-             *             dans chaque ligne ; `link` = chemin d'une URL à
-             *             mettre en lien, `text` = libellé fixe de ce lien,
-             *             `raw` = valeur telle quelle (ex. une année).
+             *             dans chaque ligne.
              */
             function renderRemoteSectionsIn(root, properties) {
                 root.querySelectorAll(".remote-section[data-remote-config]")
@@ -2513,41 +2565,144 @@
                                 fillUrlTemplate(section.url, properties, section.missing),
                             );
                             const data = resolvePath(payload, section.rows);
-                            const columns = (section.columns || []).map((c) =>
-                                typeof c === "string"
-                                    ? { path: c, label: c.split(".").pop() }
-                                    : { label: c.path, ...c },
+                            status.outerHTML = sectionTableHtml(
+                                data,
+                                normaliseSectionColumns(section.columns),
+                                section.empty,
                             );
-                            const cell = (row, c) => {
-                                const v = resolvePath(row, c.path);
-                                const href = c.link && resolvePath(row, c.link);
-                                const cls = typeof v === "number" ? ' class="num"' : "";
-                                const valeur = c.raw
-                                    ? escapeHtml(v ?? "—")
-                                    : formatCell(v);
-                                const label = c.text ? escapeHtml(c.text) : valeur;
-                                return href
-                                    ? `<td${cls}><a href="${escapeAttr(href)}" target="_blank" rel="noopener">${label}</a></td>`
-                                    : `<td${cls}>${valeur}</td>`;
-                            };
-                            let html;
-                            if (Array.isArray(data)) {
-                                if (data.length === 0) {
-                                    html = `<p class="remote-status">${escapeHtml(section.empty || "Aucune donnée.")}</p>`;
-                                } else {
-                                    html = `<div class="remote-scroll"><table class="remote-list">
-                                        <thead><tr>${columns.map((c) => `<th>${escapeHtml(c.label)}</th>`).join("")}</tr></thead>
-                                        <tbody>${data.map((row) => `<tr>${columns.map((c) => cell(row, c)).join("")}</tr>`).join("")}</tbody>
-                                    </table></div>`;
-                                }
-                            } else {
-                                html = `<table>${columns
-                                    .map((c) => `<tr><th>${escapeHtml(c.label)}</th>${cell(data, c)}</tr>`)
-                                    .join("")}</table>`;
-                            }
-                            status.outerHTML = html;
                         } catch (e) {
                             if (!e.info) console.error("remote_table:", e);
+                            if (!e.info) status.classList.add("is-error");
+                            status.textContent = e.message;
+                        }
+                    });
+            }
+
+            // Lazy-load d'hyparquet — uniquement quand une section déclare
+            // "type": "parquet_table". Le parquet snappy (ou non compressé)
+            // se décompresse nativement, sans WASM.
+            let _hyparquetPromise = null;
+            function loadHyparquet() {
+                if (!_hyparquetPromise) {
+                    _hyparquetPromise = import(
+                        "https://cdn.jsdelivr.net/npm/hyparquet@1.31.5/src/index.js"
+                    );
+                }
+                return _hyparquetPromise;
+            }
+
+            // Cache par fichier : { file, metadata }. Le footer — avec les
+            // stats min/max de chaque row group, l'« index » du pattern —
+            // ne se télécharge qu'une fois par session.
+            const _parquetFichiers = new Map();
+            async function _openParquet(url) {
+                if (_parquetFichiers.has(url)) return _parquetFichiers.get(url);
+                const promise = (async () => {
+                    const { asyncBufferFromUrl, parquetMetadataAsync } =
+                        await loadHyparquet();
+                    const file = await asyncBufferFromUrl({ url });
+                    const metadata = await parquetMetadataAsync(file);
+                    return { file, metadata };
+                })();
+                // Un fichier inaccessible ne reste pas en cache pour toute
+                // la session : le prochain clic retente l'ouverture.
+                promise.catch(() => _parquetFichiers.delete(url));
+                _parquetFichiers.set(url, promise);
+                return promise;
+            }
+
+            /**
+             * Lit les lignes d'un parquet distant dont `cle` vaut `valeur`.
+             * Le fichier doit être trié par `cle` : hyparquet élimine par les
+             * stats du footer les row groups hors [min, max] et ne télécharge
+             * que les colonnes demandées (~25 Ko par clic sur une table de
+             * 46 Mo). Retourne toujours un tableau.
+             */
+            async function parquetRows(url, cle, valeur, colonnes) {
+                const { parquetReadObjects } = await loadHyparquet();
+                const { file, metadata } = await _openParquet(url);
+                return parquetReadObjects({
+                    file,
+                    metadata,
+                    columns: [...new Set([...(colonnes || []), cle])],
+                    filter: { [cle]: { $eq: valeur } },
+                });
+            }
+
+            /**
+             * Section "parquet_table" : une table lue d'un fichier parquet
+             * statique par range requests — l'équivalent statique de
+             * remote_table, sans service web.
+             *   url     : chemin du fichier parquet
+             *   key     : { column, value } ; value accepte {properties.X}
+             *             (absente → message `missing`, pas de lecture)
+             *   layout  : "record" → la première ligne en table champ/valeur
+             *             (défaut "list" : une ligne par résultat)
+             *   columns : comme remote_table
+             */
+            function renderParquetSectionsIn(root, properties) {
+                root.querySelectorAll(".parquet-section[data-parquet-config]")
+                    .forEach(async (el) => {
+                        const status = el.querySelector(".remote-status");
+                        let section;
+                        try {
+                            section = JSON.parse(
+                                el.getAttribute("data-parquet-config"),
+                            );
+                            if (!section.key?.column) {
+                                throw new Error(
+                                    "parquet_table : clé manquante (key.column)",
+                                );
+                            }
+                            // La valeur de clé vient des propriétés de
+                            // l'entité cliquée, sans encodage (ce n'est pas
+                            // une URL). Gabarit réduit à {properties.X} →
+                            // valeur brute, type préservé (clé numérique
+                            // possible) ; absente → `missing`, pas de lecture.
+                            const gabarit = String(section.key.value ?? "");
+                            const lirePropriete = (k) => {
+                                const v = properties[k];
+                                if (v === null || v === undefined || v === "") {
+                                    const e = new Error(
+                                        section.missing ||
+                                            `Propriété « ${k} » absente`,
+                                    );
+                                    e.info = true;
+                                    throw e;
+                                }
+                                return v;
+                            };
+                            const entier = gabarit.match(
+                                /^\{properties\.(\w+)\}$/,
+                            );
+                            const valeur = entier
+                                ? lirePropriete(entier[1])
+                                : gabarit.replace(
+                                    /\{properties\.(\w+)\}/g,
+                                    (m, k) => lirePropriete(k),
+                                );
+                            const rows = await parquetRows(
+                                section.url,
+                                section.key.column,
+                                valeur,
+                                (section.columns || []).map((c) =>
+                                    typeof c === "string" ? c : c.path,
+                                ),
+                            );
+                            const columns = normaliseSectionColumns(section.columns);
+                            if (section.layout === "record" && rows.length === 0) {
+                                status.textContent = section.empty || "Aucune donnée.";
+                                return;
+                            }
+                            const data =
+                                section.layout === "record" ? rows[0] : rows;
+                            status.outerHTML = sectionTableHtml(
+                                data,
+                                columns,
+                                section.empty,
+                            );
+                        } catch (e) {
+                            if (!e.info) console.error("parquet_table:", e);
                             if (!e.info) status.classList.add("is-error");
                             status.textContent = e.message;
                         }
@@ -2705,6 +2860,13 @@
                         featureIdx = i;
                         break;
                     }
+                }
+                if (featureIdx < 0 && source.missing) {
+                    // Propriété absente (ex. station sans tronçon) ou id hors
+                    // du portrait : message de config, pas une erreur.
+                    const e = new Error(source.missing);
+                    e.info = true;
+                    throw e;
                 }
                 if (featureIdx < 0) {
                     throw new Error(

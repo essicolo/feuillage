@@ -1,0 +1,173 @@
+{
+  "view": {
+    "name": "Atlas hydroclimatique — statique",
+    "description": "Tronçons PMTiles, stations GeoJSON ; fiches et indicateurs lus par range requests dans des parquet statiques (hyparquet), portrait RQH en zarr — sans service web",
+    "center": [47.2, -71.5],
+    "zoom": 6,
+    "basemap": "osm"
+  },
+  "layers": [
+    {
+      "name": "Tronçons de l'Atlas",
+      "url": "./data/rqh/troncons.pmtiles",
+      "type": "pmtiles",
+      "source_layer": "troncons",
+      "geometry_type": "line",
+      "visible": true,
+      "color": "#095797",
+      "popup_template": "troncon_atlas"
+    },
+    {
+      "name": "Stations hydrométriques",
+      "url": "./data/atlas/stations.geojson",
+      "type": "geojson",
+      "visible": true,
+      "color": "#CB381F",
+      "popup_template": "station_atlas"
+    }
+  ],
+  "popup_templates": {
+    "troncon_atlas": {
+      "display": "sidebar",
+      "title": "Tronçon {properties.IDTRONCON}",
+      "sections": [
+        {
+          "type": "parquet_table",
+          "url": "./data/atlas/troncons.parquet",
+          "key": { "column": "troncon_id", "value": "{properties.IDTRONCON}" },
+          "layout": "record",
+          "columns": [
+            { "path": "region", "label": "Région" },
+            { "path": "superficie_km2", "label": "Superficie du bassin (km²)" },
+            { "path": "masque", "label": "Publication", "raw": true },
+            { "path": "bv_primaire", "label": "Bassin primaire" }
+          ]
+        },
+        {
+          "type": "chart",
+          "chart_type": "line",
+          "data_source": {
+            "type": "zarr",
+            "store_url": "https://huggingface.co/datasets/essip/rqh/resolve/main",
+            "value_array": "discharge",
+            "feature_dim": "troncon_id",
+            "feature_id_property": "IDTRONCON",
+            "time_array": "time",
+            "missing": "Tronçon hors du portrait RQH : pas de série.",
+            "series": [
+              { "name": "q25", "role": "lower", "indexers": { "percentile": 25 } },
+              { "name": "q50", "role": "main",  "indexers": { "percentile": 50 } },
+              { "name": "q75", "role": "upper", "indexers": { "percentile": 75 } }
+            ]
+          },
+          "options": {
+            "title": "Débit médian journalier (m³/s) — 1962-2026",
+            "xlabel": "Date",
+            "ylabel": "Débit (m³/s)"
+          }
+        },
+        {
+          "type": "parquet_table",
+          "title": "Stations hydrométriques rattachées",
+          "url": "./data/atlas/stations_troncons.parquet",
+          "key": { "column": "troncon_id", "value": "{properties.IDTRONCON}" },
+          "empty": "Aucune station rattachée à ce tronçon.",
+          "columns": [
+            { "path": "station_id", "label": "No", "raw": true },
+            { "path": "nom", "label": "Nom" },
+            { "path": "etat", "label": "État" },
+            { "path": "regime", "label": "Régime" },
+            { "path": "superficie_km2", "label": "Bassin (km²)" }
+          ]
+        },
+        {
+          "type": "parquet_table",
+          "title": "Indicateurs — ampleur du changement, RCP8.5 (% ; JQ1MAXHP en jours)",
+          "url": "./data/atlas/indicateurs_ampleur.parquet",
+          "key": { "column": "troncon_id", "value": "{properties.IDTRONCON}" },
+          "empty": "Tronçon masqué : indicateurs non publiés.",
+          "columns": [
+            { "path": "indicateur", "label": "Indicateur" },
+            { "path": "reference", "label": "Réf. 1981-2010" },
+            { "path": "amp_h30_rcp8", "label": "2011-40" },
+            { "path": "amp_h50_rcp8", "label": "2041-70" },
+            { "path": "amp_h80_rcp8", "label": "2071-2100" }
+          ]
+        }
+      ]
+    },
+    "station_atlas": {
+      "display": "sidebar",
+      "title": "Station {properties.station_id} — {properties.nom}",
+      "sections": [
+        {
+          "type": "properties",
+          "fields": [
+            "station_id",
+            "nom",
+            "cours_eau",
+            "type",
+            "description",
+            "etat",
+            "regime",
+            "superficie_km2",
+            "debut",
+            "fin",
+            "troncon_id"
+          ],
+          "labels": {
+            "station_id": "No de station",
+            "nom": "Nom",
+            "cours_eau": "Cours d'eau",
+            "type": "Mesure",
+            "description": "Emplacement",
+            "etat": "État",
+            "regime": "Régime",
+            "superficie_km2": "Bassin (km²)",
+            "debut": "Début des mesures",
+            "fin": "Fin des mesures",
+            "troncon_id": "Tronçon de l'Atlas"
+          }
+        },
+        {
+          "type": "chart",
+          "chart_type": "line",
+          "data_source": {
+            "type": "zarr",
+            "store_url": "https://huggingface.co/datasets/essip/rqh/resolve/main",
+            "value_array": "discharge",
+            "feature_dim": "troncon_id",
+            "feature_id_property": "troncon_id",
+            "time_array": "time",
+            "missing": "Station non rattachée à un tronçon de l'Atlas : pas de série RQH.",
+            "series": [
+              { "name": "q25", "role": "lower", "indexers": { "percentile": 25 } },
+              { "name": "q50", "role": "main",  "indexers": { "percentile": 50 } },
+              { "name": "q75", "role": "upper", "indexers": { "percentile": 75 } }
+            ]
+          },
+          "options": {
+            "title": "Portrait RQH du tronçon rattaché — débit journalier (m³/s)",
+            "xlabel": "Date",
+            "ylabel": "Débit (m³/s)"
+          }
+        },
+        {
+          "type": "parquet_table",
+          "title": "Indicateurs du tronçon rattaché — ampleur, RCP8.5 (% ; JQ1MAXHP en jours)",
+          "url": "./data/atlas/indicateurs_ampleur.parquet",
+          "key": { "column": "troncon_id", "value": "{properties.troncon_id}" },
+          "missing": "Station non rattachée à un tronçon de l'Atlas : pas d'indicateurs.",
+          "empty": "Tronçon masqué : indicateurs non publiés.",
+          "columns": [
+            { "path": "indicateur", "label": "Indicateur" },
+            { "path": "reference", "label": "Réf. 1981-2010" },
+            { "path": "amp_h30_rcp8", "label": "2011-40" },
+            { "path": "amp_h50_rcp8", "label": "2041-70" },
+            { "path": "amp_h80_rcp8", "label": "2071-2100" }
+          ]
+        }
+      ]
+    }
+  }
+}
