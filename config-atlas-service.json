@@ -1,0 +1,150 @@
+{
+  "view": {
+    "name": "Atlas hydroclimatique — service web (POC)",
+    "description": "Tronçons en PMTiles statiques ; fiches, portrait RQH, indicateurs et stations lus au clic depuis le service web de l'Atlas (http://127.0.0.1:8100)",
+    "center": [47.2, -71.5],
+    "zoom": 6,
+    "basemap": "osm"
+  },
+  "layers": [
+    {
+      "name": "Tronçons de l'Atlas",
+      "url": "./data/rqh/troncons.pmtiles",
+      "type": "pmtiles",
+      "source_layer": "troncons",
+      "geometry_type": "line",
+      "visible": true,
+      "color": "#095797",
+      "popup_template": "troncon_service"
+    },
+    {
+      "name": "Stations hydrométriques (service)",
+      "url": "http://127.0.0.1:8100/api/stations",
+      "type": "geojson",
+      "visible": true,
+      "color": "#CB381F",
+      "popup_template": "station_service"
+    }
+  ],
+  "popup_templates": {
+    "troncon_service": {
+      "display": "sidebar",
+      "title": "Tronçon {properties.IDTRONCON}",
+      "sections": [
+        {
+          "type": "remote_table",
+          "url": "http://127.0.0.1:8100/api/troncons/{properties.IDTRONCON}",
+          "rows": "properties",
+          "columns": [
+            { "path": "region", "label": "Région" },
+            { "path": "superficie_km2", "label": "Superficie du bassin (km²)" },
+            { "path": "masque", "label": "Publication" },
+            { "path": "bv_primaire", "label": "Bassin primaire" }
+          ]
+        },
+        {
+          "type": "chart",
+          "chart_type": "line",
+          "data_source": {
+            "type": "json",
+            "url": "http://127.0.0.1:8100/api/portrait/{properties.IDTRONCON}",
+            "time_field": "dates",
+            "series": [
+              { "name": "q25", "role": "lower", "field": "q25" },
+              { "name": "q50", "role": "main", "field": "q50" },
+              { "name": "q75", "role": "upper", "field": "q75" }
+            ]
+          },
+          "options": {
+            "title": "Portrait RQH — débit journalier (m³/s)",
+            "xlabel": "Date",
+            "ylabel": "Débit (m³/s)"
+          }
+        },
+        {
+          "type": "remote_table",
+          "title": "Stations hydrométriques rattachées",
+          "url": "http://127.0.0.1:8100/api/stations?troncon_id={properties.IDTRONCON}",
+          "rows": "features",
+          "empty": "Aucune station rattachée à ce tronçon.",
+          "columns": [
+            { "path": "properties.station_id", "label": "No" },
+            { "path": "properties.nom", "label": "Nom" },
+            { "path": "properties.etat", "label": "État" },
+            { "path": "properties.regime", "label": "Régime" },
+            { "path": "properties.superficie_km2", "label": "Bassin (km²)" }
+          ]
+        },
+        {
+          "type": "remote_table",
+          "title": "Indicateurs — ampleur du changement, RCP8.5 (% ; JQ1MAXHP en jours)",
+          "url": "http://127.0.0.1:8100/api/indicateurs/{properties.IDTRONCON}",
+          "rows": "indicateurs",
+          "columns": [
+            { "path": "indicateur", "label": "Indicateur" },
+            { "path": "reference", "label": "Réf. 1981-2010" },
+            { "path": "ampleur.h30.rcp8", "label": "2011-40" },
+            { "path": "ampleur.h50.rcp8", "label": "2041-70" },
+            { "path": "ampleur.h80.rcp8", "label": "2071-2100" }
+          ]
+        }
+      ]
+    },
+    "station_service": {
+      "display": "sidebar",
+      "title": "Station {properties.station_id} — {properties.nom}",
+      "sections": [
+        {
+          "type": "remote_table",
+          "url": "http://127.0.0.1:8100/api/stations/{properties.station_id}",
+          "rows": "properties",
+          "columns": [
+            { "path": "cours_eau", "label": "Cours d'eau" },
+            { "path": "description", "label": "Emplacement" },
+            { "path": "type", "label": "Mesure" },
+            { "path": "etat", "label": "État" },
+            { "path": "regime", "label": "Régime" },
+            { "path": "superficie_km2", "label": "Bassin (km²)" },
+            { "path": "debut", "label": "Début des mesures", "raw": true },
+            { "path": "fin", "label": "Fin des mesures", "raw": true },
+            { "path": "troncon_id", "label": "Tronçon de l'Atlas" }
+          ]
+        },
+        {
+          "type": "chart",
+          "chart_type": "line",
+          "data_source": {
+            "type": "json",
+            "url": "http://127.0.0.1:8100/api/portrait/{properties.troncon_id}",
+            "missing": "Station non rattachée à un tronçon de l'Atlas : pas de série RQH.",
+            "time_field": "dates",
+            "series": [
+              { "name": "q25", "role": "lower", "field": "q25" },
+              { "name": "q50", "role": "main", "field": "q50" },
+              { "name": "q75", "role": "upper", "field": "q75" }
+            ]
+          },
+          "options": {
+            "title": "Portrait RQH du tronçon rattaché — débit journalier (m³/s)",
+            "xlabel": "Date",
+            "ylabel": "Débit (m³/s)"
+          }
+        },
+        {
+          "type": "remote_table",
+          "title": "Indicateurs du tronçon rattaché — RCP8.5 (% ; JQ1MAXHP en jours)",
+          "url": "http://127.0.0.1:8100/api/indicateurs/{properties.troncon_id}",
+          "missing": "Station non rattachée à un tronçon de l'Atlas : pas d'indicateurs.",
+          "rows": "indicateurs",
+          "columns": [
+            { "path": "indicateur", "label": "Indicateur" },
+            { "path": "reference", "label": "Réf. 1981-2010" },
+            { "path": "ampleur.h30.rcp8", "label": "2011-40" },
+            { "path": "ampleur.h50.rcp8", "label": "2041-70" },
+            { "path": "ampleur.h80.rcp8", "label": "2071-2100" }
+          ]
+        }
+      ]
+    }
+  }
+}

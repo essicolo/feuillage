@@ -36,7 +36,7 @@
         />
         <link
             rel="stylesheet"
-            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=arrow_drop_down,close,dashboard,delete,delete_sweep,distance,dock_to_left,download,drag_indicator,edit,folder_open,image,location_on,map,menu,save,search,settings,star,visibility,visibility_off&display=swap"
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=arrow_drop_down,close,close_fullscreen,dashboard,delete,delete_sweep,distance,dock_to_left,download,drag_indicator,edit,folder_open,fullscreen,image,location_on,map,menu,save,search,settings,star,visibility,visibility_off&display=swap"
         />
 
         <!-- MapLibre GL CSS -->
@@ -628,6 +628,170 @@
                 width: 100%;
             }
 
+            /* === Panneau de fiche (fiche par défaut ; "display": "popup" garde la bulle) === */
+            :root {
+                --feature-panel-width: 440px;
+            }
+
+            #featurePanel {
+                width: var(--feature-panel-width);
+                min-width: var(--feature-panel-width);
+                background-color: var(--color-surface);
+                border-left: 1px solid var(--color-border-strong);
+                display: flex;
+                flex-direction: column;
+                position: relative;
+                z-index: 500;
+                /* Hauteur bornée à celle de la carte : le contenu défile dans le corps. */
+                min-height: 0;
+                max-height: 100vh;
+            }
+
+            #featurePanel[hidden] {
+                display: none;
+            }
+
+            /* Poignée du bord gauche (même comportement que celle des couches) */
+            .feature-panel-resize-handle {
+                position: absolute;
+                top: 0;
+                left: -3px;
+                width: 6px;
+                height: 100%;
+                cursor: col-resize;
+                z-index: 600;
+                background-color: transparent;
+                transition: background-color 0.15s;
+                touch-action: none;
+            }
+
+            .feature-panel-resize-handle:hover,
+            .feature-panel-resize-handle.resizing {
+                background-color: var(--color-brand-tint);
+            }
+
+            .feature-panel-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0.6rem 0.6rem 0.4rem 1rem;
+                border-bottom: 1px solid var(--color-divider);
+            }
+
+            .feature-panel-close {
+                width: 28px;
+                height: 28px;
+                font-size: 20px;
+                line-height: 1;
+                color: var(--color-text-muted);
+                background: transparent;
+                border: none;
+                border-radius: var(--radius-sm);
+                cursor: pointer;
+            }
+
+            .feature-panel-close:hover,
+            .feature-panel-close:focus {
+                background-color: var(--color-surface-alt);
+                color: var(--color-text);
+            }
+
+            .feature-panel-body {
+                flex: 1;
+                /* Sans hauteur minimale nulle, l'enfant d'une colonne flexible s'étire à
+                   son contenu et ne défile jamais : élargir la barre agrandit les
+                   graphiques, et le bas de la fiche devenait inaccessible. */
+                min-height: 0;
+                overflow-y: auto;
+                padding: 0.75rem 1rem 1.5rem;
+            }
+
+            /* Le contenu réutilise les styles de popup, sans leurs plafonds */
+            #featurePanel .popup-content {
+                max-height: none;
+                overflow: visible;
+                min-width: 0;
+                padding-right: 0;
+            }
+
+            #featurePanel .popup-chart canvas {
+                max-height: none;
+            }
+
+            /* Les boutons fixes du haut restent sur la carte */
+            body.feature-panel-open .icon-btn-fixed.menu-toggle {
+                right: calc(var(--feature-panel-width) + 16px);
+            }
+
+            body.feature-panel-open .icon-btn-fixed.a11y-toggle {
+                right: calc(var(--feature-panel-width) + 64px);
+            }
+
+            body.feature-panel-open .menu-panel {
+                right: calc(var(--feature-panel-width) + 16px);
+            }
+
+            /* Sections distantes (remote_table) et erreurs de graphique */
+            .remote-section h4,
+            .popup-chart h4 {
+                margin: 0 0 0.4rem;
+                font-size: var(--font-sm);
+                font-weight: 600;
+                color: var(--color-text-secondary);
+            }
+
+            .remote-section .remote-scroll {
+                max-height: 320px;
+                overflow-y: auto;
+                border: 1px solid var(--color-divider);
+                border-radius: var(--radius-sm);
+            }
+
+            .popup-content .remote-section table.remote-list {
+                margin: 0;
+            }
+
+            .popup-content .remote-section table.remote-list th,
+            .popup-content .remote-section table.remote-list td {
+                padding: 0.35rem 0.45rem;
+            }
+
+            .popup-content .remote-section table.remote-list th {
+                position: sticky;
+                top: 0;
+                width: auto;
+                white-space: normal;
+                vertical-align: bottom;
+                background-color: var(--color-surface-alt);
+                color: var(--color-text-secondary);
+            }
+
+            .popup-content .remote-section table.remote-list td.num {
+                text-align: right;
+            }
+
+            /* Identifiants (ex. Q14MAX100AN) : jamais coupés */
+            .popup-content .remote-section table.remote-list td:first-child {
+                white-space: nowrap;
+            }
+
+            .remote-status,
+            .chart-error {
+                margin: 0.25rem 0;
+                font-size: var(--font-sm);
+                color: var(--color-text-muted);
+            }
+
+            .remote-status.is-error,
+            .chart-error {
+                color: var(--color-danger-dark);
+            }
+
+            /* Donnée absente pour cette entité : information, pas erreur */
+            .chart-error.is-info {
+                color: var(--color-text-muted);
+            }
+
             .empty-state {
                 padding: 2rem;
                 text-align: center;
@@ -881,10 +1045,18 @@
                 max-height: 200px;
             }
 
+            /* Le bouton "Agrandir" retire le plafond une fois la taille du
+               canvas augmentée via chart.resize() (voir toggleChartSize). */
+            .popup-chart.is-enlarged canvas {
+                max-height: none;
+            }
+
             .popup-chart-toolbar {
                 display: flex;
-                justify-content: space-between;
+                flex-wrap: wrap;
+                justify-content: flex-end;
                 align-items: center;
+                gap: 0.4rem;
                 margin-bottom: 0.5rem;
             }
 
@@ -1723,6 +1895,32 @@
                 aria-label="Carte interactive"
                 tabindex="0"
             ></div>
+
+            <!-- Panneau de fiche : la fiche s'y ouvre par défaut -->
+            <aside
+                id="featurePanel"
+                aria-label="Fiche de l'entité sélectionnée"
+                hidden
+            >
+                <div class="feature-panel-header">
+                    <div class="section-label">Fiche</div>
+                    <button
+                        type="button"
+                        class="feature-panel-close"
+                        onclick="closeFeaturePanel()"
+                        aria-label="Fermer la fiche"
+                        title="Fermer (Échap)"
+                    >×</button>
+                </div>
+                <div id="featurePanelBody" class="feature-panel-body"></div>
+                <div
+                    class="feature-panel-resize-handle"
+                    role="separator"
+                    aria-orientation="vertical"
+                    aria-label="Redimensionner la fiche (double-clic pour réinitialiser)"
+                    title="Glisser pour redimensionner • Double-clic pour réinitialiser"
+                ></div>
+            </aside>
         </main>
 
         <!-- Modal pour éditer une couche -->
@@ -1814,12 +2012,22 @@
             // Restaurer la largeur du panneau avant de créer la carte pour
             // que le canvas MapLibre soit dimensionné correctement dès le départ.
             (function restorePanelWidth() {
-                const saved = localStorage.getItem("feuillage-panel-width");
-                if (saved && /^\d+(\.\d+)?px$/.test(saved.trim())) {
-                    document.documentElement.style.setProperty(
-                        "--panel-width",
-                        saved.trim()
-                    );
+                for (const [cle, variable] of [
+                    ["feuillage-panel-width", "--panel-width"],
+                    ["feuillage-feature-panel-width", "--feature-panel-width"],
+                ]) {
+                    let saved = null;
+                    try {
+                        saved = localStorage.getItem(cle);
+                    } catch (e) {
+                        /* stockage indisponible */
+                    }
+                    if (saved && /^\d+(\.\d+)?px$/.test(saved.trim())) {
+                        document.documentElement.style.setProperty(
+                            variable,
+                            saved.trim()
+                        );
+                    }
                 }
             })();
 
@@ -2154,8 +2362,19 @@
                             const chartId = `chart-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
                             const tableId = `table-${chartId}`;
                             // Canvas avec dimensions fixes (pas de responsive pour éviter bugs)
-                            html += `<div class="popup-chart">
+                            html += `<div class="popup-chart" id="container-${chartId}">
                                 <div class="popup-chart-toolbar">
+                                    <button
+                                        type="button"
+                                        class="chart-toggle-btn"
+                                        id="resize-btn-${chartId}"
+                                        onclick="toggleChartSize('${chartId}')"
+                                        aria-label="Agrandir le graphique"
+                                        title="Agrandir/réduire le graphique"
+                                    >
+                                        <span class="material-symbols-outlined" style="font-size: 12px;">fullscreen</span>
+                                        Agrandir
+                                    </button>
                                     <button
                                         type="button"
                                         class="chart-toggle-btn"
@@ -2176,7 +2395,14 @@
                                         PNG
                                     </button>
                                 </div>
-                                <canvas id="${chartId}" width="350" height="200" data-chart-config='${JSON.stringify(section)}' style="display: block;"></canvas>
+                                <canvas id="${chartId}" width="350" height="200" data-chart-config="${escapeAttr(JSON.stringify(section))}" style="display: block;"></canvas>
+                            </div>`;
+                        } else if (section.type === "remote_table") {
+                            // Section alimentée par une URL JSON, remplie après
+                            // insertion dans le DOM (voir renderRemoteSectionsIn).
+                            html += `<div class="remote-section" data-remote-config="${escapeAttr(JSON.stringify(section))}">
+                                ${section.title ? `<h4>${escapeHtml(section.title)}</h4>` : ""}
+                                <p class="remote-status">Chargement…</p>
                             </div>`;
                         }
 
@@ -2207,19 +2433,22 @@
                     return;
                 }
 
-                // Chercher les canvas dans tout le popup
-                const canvases = popupElement.querySelectorAll(
+                renderTemplateWidgetsIn(popupElement, properties);
+            }
+
+            /**
+             * Crée les graphiques et remplit les sections distantes d'un
+             * conteneur (popup ou panneau de fiche) déjà attaché au DOM.
+             */
+            function renderTemplateWidgetsIn(root, properties) {
+                const canvases = root.querySelectorAll(
                     "canvas[data-chart-config]",
                 );
-
-                console.log(`Found ${canvases.length} canvas elements for charts`);
-
                 canvases.forEach((canvas) => {
                     try {
                         const sectionConfig = JSON.parse(
                             canvas.getAttribute("data-chart-config"),
                         );
-                        console.log("Creating chart for canvas:", canvas.id, sectionConfig);
                         createChart(canvas.id, sectionConfig, properties);
                     } catch (e) {
                         console.error(
@@ -2228,6 +2457,129 @@
                         );
                     }
                 });
+                renderRemoteSectionsIn(root, properties);
+            }
+
+            // Remplace {properties.X} dans une URL, valeurs encodées. Si une
+            // propriété manque (ex. station sans tronçon), pas de requête :
+            // erreur « info » portant le message `missing` de la section.
+            function fillUrlTemplate(url, properties, missing) {
+                return url.replace(/\{properties\.(\w+)\}/g, (m, key) => {
+                    const v = properties[key];
+                    if (v === null || v === undefined || v === "") {
+                        const e = new Error(
+                            missing || `Propriété « ${key} » absente`,
+                        );
+                        e.info = true;
+                        throw e;
+                    }
+                    return encodeURIComponent(v);
+                });
+            }
+
+            // Lit un chemin pointé ("ampleur.h30.rcp8") dans un objet.
+            function resolvePath(obj, path) {
+                if (!path) return obj;
+                return path
+                    .split(".")
+                    .reduce((o, k) => (o == null ? undefined : o[k]), obj);
+            }
+
+            // GET JSON ; sur erreur HTTP, remonte le `detail` du serveur s'il
+            // en donne un (ex. « tronçon masqué ») plutôt qu'un code nu.
+            async function fetchJsonOrDetail(url) {
+                if (_asyncDataCache.has(url)) return _asyncDataCache.get(url);
+                const res = await fetch(url);
+                if (!res.ok) {
+                    let detail = null;
+                    try {
+                        detail = (await res.json()).detail;
+                    } catch (e) {
+                        /* corps non JSON */
+                    }
+                    throw new Error(
+                        typeof detail === "string"
+                            ? detail
+                            : `HTTP ${res.status} sur ${url}`,
+                    );
+                }
+                const payload = await res.json();
+                _asyncDataCache.set(url, payload);
+                return payload;
+            }
+
+            function formatCell(value) {
+                if (value === null || value === undefined) return "—";
+                if (typeof value === "number") {
+                    return value.toLocaleString("fr-CA", {
+                        maximumFractionDigits: 2,
+                    });
+                }
+                return escapeHtml(value);
+            }
+
+            /**
+             * Section "remote_table" : une table alimentée par une URL JSON.
+             *   url     : gabarit avec {properties.X}
+             *   rows    : chemin vers les lignes dans la réponse. Tableau →
+             *             une ligne par élément ; objet → table champ/valeur.
+             *   columns : chemins (ou { path, label, link, text, raw }) lus
+             *             dans chaque ligne ; `link` = chemin d'une URL à
+             *             mettre en lien, `text` = libellé fixe de ce lien,
+             *             `raw` = valeur telle quelle (ex. une année).
+             */
+            function renderRemoteSectionsIn(root, properties) {
+                root.querySelectorAll(".remote-section[data-remote-config]")
+                    .forEach(async (el) => {
+                        const status = el.querySelector(".remote-status");
+                        let section;
+                        try {
+                            section = JSON.parse(
+                                el.getAttribute("data-remote-config"),
+                            );
+                            const payload = await fetchJsonOrDetail(
+                                fillUrlTemplate(section.url, properties, section.missing),
+                            );
+                            const data = resolvePath(payload, section.rows);
+                            const columns = (section.columns || []).map((c) =>
+                                typeof c === "string"
+                                    ? { path: c, label: c.split(".").pop() }
+                                    : { label: c.path, ...c },
+                            );
+                            const cell = (row, c) => {
+                                const v = resolvePath(row, c.path);
+                                const href = c.link && resolvePath(row, c.link);
+                                const cls = typeof v === "number" ? ' class="num"' : "";
+                                const valeur = c.raw
+                                    ? escapeHtml(v ?? "—")
+                                    : formatCell(v);
+                                const label = c.text ? escapeHtml(c.text) : valeur;
+                                return href
+                                    ? `<td${cls}><a href="${escapeAttr(href)}" target="_blank" rel="noopener">${label}</a></td>`
+                                    : `<td${cls}>${valeur}</td>`;
+                            };
+                            let html;
+                            if (Array.isArray(data)) {
+                                if (data.length === 0) {
+                                    html = `<p class="remote-status">${escapeHtml(section.empty || "Aucune donnée.")}</p>`;
+                                } else {
+                                    html = `<div class="remote-scroll"><table class="remote-list">
+                                        <thead><tr>${columns.map((c) => `<th>${escapeHtml(c.label)}</th>`).join("")}</tr></thead>
+                                        <tbody>${data.map((row) => `<tr>${columns.map((c) => cell(row, c)).join("")}</tr>`).join("")}</tbody>
+                                    </table></div>`;
+                                }
+                            } else {
+                                html = `<table>${columns
+                                    .map((c) => `<tr><th>${escapeHtml(c.label)}</th>${cell(data, c)}</tr>`)
+                                    .join("")}</table>`;
+                            }
+                            status.outerHTML = html;
+                        } catch (e) {
+                            if (!e.info) console.error("remote_table:", e);
+                            if (!e.info) status.classList.add("is-error");
+                            status.textContent = e.message;
+                        }
+                    });
             }
 
             /**
@@ -2469,9 +2821,42 @@
                 return { labels, series };
             }
 
+            /**
+             * Accesseur "json" : une requête HTTP par entité, réponse en
+             * tableaux parallèles (ex. un service web de séries) :
+             *   { "dates": ["1970-01-01", …], "q25": […], "q50": […], … }
+             * source : { url: "…/{properties.ID}", time_field: "dates",
+             *            series: [{ name, role, field }] }
+             */
+            async function fetchJsonSeries(feature, source) {
+                const payload = await fetchJsonOrDetail(
+                    fillUrlTemplate(source.url, feature.properties, source.missing),
+                );
+                const specs = source.series || [
+                    { name: "value", role: "main", field: source.value_field },
+                ];
+                const series = specs.map((s) => {
+                    const values = payload[s.field];
+                    if (!Array.isArray(values)) {
+                        throw new Error(`Champ "${s.field}" absent de la réponse`);
+                    }
+                    return { name: s.name || s.field, role: s.role || "main", values };
+                });
+                let labels;
+                const times = source.time_field && payload[source.time_field];
+                if (Array.isArray(times)) {
+                    labels = times.map((d) => Date.parse(d));
+                    labels._isTimestamps = true;
+                } else {
+                    labels = series[0].values.map((_, i) => i + 1);
+                }
+                return { labels, series };
+            }
+
             // Registry des accesseurs. fetch(feature, source) → {labels, values}.
             const dataAccessors = {
                 zarr: { fetch: fetchZarrSeries },
+                json: { fetch: fetchJsonSeries },
             };
 
             /**
@@ -2580,19 +2965,23 @@
                     );
                     ctx.restore();
                 };
-                const showError = (msg) => {
+                // L'erreur s'affiche en texte sous le canvas (masqué) : un
+                // message serveur (« tronçon masqué… ») tient rarement dans
+                // une ligne de canvas.
+                const showError = (msg, info = false) => {
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    ctx.save();
-                    ctx.fillStyle = "#c00";
-                    ctx.font = "12px sans-serif";
-                    ctx.textAlign = "center";
-                    ctx.textBaseline = "middle";
-                    ctx.fillText(
-                        msg || "Erreur de chargement",
-                        canvas.width / 2,
-                        canvas.height / 2,
-                    );
-                    ctx.restore();
+                    canvas.style.display = "none";
+                    const cont = canvas.closest(".popup-chart");
+                    cont?.querySelector(".popup-chart-toolbar")?.remove();
+                    if (section.options?.title) {
+                        const h = document.createElement("h4");
+                        h.textContent = section.options.title;
+                        canvas.before(h);
+                    }
+                    const p = document.createElement("p");
+                    p.className = info ? "chart-error is-info" : "chart-error";
+                    p.textContent = msg || "Erreur de chargement";
+                    canvas.after(p);
                 };
 
                 // Mode async : data_source registry (zarr, etc.)
@@ -2612,8 +3001,8 @@
                             renderChart(canvasId, section, chartData),
                         )
                         .catch((e) => {
-                            console.error("data_source fetch failed:", e);
-                            showError();
+                            if (!e.info) console.error("data_source fetch failed:", e);
+                            showError(e.message, e.info);
                         });
                     return;
                 }
@@ -2851,11 +3240,13 @@
             function getPointPaint(color) {
                 const rgb = hexToRgb(color);
                 return {
+                    // Couleur pleine et liseré blanc : la translucidité
+                    // salissait la teinte sur les fonds verts/beiges.
                     "circle-radius": 6,
                     "circle-color": `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`,
-                    "circle-stroke-color": "#000",
-                    "circle-stroke-width": 1,
-                    "circle-opacity": 0.7,
+                    "circle-stroke-color": "#FFFFFF",
+                    "circle-stroke-width": 1.5,
+                    "circle-opacity": 0.95,
                 };
             }
 
@@ -2929,6 +3320,11 @@
                 );
 
                 const layerIds = [];
+                // Sous-ensemble de layerIds qui reçoit les gestionnaires de
+                // clic/survol (voir setupPopupHandlers). Pour les lignes, on
+                // veut cibler la couche "hit" invisible et élargie plutôt que
+                // la ligne fine visible, sinon le survol est trop précis.
+                const interactiveLayerIds = [];
 
                 // Ajouter les couches selon les types de géométrie
                 if (hasPolygons) {
@@ -2941,6 +3337,7 @@
                         paint: getFillPaint(color),
                     });
                     layerIds.push(fillLayerId);
+                    interactiveLayerIds.push(fillLayerId);
 
                     const outlineLayerId = `${layerId}-outline`;
                     map.addLayer({
@@ -2963,6 +3360,22 @@
                         paint: getLinePaint(color),
                     });
                     layerIds.push(lineLayerId);
+
+                    // Couche invisible et large superposée à la ligne fine,
+                    // seulement pour élargir la zone cliquable/survolable.
+                    const lineHitLayerId = `${layerId}-line-hit`;
+                    map.addLayer({
+                        id: lineHitLayerId,
+                        type: "line",
+                        source: sourceId,
+                        filter: ["in", "$type", "LineString"],
+                        paint: {
+                            "line-width": 16,
+                            "line-opacity": 0,
+                        },
+                    });
+                    layerIds.push(lineHitLayerId);
+                    interactiveLayerIds.push(lineHitLayerId);
                 }
 
                 if (hasPoints) {
@@ -2975,6 +3388,7 @@
                         paint: getPointPaint(color),
                     });
                     layerIds.push(pointLayerId);
+                    interactiveLayerIds.push(pointLayerId);
                 }
 
                 // Stocker la couche avec un ID unique
@@ -2982,6 +3396,7 @@
                     id: layerId,
                     sourceId: sourceId,
                     layerIds: layerIds,
+                    interactiveLayerIds: interactiveLayerIds,
                     name: name,
                     color: color,
                     geojson: geojson,
@@ -3091,6 +3506,7 @@
                 });
 
                 const layerIds = [];
+                const interactiveLayerIds = [];
                 if (geomType === "polygon") {
                     const fillId = `${layerId}-fill`;
                     map.addLayer({
@@ -3101,6 +3517,7 @@
                         paint: getFillPaint(color),
                     });
                     layerIds.push(fillId);
+                    interactiveLayerIds.push(fillId);
                     const outlineId = `${layerId}-outline`;
                     map.addLayer({
                         id: outlineId,
@@ -3120,6 +3537,7 @@
                         paint: getPointPaint(color),
                     });
                     layerIds.push(pointId);
+                    interactiveLayerIds.push(pointId);
                 } else {
                     const lineId = `${layerId}-line`;
                     map.addLayer({
@@ -3130,12 +3548,29 @@
                         paint: getLinePaint(color),
                     });
                     layerIds.push(lineId);
+
+                    // Couche invisible et large pour élargir la zone
+                    // cliquable/survolable des tronçons (lignes fines).
+                    const lineHitId = `${layerId}-line-hit`;
+                    map.addLayer({
+                        id: lineHitId,
+                        type: "line",
+                        source: sourceId,
+                        "source-layer": sourceLayer,
+                        paint: {
+                            "line-width": 16,
+                            "line-opacity": 0,
+                        },
+                    });
+                    layerIds.push(lineHitId);
+                    interactiveLayerIds.push(lineHitId);
                 }
 
                 const layerInfo = {
                     id: layerId,
                     sourceId,
                     layerIds,
+                    interactiveLayerIds,
                     name,
                     color,
                     geojson: null,
@@ -3253,7 +3688,12 @@
              * Configure les gestionnaires de popup pour une couche
              */
             function setupPopupHandlers(layerInfo) {
-                layerInfo.layerIds.forEach((layerId) => {
+                // N'écoute que sur le sous-ensemble "interactif" (fill pour les
+                // polygones, couche hit élargie pour les lignes, cercle pour les
+                // points) pour éviter les doubles popups et rater les tronçons fins.
+                const targetLayerIds =
+                    layerInfo.interactiveLayerIds || layerInfo.layerIds;
+                targetLayerIds.forEach((layerId) => {
                     // Changer le curseur au survol
                     map.on("mouseenter", layerId, () => {
                         map.getCanvas().style.cursor = "pointer";
@@ -3266,14 +3706,20 @@
                     // Gérer le clic pour afficher le popup
                     map.on("click", layerId, (e) => {
                         const feature = e.features[0];
+                        if (usesFeaturePanel(layerInfo.templateName)) {
+                            openFeaturePanel(feature, layerInfo.templateName);
+                            return;
+                        }
                         const popupContent = createPopup(
                             feature,
                             layerInfo.templateName
                         );
 
                         // Créer et afficher le popup
+                        // Plafond généreux (au lieu de 600px) pour laisser de
+                        // la place au bouton "Agrandir" des graphiques.
                         const popup = new maplibregl.Popup({
-                            maxWidth: `${Math.min(window.innerWidth * 0.8, 600)}px`,
+                            maxWidth: `${Math.min(window.innerWidth * 0.9, 760)}px`,
                         })
                             .setLngLat(e.lngLat)
                             .setHTML(popupContent)
@@ -3308,6 +3754,74 @@
                         });
                     });
                 });
+            }
+
+            // ----- Panneau de fiche -----
+            // La fiche s'ouvre dans le panneau latéral droit plutôt qu'en
+            // bulle : même rendu de sections, la largeur en plus. Un template
+            // revient à la bulle avec `"display": "popup"`.
+
+            function usesFeaturePanel(templateName) {
+                return popupTemplates[templateName]?.display !== "popup";
+            }
+
+            function destroyChartsIn(root) {
+                root.querySelectorAll("canvas[data-chart-config]").forEach(
+                    (canvas) => Chart.getChart(canvas)?.destroy(),
+                );
+            }
+
+            // Largeur utile du corps du panneau (pour les canvas Chart.js,
+            // non responsive ici comme dans les popups).
+            function featurePanelChartSize() {
+                const body = document.getElementById("featurePanelBody");
+                const width = Math.max(240, body.clientWidth - 32);
+                return { width, height: Math.round(width * 0.6) };
+            }
+
+            function openFeaturePanel(feature, templateName) {
+                const panel = document.getElementById("featurePanel");
+                const body = document.getElementById("featurePanelBody");
+                destroyChartsIn(body);
+                body.innerHTML = createPopup(feature, templateName);
+                const wasHidden = panel.hidden;
+                panel.hidden = false;
+                document.body.classList.add("feature-panel-open");
+                body.scrollTop = 0;
+                if (wasHidden) map.resize();
+
+                body.querySelectorAll('[id^="resize-btn-"]').forEach((b) =>
+                    b.remove(),
+                );
+                const { width, height } = featurePanelChartSize();
+                body.querySelectorAll("canvas[data-chart-config]").forEach(
+                    (canvas) => {
+                        canvas.width = width;
+                        canvas.height = height;
+                    },
+                );
+                renderTemplateWidgetsIn(body, feature.properties || {});
+                announceToScreenReader(
+                    body.querySelector("h3")?.textContent || "Fiche ouverte",
+                );
+            }
+
+            function closeFeaturePanel() {
+                const panel = document.getElementById("featurePanel");
+                if (panel.hidden) return;
+                destroyChartsIn(panel);
+                panel.hidden = true;
+                document.body.classList.remove("feature-panel-open");
+                map.resize();
+            }
+
+            // Les graphiques du panneau (non responsive) suivent sa largeur.
+            function resizeFeaturePanelCharts() {
+                const body = document.getElementById("featurePanelBody");
+                const { width, height } = featurePanelChartSize();
+                body.querySelectorAll("canvas[data-chart-config]").forEach(
+                    (canvas) => Chart.getChart(canvas)?.resize(width, height),
+                );
             }
 
             /**
@@ -4032,6 +4546,7 @@
                 );
 
                 if (proceed) {
+                    closeFeaturePanel();
                     loadedLayers.forEach((layerInfo) => {
                         // Retirer toutes les couches MapLibre associées
                         layerInfo.layerIds.forEach((layerId) => {
@@ -4490,6 +5005,7 @@
                     closeRenameModal();
                     closeBasemapDialog();
                     closeInfoModal();
+                    closeFeaturePanel();
                 }
             });
 
@@ -4518,6 +5034,13 @@
                 return div.innerHTML;
             }
 
+            // escapeHtml laisse passer les guillemets : pour un attribut.
+            function escapeAttr(value) {
+                return escapeHtml(value)
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#39;");
+            }
+
             /**
              * Ouvre le modal générique d'information (résumés, listes),
              * en remplacement de window.alert().
@@ -4536,6 +5059,45 @@
             document
                 .getElementById("basemapSelect")
                 .addEventListener("change", updateBasemapAttributionHint);
+
+            /**
+             * Agrandit/réduit un graphique de popup. Les canvas Chart.js sont
+             * en taille fixe ici (responsive:false, voir createChart) pour
+             * éviter les boucles de redimensionnement dans un popup MapLibre
+             * qui se repositionne lui-même ; l'agrandissement est donc un
+             * chart.resize() explicite et ponctuel, déclenché par l'utilisateur,
+             * jamais automatique.
+             */
+            function toggleChartSize(chartId) {
+                const canvas = document.getElementById(chartId);
+                const container = document.getElementById(`container-${chartId}`);
+                const btn = document.getElementById(`resize-btn-${chartId}`);
+                const chart = Chart.getChart(chartId);
+                if (!canvas || !container || !chart) return;
+
+                const isEnlarged = container.classList.toggle("is-enlarged");
+
+                let width, height;
+                if (isEnlarged) {
+                    width = Math.round(Math.min(window.innerWidth * 0.8, 700));
+                    height = Math.round(width * (200 / 350));
+                } else {
+                    width = 350;
+                    height = 200;
+                }
+
+                chart.resize(width, height);
+
+                if (btn) {
+                    btn.setAttribute(
+                        "aria-label",
+                        isEnlarged ? "Réduire le graphique" : "Agrandir le graphique",
+                    );
+                    btn.innerHTML = `
+                        <span class="material-symbols-outlined" style="font-size: 12px;">${isEnlarged ? "close_fullscreen" : "fullscreen"}</span>
+                        ${isEnlarged ? "Réduire" : "Agrandir"}`;
+                }
+            }
 
             /**
              * Télécharge les données du graphique sous forme de CSV. Une
@@ -4776,6 +5338,96 @@
                     if (e.propertyName === "margin-left" && map && map.resize) {
                         map.resize();
                     }
+                });
+            })();
+
+            /**
+             * Poignée du bord gauche de la fiche : glisser pour élargir ou
+             * rétrécir (la carte et les graphiques suivent), double-clic
+             * pour revenir à la largeur par défaut. Largeur mémorisée.
+             */
+            (function setupFeaturePanelResize() {
+                const panel = document.getElementById("featurePanel");
+                const handle = panel?.querySelector(".feature-panel-resize-handle");
+                const root = document.documentElement;
+                if (!handle) return;
+
+                const MIN_WIDTH = 320;
+                let isResizing = false;
+                let rafPending = false;
+
+                function applyWidth(px) {
+                    const max = Math.max(MIN_WIDTH, window.innerWidth * 0.8);
+                    const clamped = Math.max(MIN_WIDTH, Math.min(max, px));
+                    root.style.setProperty(
+                        "--feature-panel-width",
+                        Math.round(clamped) + "px",
+                    );
+                    if (rafPending) return;
+                    rafPending = true;
+                    requestAnimationFrame(() => {
+                        rafPending = false;
+                        map.resize();
+                        resizeFeaturePanelCharts();
+                    });
+                }
+
+                function startResize(e) {
+                    isResizing = true;
+                    handle.classList.add("resizing");
+                    document.body.style.cursor = "col-resize";
+                    document.body.style.userSelect = "none";
+                    e.preventDefault();
+                }
+
+                function moveResize(e) {
+                    if (!isResizing) return;
+                    const x =
+                        e.clientX !== undefined
+                            ? e.clientX
+                            : e.touches && e.touches[0]
+                              ? e.touches[0].clientX
+                              : null;
+                    if (x === null) return;
+                    applyWidth(window.innerWidth - x);
+                }
+
+                function endResize() {
+                    if (!isResizing) return;
+                    isResizing = false;
+                    handle.classList.remove("resizing");
+                    document.body.style.cursor = "";
+                    document.body.style.userSelect = "";
+                    const w = root.style
+                        .getPropertyValue("--feature-panel-width")
+                        .trim();
+                    try {
+                        if (w) localStorage.setItem("feuillage-feature-panel-width", w);
+                    } catch (e) {
+                        /* stockage indisponible */
+                    }
+                }
+
+                handle.addEventListener("mousedown", startResize);
+                handle.addEventListener("touchstart", startResize, { passive: false });
+                document.addEventListener("mousemove", moveResize);
+                document.addEventListener("touchmove", moveResize, { passive: false });
+                document.addEventListener("mouseup", endResize);
+                document.addEventListener("touchend", endResize);
+                document.addEventListener("touchcancel", endResize);
+
+                handle.addEventListener("dblclick", () => {
+                    root.style.removeProperty("--feature-panel-width");
+                    try {
+                        localStorage.removeItem("feuillage-feature-panel-width");
+                    } catch (e) {
+                        /* stockage indisponible */
+                    }
+                    requestAnimationFrame(() => {
+                        map.resize();
+                        resizeFeaturePanelCharts();
+                    });
+                    announceToScreenReader("Largeur de la fiche réinitialisée");
                 });
             })();
 
@@ -5084,6 +5736,10 @@
                 }
 
                 // Ouvrir le popup (même logique que le clic sur la carte)
+                if (usesFeaturePanel(layer.templateName)) {
+                    openFeaturePanel(feature, layer.templateName);
+                    return;
+                }
                 const popupContent = createPopup(feature, layer.templateName);
                 const popup = new maplibregl.Popup({
                     maxWidth: `${Math.min(window.innerWidth * 0.8, 600)}px`,

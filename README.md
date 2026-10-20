@@ -27,8 +27,8 @@ Application web 100% statique pour visualiser et gérer plusieurs couches cartog
 - **Design responsive** : Adaptation mobile et desktop
 
 ### Visualisation
-- **Popups automatiques** : Affichage de toutes les propriétés pour chaque feature
-- **Popups avec graphiques** : Support de Chart.js pour afficher des graphiques dans les popups
+- **Fiche latérale automatique** : Affichage de toutes les propriétés de la feature cliquée
+- **Fiches avec graphiques** : Support de Chart.js pour afficher des graphiques dans la fiche
 - **Templates de popups** : Système de templates configurables pour personnaliser l'affichage
 - **Zoom automatique** : Centrage sur les données chargées
 - **Palette accessible** : Couleurs distinctes respectant les principes WCAG
@@ -143,7 +143,7 @@ https://www.donneesquebec.ca/recherche/dataset/.../vdq-hydrobassinversant.geojso
 
 ### 7. Explorer les données
 
-- **Cliquez** sur n'importe quelle feature pour voir ses propriétés dans un popup
+- **Cliquez** sur n'importe quelle feature pour voir ses propriétés dans la fiche latérale
 - **Zoomez/Déplacez** la carte pour naviguer
 - Le zoom s'ajuste automatiquement lors du chargement
 - **Changez le fond de carte** dans le panneau latéral (OpenStreetMap, OpenTopoMap, CartoDB)
@@ -311,6 +311,7 @@ Créez un fichier `config.json` :
 - **layers[].geometry_type** : `"line"` (défaut), `"point"` ou `"polygon"` — requis pour PMTiles car les vector tiles ne sont pas introspectables
 - **layers[].attribution** : Mention de source affichée dans la carte (optionnel)
 - **popup_templates** : Objet définissant les templates de popups (optionnel)
+- **popup_templates.\*.display** : `"popup"` pour garder la bulle sur la carte ; sans cette clé, la fiche s'ouvre dans le panneau latéral droit
 
 ### Couches PMTiles
 
@@ -370,6 +371,75 @@ Sémantique :
 Côté technique : zarrita.js est chargé en lazy-import à la première ouverture de popup zarr, la metadata consolidée est utilisée pour limiter à 1 fetch initial, et chaque popup déclenche range-fetch d'un seul chunk (~quelques centaines de kB compressés) puis une décompression blosc-zstd côté navigateur. L'archive et les coords sont mises en cache en mémoire pour les popups suivants.
 
 Le store doit servir avec **CORS ouvert et range requests supportés** : Hugging Face Datasets, Cloudflare R2 (avec CORS configuré), et la plupart des buckets S3 publics conviennent. pCloud / Google Drive / Dropbox **ne fonctionnent pas** car ils restreignent CORS au domaine du fournisseur.
+
+### Fiche en panneau latéral (par défaut)
+
+Le clic sur une entité ouvre sa fiche dans un panneau à droite de la carte
+(440 px, la carte cède la place) plutôt qu'en bulle : mêmes sections, plus
+d'espace. Glisser le bord gauche du panneau l'élargit ou le rétrécit (les
+graphiques suivent ; largeur mémorisée, double-clic pour réinitialiser),
+Échap ou × le ferme.
+
+Un template qui déclare `"display": "popup"` revient à la bulle classique :
+
+```json
+"popup_templates": {
+  "troncon_rqh": {
+    "display": "popup",
+    "title": "Tronçon {properties.IDTRONCON}"
+  }
+}
+```
+
+### Séries et tables lues d'un service web
+
+**`data_source.type: "json"`** — une requête HTTP par entité, réponse en
+tableaux parallèles (`{"dates": [...], "q25": [...], "q50": [...], ...}`) :
+
+```json
+"data_source": {
+  "type": "json",
+  "url": "http://127.0.0.1:8100/api/portrait/{properties.IDTRONCON}",
+  "time_field": "dates",
+  "series": [
+    { "name": "q25", "role": "lower", "field": "q25" },
+    { "name": "q50", "role": "main",  "field": "q50" },
+    { "name": "q75", "role": "upper", "field": "q75" }
+  ]
+}
+```
+
+**Section `"type": "remote_table"`** — une table alimentée par une URL JSON :
+`rows` est le chemin des lignes dans la réponse (tableau → une ligne par
+élément ; objet → table champ/valeur), `columns` des chemins pointés ou des
+objets `{ "path", "label", "link", "text", "raw" }` (`link` = chemin d'une
+URL à mettre en lien, `text` = libellé fixe du lien, `raw` = valeur affichée
+telle quelle, ex. une année). `empty` : message si aucune
+ligne.
+
+```json
+{
+  "type": "remote_table",
+  "title": "Indicateurs",
+  "url": "http://127.0.0.1:8100/api/indicateurs/{properties.IDTRONCON}",
+  "rows": "indicateurs",
+  "columns": [
+    { "path": "indicateur", "label": "Indicateur" },
+    { "path": "ampleur.h80.rcp8", "label": "2071-2100" }
+  ]
+}
+```
+
+Dans les URL, `{properties.X}` est remplacé (et encodé) par la propriété de
+l'entité cliquée. Si la propriété est vide (ex. station sans tronçon), aucune
+requête n'est faite et la section affiche son message `missing`. Si le serveur répond en erreur avec un champ `detail`
+(ex. « tronçon masqué »), c'est ce message qui s'affiche. Le serveur doit
+autoriser CORS.
+
+Exemple complet : `config-atlas-service.json` (service web de l'Atlas
+hydroclimatique en local) — ouvrir `index.html?config=config-atlas-service.json`
+via un serveur qui gère les requêtes Range (PMTiles), p. ex.
+`npx http-server -p 8765`.
 
 ### Types de graphiques supportés
 
