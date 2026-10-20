@@ -27,8 +27,8 @@ Application web 100% statique pour visualiser et gérer plusieurs couches cartog
 - **Design responsive** : Adaptation mobile et desktop
 
 ### Visualisation
-- **Popups automatiques** : Affichage de toutes les propriétés pour chaque feature
-- **Popups avec graphiques** : Support de Chart.js pour afficher des graphiques dans les popups
+- **Fiche latérale automatique** : Affichage de toutes les propriétés de la feature cliquée
+- **Fiches avec graphiques** : Support de Chart.js pour afficher des graphiques dans la fiche
 - **Templates de popups** : Système de templates configurables pour personnaliser l'affichage
 - **Zoom automatique** : Centrage sur les données chargées
 - **Palette accessible** : Couleurs distinctes respectant les principes WCAG
@@ -143,7 +143,7 @@ https://www.donneesquebec.ca/recherche/dataset/.../vdq-hydrobassinversant.geojso
 
 ### 7. Explorer les données
 
-- **Cliquez** sur n'importe quelle feature pour voir ses propriétés dans un popup
+- **Cliquez** sur n'importe quelle feature pour voir ses propriétés dans la fiche latérale
 - **Zoomez/Déplacez** la carte pour naviguer
 - Le zoom s'ajuste automatiquement lors du chargement
 - **Changez le fond de carte** dans le panneau latéral (OpenStreetMap, OpenTopoMap, CartoDB)
@@ -311,6 +311,7 @@ Créez un fichier `config.json` :
 - **layers[].geometry_type** : `"line"` (défaut), `"point"` ou `"polygon"` — requis pour PMTiles car les vector tiles ne sont pas introspectables
 - **layers[].attribution** : Mention de source affichée dans la carte (optionnel)
 - **popup_templates** : Objet définissant les templates de popups (optionnel)
+- **popup_templates.\*.display** : `"popup"` pour garder la bulle sur la carte ; sans cette clé, la fiche s'ouvre dans le panneau latéral droit
 
 ### Couches PMTiles
 
@@ -371,13 +372,24 @@ Côté technique : zarrita.js est chargé en lazy-import à la première ouvertu
 
 Le store doit servir avec **CORS ouvert et range requests supportés** : Hugging Face Datasets, Cloudflare R2 (avec CORS configuré), et la plupart des buckets S3 publics conviennent. pCloud / Google Drive / Dropbox **ne fonctionnent pas** car ils restreignent CORS au domaine du fournisseur.
 
-### Fiche en panneau latéral : `"display": "sidebar"`
+### Fiche en panneau latéral (par défaut)
 
-Un template de popup qui déclare `"display": "sidebar"` s'ouvre dans un
-panneau à droite de la carte (440 px, la carte cède la place) au lieu d'une
-bulle : mêmes sections, plus d'espace. Glisser son bord gauche l'élargit ou
-le rétrécit (les graphiques suivent ; largeur mémorisée, double-clic pour
-réinitialiser), Échap ou × le ferme. Sans `display`, rien ne change : bulle.
+Le clic sur une entité ouvre sa fiche dans un panneau à droite de la carte
+(440 px, la carte cède la place) plutôt qu'en bulle : mêmes sections, plus
+d'espace. Glisser le bord gauche du panneau l'élargit ou le rétrécit (les
+graphiques suivent ; largeur mémorisée, double-clic pour réinitialiser),
+Échap ou × le ferme.
+
+Un template qui déclare `"display": "popup"` revient à la bulle classique :
+
+```json
+"popup_templates": {
+  "troncon_rqh": {
+    "display": "popup",
+    "title": "Tronçon {properties.IDTRONCON}"
+  }
+}
+```
 
 ### Séries et tables lues d'un service web
 

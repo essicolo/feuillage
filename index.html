@@ -628,7 +628,7 @@
                 width: 100%;
             }
 
-            /* === Panneau de fiche (templates "display": "sidebar") === */
+            /* === Panneau de fiche (fiche par défaut ; "display": "popup" garde la bulle) === */
             :root {
                 --feature-panel-width: 440px;
             }
@@ -1896,7 +1896,7 @@
                 tabindex="0"
             ></div>
 
-            <!-- Panneau de fiche : templates de popup en "display": "sidebar" -->
+            <!-- Panneau de fiche : la fiche s'y ouvre par défaut -->
             <aside
                 id="featurePanel"
                 aria-label="Fiche de l'entité sélectionnée"
@@ -3757,12 +3757,12 @@
             }
 
             // ----- Panneau de fiche -----
-            // Un template de popup déclare `"display": "sidebar"` pour
-            // s'ouvrir dans le panneau latéral droit plutôt qu'en bulle :
-            // même rendu de sections, la largeur en plus.
+            // La fiche s'ouvre dans le panneau latéral droit plutôt qu'en
+            // bulle : même rendu de sections, la largeur en plus. Un template
+            // revient à la bulle avec `"display": "popup"`.
 
             function usesFeaturePanel(templateName) {
-                return popupTemplates[templateName]?.display === "sidebar";
+                return popupTemplates[templateName]?.display !== "popup";
             }
 
             function destroyChartsIn(root) {

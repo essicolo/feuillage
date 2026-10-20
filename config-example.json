@@ -36,6 +36,7 @@
       ]
     },
     "cours_eau": {
+      "display": "popup",
       "title": "{properties.nom_cours}",
       "sections": [
         {
