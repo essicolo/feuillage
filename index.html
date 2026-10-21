@@ -3672,6 +3672,15 @@
                     type: "vector",
                     url: `pmtiles://${url}`,
                     attribution: options.attribution || "",
+                    ...(options.promote_id || (options.color_by && options.color_by.key && options.color_by.key.property)
+                        ? {
+                            promoteId:
+                                options.promote_id ||
+                                (options.color_by &&
+                                    options.color_by.key &&
+                                    options.color_by.key.property),
+                        }
+                        : {}),
                 });
 
                 const layerIds = [];
@@ -3749,6 +3758,9 @@
                     templateName,
                     url,
                     visible: true,
+                    colorBy: options.color_by || null,
+                    baseColor: color,
+                    colorSelection: null,
                 };
                 loadedLayers.push(layerInfo);
                 setupPopupHandlers(layerInfo);
@@ -3849,7 +3861,8 @@
                     templateName: layerConfig.popup_template,
                     source_layer: layerConfig.source_layer,
                     geometry_type: layerConfig.geometry_type,
-                    attribution: layerConfig.attribution,
+                    color_by: layerConfig.color_by,
+                    promote_id: layerConfig.promote_id,
                 });
             }
 
@@ -4389,14 +4402,81 @@
                                 <span class="material-symbols-outlined" style="font-size: 11px;" aria-hidden="true">delete</span>
                             </button>
                         </div>
+                        </div>
                     </div>
-                </div>
-            `;
+                    ${
+                        layerInfo.colorBy
+                            ? colorByPanelHtml(layerInfo, index)
+                            : ""
+                    }
+                `;
                         },
                     )
                     .join("");
 
                 setupDragAndDrop();
+            }
+
+            /**
+             * Html de contrôle pour une couche color_by (choroplèthe).
+             */
+            function colorByPanelHtml(layerInfo, index) {
+                const cb = layerInfo.colorBy;
+                if (!layerInfo.colorSelection) layerInfo.colorSelection = {};
+                const dims = cb.dimensions || {};
+                const selects = Object.keys(dims)
+                    .map((dimName) => {
+                        const dim = dims[dimName];
+                        const opts = (dim.options || [])
+                            .map(
+                                (o) =>
+                                    `<option value="${String(
+                                        o.value,
+                                    )}" ${
+                                        layerInfo.colorSelection[dimName] ===
+                                        o.value
+                                            ? "selected"
+                                            : ""
+                                    }>${escapeHtml(o.label || o.value)}</option>`,
+                            )
+                            .join("");
+                        if (
+                            !Object.prototype.hasOwnProperty.call(
+                                layerInfo.colorSelection,
+                                dimName,
+                            ) &&
+                            dim.options &&
+                            dim.options.length
+                        ) {
+                            layerInfo.colorSelection[dimName] =
+                                dim.options[0].value;
+                        }
+                        return `<label style="display:block;margin:4px 0;font-size:11px;color:#333;">
+                            ${escapeHtml(dim.label || dimName)}
+                            <select id="colorby-${index}-${dimName}"
+                                onchange="applyColorBy(${index})"
+                                style="width:100%;font-size:11px;margin-top:2px;">
+                                ${opts}
+                            </select>
+                        </label>`;
+                    })
+                    .join("");
+                return `
+                    <details class="colorby-panel" style="margin-top:6px;background:rgba(255,255,255,0.6);border-radius:4px;padding:4px 6px;">
+                        <summary style="cursor:pointer;font-size:11px;font-weight:bold;">
+                            Colorer la carte par…
+                        </summary>
+                        <div style="margin:4px 0;">
+                            <button type="button" onclick="resetColorBy(${index})"
+                                style="font-size:11px;margin-bottom:4px;">
+                                Aucun (couleur unie)
+                            </button>
+                            ${selects}
+                        </div>
+                        <div id="colorby-legend-${index}"
+                            style="font-size:10px;margin-top:4px;color:#333;"></div>
+                    </details>
+                `;
             }
 
             /**
@@ -4859,9 +4939,167 @@
                 closeRenameModal();
             }
 
-            /**
-             * Met à jour la couleur d'une couche sur la carte
-             */
+            async function applyColorBy(index) {
+                const layerInfo = loadedLayers[index];
+                const cb = layerInfo && layerInfo.colorBy;
+                if (!cb || !layerInfo.sourceId) return;
+                const panel = document.getElementById(
+                    `colorby-legend-${index}`,
+                );
+                // Lire les sélections courantes du panneau.
+                const selection = layerInfo.colorSelection || {};
+                const dims = cb.dimensions || {};
+                for (const dimName of Object.keys(dims)) {
+                    const el = document.getElementById(
+                        `colorby-${index}-${dimName}`,
+                    );
+                    if (el) selection[dimName] = el.value;
+                }
+                layerInfo.colorSelection = selection;
+
+                // Construire le nom de colonne à lire.
+                let col = cb.column_template;
+                for (const dimName of Object.keys(dims)) {
+                    col = col.replace(
+                        `{${dimName}}`,
+                        selection[dimName],
+                    );
+                }
+                if (!col || col.includes("{")) {
+                    showMessage("Sélection de couleur incomplète", "error");
+                    return;
+                }
+
+                try {
+                    showMessage("Chargement de la couleur…", "info");
+                    const { file } = await _openParquet(cb.url);
+                    const { parquetReadObjects } =
+                        await loadHyparquet();
+                    const rows = await parquetReadObjects({
+                        file,
+                        columns: [cb.key.column, col],
+                    });
+                    const idCol = cb.key.column;
+                    const featureProp = cb.key.property;
+                    let min = Infinity;
+                    let max = -Infinity;
+                    let n = 0;
+                    rows.forEach((row) => {
+                        const id = row[idCol];
+                        const v = row[col];
+                        let val = null;
+                        if (
+                            v !== null &&
+                            v !== undefined &&
+                            Number.isFinite(v)
+                        ) {
+                            val = Number(v);
+                            if (val < min) min = val;
+                            if (val > max) max = val;
+                            n++;
+                        }
+                        if (map.getSource(layerInfo.sourceId)) {
+                            map.setFeatureState(
+                                {
+                                    source: layerInfo.sourceId,
+                                    sourceLayer: layerInfo.sourceLayer,
+                                    id,
+                                },
+                                { v: val },
+                            );
+                        }
+                    });
+
+                    const selectedIndOption =
+                        (dims.indicateur && dims.indicateur.options
+                            ? dims.indicateur.options
+                            : []
+                        ).find(
+                            (o) =>
+                                String(o.value) ===
+                                String(selection.indicateur),
+                        );
+                    const scale =
+                        (selectedIndOption && selectedIndOption.scale) ||
+                        cb.scale || {
+                            type: "diverging",
+                            domain: [-40, 0, 40],
+                            colors: ["#2166ac", "#f7f7f7", "#b2182b"],
+                            unit: "%",
+                        };
+                    const domain = scale.domain || [-40, 0, 40];
+                    const colors = scale.colors || [
+                        "#2166ac",
+                        "#f7f7f7",
+                        "#b2182b",
+                    ];
+                    const expr = [
+                        "coalesce",
+                        [
+                            "interpolate",
+                            ["linear"],
+                            ["feature-state", "v"],
+                            domain[0],
+                            colors[0],
+                            domain[Math.floor(domain.length / 2)],
+                            colors[Math.floor(colors.length / 2)],
+                            domain[domain.length - 1],
+                            colors[colors.length - 1],
+                        ],
+                        layerInfo.baseColor,
+                    ];
+
+                    layerInfo.layerIds.forEach((lid) => {
+                        if (!map.getLayer(lid)) return;
+                        const l = map.getLayer(lid);
+                        if (l.type === "line") {
+                            map.setPaintProperty(lid, "line-color", expr);
+                        }
+                    });
+
+                    if (panel) {
+                        const unit = scale.unit || "";
+                        const mid =
+                            domain[Math.floor(domain.length / 2)];
+                        panel.innerHTML =
+                            `<div style="background:linear-gradient(to right,${colors[0]},${colors[1]},${colors[2]});height:8px;border-radius:4px;margin:4px 0;border:1px solid #888;"></div>` +
+                            `<span style="display:flex;justify-content:space-between;">` +
+                            `<span>${domain[0]}${unit}</span><span>${mid}${unit}</span><span>${domain[domain.length-1]}${unit}</span>` +
+                            `</span>` +
+                            `<div style="margin-top:2px;">${n} tronçons colorés (min ${min === Infinity ? "—" : min.toFixed(1)}, max ${max === -Infinity ? "—" : max.toFixed(1)})</div>`;
+                    }
+                    showMessage("Coloration appliquée", "success");
+                } catch (error) {
+                    console.error("applyColorBy", error);
+                    showMessage(
+                        "Impossible de colorer le calque: " +
+                            error.message,
+                        "error",
+                    );
+                }
+            }
+
+            function resetColorBy(index) {
+                const layerInfo = loadedLayers[index];
+                if (!layerInfo || !layerInfo.sourceId) return;
+                const rgb = layerInfo.baseColor
+                    ? (() => {
+                          const c = hexToRgb(layerInfo.baseColor);
+                          return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+                      })()
+                    : "#888";
+                layerInfo.layerIds.forEach((lid) => {
+                    if (!map.getLayer(lid)) return;
+                    const l = map.getLayer(lid);
+                    if (l.type === "line") {
+                        map.setPaintProperty(lid, "line-color", rgb);
+                    }
+                });
+                const panel = document.getElementById(
+                    `colorby-legend-${index}`,
+                );
+                if (panel) panel.textContent = "Coloration désactivée.";
+            }
             function updateLayerColor(layerIndex, newColor) {
                 const layerInfo = loadedLayers[layerIndex];
                 const rgb = hexToRgb(newColor);
