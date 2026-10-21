@@ -1,7 +1,7 @@
 {
   "view": {
     "name": "Atlas hydroclimatique",
-    "description": "Tronçons PMTiles, stations GeoJSON ; fiches et indicateurs lus par range requests dans des parquet statiques (hyparquet), débits observés aux stations et portrait RQH en zarr — sans service web",
+    "description": "Tronçons PMTiles, stations GeoJSON ; fiches et indicateurs lus par range requests dans des parquet statiques (hyparquet), débits observés aux stations et portrait RQH en zarr",
     "center": [47.2, -71.5],
     "zoom": 6,
     "basemap": "osm"
