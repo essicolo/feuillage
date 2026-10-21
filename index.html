@@ -2595,12 +2595,40 @@
             // stats min/max de chaque row group, l'« index » du pattern —
             // ne se télécharge qu'une fois par session.
             const _parquetFichiers = new Map();
+
+            /**
+             * Taille réelle du fichier en octets. GitHub Pages (Fastly) sert
+             * les .parquet gzippés : le Content-Length d'un HEAD donne la
+             * taille *compressée*, qui ne correspond pas aux octets réels et
+             * fait échouer hyparquet (footer != PAR1). Les ranges, eux, sont
+             * appliqués au contenu décompressé — un Range 0-0 révèle donc la
+             * vraie taille via Content-Range ("bytes 0-0/<taille>").
+             * Repli sur Content-Length pour les serveurs sans ranges.
+             */
+            async function _tailleReelleParquet(url) {
+                const reponse = await fetch(url, {
+                    headers: { Range: "bytes=0-0" },
+                });
+                const contentRange =
+                    reponse.headers.get("content-range");
+                const total = contentRange
+                    ? Number(contentRange.split("/").pop())
+                    : NaN;
+                if (Number.isFinite(total) && total > 0) return total;
+                return Number(
+                    reponse.headers.get("content-length"),
+                );
+            }
+
             async function _openParquet(url) {
                 if (_parquetFichiers.has(url)) return _parquetFichiers.get(url);
                 const promise = (async () => {
                     const { asyncBufferFromUrl, parquetMetadataAsync } =
                         await loadHyparquet();
-                    const file = await asyncBufferFromUrl({ url });
+                    const file = await asyncBufferFromUrl({
+                        url,
+                        byteLength: await _tailleReelleParquet(url),
+                    });
                     const metadata = await parquetMetadataAsync(file);
                     return { file, metadata };
                 })();
@@ -2759,11 +2787,15 @@
             // Cache par store_url : { z, root, coordCache }
             const _zarrArchives = new Map();
             async function _openZarrArchive(store_url) {
-                if (_zarrArchives.has(store_url))
-                    return _zarrArchives.get(store_url);
+                // FetchStore exige une URL absolue : les configs d'un site
+                // statique référencent les zarr en chemin relatif, on les
+                // résout contre la page.
+                const url = new URL(store_url, location.href).href;
+                if (_zarrArchives.has(url))
+                    return _zarrArchives.get(url);
                 const promise = (async () => {
                     const z = await loadZarrita();
-                    const baseStore = new z.FetchStore(store_url);
+                    const baseStore = new z.FetchStore(url);
                     // Active la metadata consolidée si présente (1 seul GET
                     // pour découvrir tout le schéma, sinon N fetchs).
                     // L'API a changé entre 0.5 et 0.7 — on supporte les deux.
@@ -2776,7 +2808,10 @@
                     const root = await z.open(store, { kind: "group" });
                     return { z, root, coordCache: new Map() };
                 })();
-                _zarrArchives.set(store_url, promise);
+                // Un store inaccessible ne reste pas en cache pour toute
+                // la session : le prochain clic retente l'ouverture.
+                promise.catch(() => _zarrArchives.delete(url));
+                _zarrArchives.set(url, promise);
                 return promise;
             }
 
