@@ -550,14 +550,23 @@ ses entités sont colorées selon la valeur lue dans un parquet statique.
 Changer de sélection ne lit qu'une colonne (une range request de quelques
 dizaines de Ko si le parquet tient en un seul row group) ; les colonnes
 déjà lues restent en mémoire. Le parquet de l'Atlas
-(`data/atlas/indicateurs_carte.parquet`, 9 665 tronçons × 456 colonnes) est
-produit par `export_statique_carte.py` (repo atlas2027).
+(`carte/ampleur.parquet` du dataset Hugging Face, 9 665 tronçons × 456
+colonnes) est produit par `export_statique_carte.py` (repo atlas2027).
+
+### Données de l'Atlas sur Hugging Face
+
+Les fichiers de l'Atlas ne sont plus dans ce dépôt : `config.json` les lit
+dans le dataset [`essip/atlas-hydroclimatique`](https://huggingface.co/datasets/essip/atlas-hydroclimatique),
+par range requests, à une étiquette fixe (`.../resolve/v2026.10/...`).
+Une nouvelle publication (`publier_hf.py`, repo atlas2027) ne change la
+carte en ligne qu'une fois l'étiquette mise à jour dans `config.json`. La
+fiche du dataset détaille le contenu, les sources et les licences.
 
 ### Chroniques observées des stations (zarr statique)
 
 La fiche station de `config.json` montre aussi le débit
-journalier **observé** (BDH, MELCCFP) : `data/atlas/debits_observes.zarr`
-est un zarr v3 de 148 stations × 20 747 jours (1970-2026), construit par
+journalier **observé** (BDH, MELCCFP) : `zarr/debits_observes.zarr` du
+dataset Hugging Face est un zarr v3 de 148 stations × 20 747 jours (1970-2026), construit par
 `export_statique_stations.py` (repo atlas2027) à partir des NetCDF du run
 RQH — une station = un chunk = un range fetch (~15 Ko). Mêmes conventions
 que le store zarr du portrait (metadata consolidée, blosc-zstd, `time`
