@@ -16,6 +16,7 @@
       "visible": true,
       "color": "#095797",
       "popup_template": "troncon_atlas",
+      "attribution": "<a href=\"https://www.donneesquebec.ca/recherche/dataset/atlas-hydroclimatique-2022\">Atlas hydroclimatique 2022, MELCCFP</a> (<a href=\"https://creativecommons.org/licenses/by/4.0/deed.fr\">CC BY 4.0</a>, formats convertis)",
       "color_by": {
         "label": "Colorer par indicateur",
         "none_label": "Aucun (couleur unie)",
@@ -168,7 +169,8 @@
       "type": "geojson",
       "visible": true,
       "color": "#CB381F",
-      "popup_template": "station_atlas"
+      "popup_template": "station_atlas",
+      "attribution": "<a href=\"https://www.donneesquebec.ca/recherche/dataset/stations-hydrometriques\">Stations hydrométriques, MELCCFP</a> (<a href=\"https://creativecommons.org/licenses/by/4.0/deed.fr\">CC BY 4.0</a>) ; débits observés : Ministère de l'Environnement et de la Lutte contre les changements climatiques, Direction de l'expertise hydrique, Banque de données hydriques (BDH) (<a href=\"https://www.cehq.gouv.qc.ca/hydrometrie/historique_donnees/info_validite.htm\">licence</a>)"
     }
   ],
   "popup_templates": {
