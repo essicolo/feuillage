@@ -9,7 +9,7 @@
   "layers": [
     {
       "name": "Tronçons de l'Atlas",
-      "url": "./data/rqh/troncons.pmtiles",
+      "url": "https://huggingface.co/datasets/essip/atlas-hydroclimatique/resolve/v2026.10/pmtiles/troncons.pmtiles",
       "type": "pmtiles",
       "source_layer": "troncons",
       "geometry_type": "line",
@@ -20,7 +20,7 @@
       "color_by": {
         "label": "Colorer par indicateur",
         "none_label": "Aucun (couleur unie)",
-        "url": "./data/atlas/indicateurs_carte.parquet",
+        "url": "https://huggingface.co/datasets/essip/atlas-hydroclimatique/resolve/v2026.10/carte/ampleur.parquet",
         "key": { "column": "troncon_id", "property": "IDTRONCON" },
         "column": "{indicateur}__amp_{horizon}_{scenario}",
         "missing_color": "#D3D7DD",
@@ -165,7 +165,7 @@
     },
     {
       "name": "Stations hydrométriques",
-      "url": "./data/atlas/stations.geojson",
+      "url": "https://huggingface.co/datasets/essip/atlas-hydroclimatique/resolve/v2026.10/fiches/stations.geojson",
       "type": "geojson",
       "visible": true,
       "color": "#CB381F",
@@ -180,7 +180,7 @@
       "sections": [
         {
           "type": "parquet_table",
-          "url": "./data/atlas/troncons.parquet",
+          "url": "https://huggingface.co/datasets/essip/atlas-hydroclimatique/resolve/v2026.10/fiches/troncons.parquet",
           "key": { "column": "troncon_id", "value": "{properties.IDTRONCON}" },
           "layout": "record",
           "columns": [
@@ -216,7 +216,7 @@
         {
           "type": "parquet_table",
           "title": "Stations hydrométriques rattachées",
-          "url": "./data/atlas/stations_troncons.parquet",
+          "url": "https://huggingface.co/datasets/essip/atlas-hydroclimatique/resolve/v2026.10/fiches/stations_troncons.parquet",
           "key": { "column": "troncon_id", "value": "{properties.IDTRONCON}" },
           "empty": "Aucune station rattachée à ce tronçon.",
           "columns": [
@@ -230,7 +230,7 @@
         {
           "type": "parquet_table",
           "title": "Indicateurs — ampleur du changement, RCP8.5 (% ; JQ1MAXHP en jours)",
-          "url": "./data/atlas/indicateurs_ampleur.parquet",
+          "url": "https://huggingface.co/datasets/essip/atlas-hydroclimatique/resolve/v2026.10/indicateurs/ampleur.parquet",
           "key": { "column": "troncon_id", "value": "{properties.IDTRONCON}" },
           "empty": "Tronçon masqué : indicateurs non publiés.",
           "columns": [
@@ -281,7 +281,7 @@
           "chart_type": "line",
           "data_source": {
             "type": "zarr",
-            "store_url": "./data/atlas/debits_observes.zarr",
+            "store_url": "https://huggingface.co/datasets/essip/atlas-hydroclimatique/resolve/v2026.10/zarr/debits_observes.zarr",
             "value_array": "discharge",
             "feature_dim": "station_id",
             "feature_id_property": "station_id",
@@ -323,7 +323,7 @@
         {
           "type": "parquet_table",
           "title": "Indicateurs du tronçon rattaché — ampleur, RCP8.5 (% ; JQ1MAXHP en jours)",
-          "url": "./data/atlas/indicateurs_ampleur.parquet",
+          "url": "https://huggingface.co/datasets/essip/atlas-hydroclimatique/resolve/v2026.10/indicateurs/ampleur.parquet",
           "key": { "column": "troncon_id", "value": "{properties.troncon_id}" },
           "missing": "Station non rattachée à un tronçon de l'Atlas : pas d'indicateurs.",
           "empty": "Tronçon masqué : indicateurs non publiés.",
