@@ -589,6 +589,126 @@
                 color: var(--color-text-subtle);
             }
 
+            /* Coloration par indicateur (color_by) : carte claire dans la
+               tuile colorée : les sélecteurs et la légende restent lisibles
+               quelle que soit la couleur de la couche. */
+            .colorby {
+                margin-top: 0.5rem;
+                padding: 0.45rem 0.5rem 0.5rem;
+                background-color: var(--color-surface);
+                color: var(--color-text);
+                border-radius: var(--radius-sm);
+                display: flex;
+                flex-direction: column;
+                gap: 0.4rem;
+            }
+
+            .colorby-title,
+            .colorby-field-label {
+                font-size: var(--font-2xs);
+                font-weight: 600;
+                color: var(--color-text-muted);
+                text-transform: uppercase;
+                letter-spacing: 0.04em;
+            }
+
+            .colorby-field {
+                display: flex;
+                flex-direction: column;
+                gap: 0.15rem;
+                min-width: 0;
+            }
+
+            .colorby-field select {
+                width: 100%;
+                padding: 0.25rem 0.35rem;
+                font-size: var(--font-xs);
+                color: var(--color-text);
+                background-color: var(--color-surface);
+                border: 1px solid var(--color-border-strong);
+                border-radius: var(--radius-sm);
+            }
+
+            .colorby-caption {
+                margin-top: -0.2rem;
+                font-size: var(--font-2xs);
+                color: var(--color-text-secondary);
+            }
+
+            .colorby-caption:empty {
+                display: none;
+            }
+
+            .colorby-secondary {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 0.4rem;
+            }
+
+            .colorby.is-off .colorby-caption,
+            .colorby.is-off .colorby-secondary,
+            .colorby.is-off .colorby-legend {
+                display: none;
+            }
+
+            .colorby-legend-title {
+                font-size: var(--font-xs);
+                font-weight: 500;
+                margin-bottom: 0.25rem;
+            }
+
+            .colorby-ramp {
+                height: 10px;
+                border-radius: 2px;
+            }
+
+            .colorby-ticks {
+                position: relative;
+                height: 1.1rem;
+                font-size: var(--font-2xs);
+                color: var(--color-text-secondary);
+                font-variant-numeric: tabular-nums;
+            }
+
+            .colorby-tick {
+                position: absolute;
+                top: 0.15rem;
+                white-space: nowrap;
+                transform: translateX(-50%);
+            }
+
+            .colorby-tick.is-start {
+                transform: none;
+            }
+
+            .colorby-tick.is-end {
+                transform: translateX(-100%);
+            }
+
+            .colorby-missing {
+                display: flex;
+                align-items: center;
+                gap: 0.35rem;
+                font-size: var(--font-2xs);
+                color: var(--color-text-secondary);
+            }
+
+            .colorby-swatch {
+                width: 18px;
+                height: 4px;
+                border-radius: 2px;
+                flex-shrink: 0;
+            }
+
+            .colorby-status {
+                font-size: var(--font-xs);
+                color: var(--color-text-muted);
+            }
+
+            .colorby-status.is-error {
+                color: var(--color-danger);
+            }
+
             /* Form controls */
             input[type="checkbox"],
             input[type="radio"] {
@@ -1391,6 +1511,21 @@
 
             body.high-contrast .layer-item {
                 background-color: #1a1a1a !important;
+            }
+
+            body.high-contrast .colorby {
+                background-color: #000;
+                color: #fff;
+                border: 1px solid #fff;
+            }
+
+            body.high-contrast .colorby-title,
+            body.high-contrast .colorby-field-label,
+            body.high-contrast .colorby-caption,
+            body.high-contrast .colorby-ticks,
+            body.high-contrast .colorby-missing,
+            body.high-contrast .colorby-status {
+                color: #fff;
             }
 
             body.high-contrast .layer-panel-header {
@@ -3463,14 +3598,19 @@
                 color,
                 templateName = null,
                 url = null,
+                options = {},
             ) {
                 const layerId = `layer-${Date.now()}-${Math.random()}`;
                 const sourceId = `source-${layerId}`;
 
-                // Ajouter la source GeoJSON
+                // Ajouter la source GeoJSON. promoteId : la propriété qui
+                // sert d'identifiant aux feature-state (voir color_by).
                 map.addSource(sourceId, {
                     type: "geojson",
                     data: geojson,
+                    ...(options.promote_id
+                        ? { promoteId: options.promote_id }
+                        : {}),
                 });
 
                 // Déterminer les types de géométrie présents
@@ -3672,14 +3812,8 @@
                     type: "vector",
                     url: `pmtiles://${url}`,
                     attribution: options.attribution || "",
-                    ...(options.promote_id || (options.color_by && options.color_by.key && options.color_by.key.property)
-                        ? {
-                            promoteId:
-                                options.promote_id ||
-                                (options.color_by &&
-                                    options.color_by.key &&
-                                    options.color_by.key.property),
-                        }
+                    ...(options.promote_id
+                        ? { promoteId: options.promote_id }
                         : {}),
                 });
 
@@ -3758,9 +3892,6 @@
                     templateName,
                     url,
                     visible: true,
-                    colorBy: options.color_by || null,
-                    baseColor: color,
-                    colorSelection: null,
                 };
                 loadedLayers.push(layerInfo);
                 setupPopupHandlers(layerInfo);
@@ -3821,6 +3952,7 @@
                             opts.color,
                             opts.templateName,
                             url,
+                            opts,
                         );
                     },
                 },
@@ -3855,15 +3987,25 @@
                             `Précisez "type" (geojson, pmtiles) dans la config.`,
                     );
                 }
-                return layerFormats[fmtName].load(layerConfig.url, {
-                    name: layerConfig.name,
-                    color,
-                    templateName: layerConfig.popup_template,
-                    source_layer: layerConfig.source_layer,
-                    geometry_type: layerConfig.geometry_type,
-                    color_by: layerConfig.color_by,
-                    promote_id: layerConfig.promote_id,
-                });
+                const layerInfo = await layerFormats[fmtName].load(
+                    layerConfig.url,
+                    {
+                        name: layerConfig.name,
+                        color,
+                        templateName: layerConfig.popup_template,
+                        source_layer: layerConfig.source_layer,
+                        geometry_type: layerConfig.geometry_type,
+                        attribution: layerConfig.attribution,
+                        promote_id: layerConfig.color_by?.key?.property,
+                    },
+                );
+                if (layerInfo) {
+                    layerInfo.attribution = layerConfig.attribution;
+                    if (layerConfig.color_by) {
+                        setupColorBy(layerInfo, layerConfig.color_by);
+                    }
+                }
+                return layerInfo;
             }
 
             /**
@@ -4402,81 +4544,15 @@
                                 <span class="material-symbols-outlined" style="font-size: 11px;" aria-hidden="true">delete</span>
                             </button>
                         </div>
-                        </div>
                     </div>
-                    ${
-                        layerInfo.colorBy
-                            ? colorByPanelHtml(layerInfo, index)
-                            : ""
-                    }
-                `;
+                    ${layerInfo.colorBy ? colorByPanelHtml(layerInfo) : ""}
+                </div>
+            `;
                         },
                     )
                     .join("");
 
                 setupDragAndDrop();
-            }
-
-            /**
-             * Html de contrôle pour une couche color_by (choroplèthe).
-             */
-            function colorByPanelHtml(layerInfo, index) {
-                const cb = layerInfo.colorBy;
-                if (!layerInfo.colorSelection) layerInfo.colorSelection = {};
-                const dims = cb.dimensions || {};
-                const selects = Object.keys(dims)
-                    .map((dimName) => {
-                        const dim = dims[dimName];
-                        const opts = (dim.options || [])
-                            .map(
-                                (o) =>
-                                    `<option value="${String(
-                                        o.value,
-                                    )}" ${
-                                        layerInfo.colorSelection[dimName] ===
-                                        o.value
-                                            ? "selected"
-                                            : ""
-                                    }>${escapeHtml(o.label || o.value)}</option>`,
-                            )
-                            .join("");
-                        if (
-                            !Object.prototype.hasOwnProperty.call(
-                                layerInfo.colorSelection,
-                                dimName,
-                            ) &&
-                            dim.options &&
-                            dim.options.length
-                        ) {
-                            layerInfo.colorSelection[dimName] =
-                                dim.options[0].value;
-                        }
-                        return `<label style="display:block;margin:4px 0;font-size:11px;color:#333;">
-                            ${escapeHtml(dim.label || dimName)}
-                            <select id="colorby-${index}-${dimName}"
-                                onchange="applyColorBy(${index})"
-                                style="width:100%;font-size:11px;margin-top:2px;">
-                                ${opts}
-                            </select>
-                        </label>`;
-                    })
-                    .join("");
-                return `
-                    <details class="colorby-panel" style="margin-top:6px;background:rgba(255,255,255,0.6);border-radius:4px;padding:4px 6px;">
-                        <summary style="cursor:pointer;font-size:11px;font-weight:bold;">
-                            Colorer la carte par…
-                        </summary>
-                        <div style="margin:4px 0;">
-                            <button type="button" onclick="resetColorBy(${index})"
-                                style="font-size:11px;margin-bottom:4px;">
-                                Aucun (couleur unie)
-                            </button>
-                            ${selects}
-                        </div>
-                        <div id="colorby-legend-${index}"
-                            style="font-size:10px;margin-top:4px;color:#333;"></div>
-                    </details>
-                `;
             }
 
             /**
@@ -4580,6 +4656,19 @@
                             entry.type = "pmtiles";
                             entry.source_layer = layerInfo.sourceLayer;
                             entry.geometry_type = layerInfo.geometryType;
+                        }
+                        if (layerInfo.attribution) {
+                            entry.attribution = layerInfo.attribution;
+                        }
+                        // La sélection courante devient `initial` : la vue
+                        // exportée rouvre avec la même coloration.
+                        if (layerInfo.colorBy) {
+                            const { config, selection, active } =
+                                layerInfo.colorBy;
+                            const { initial, ...rest } = config;
+                            entry.color_by = active
+                                ? { ...rest, initial: { ...selection } }
+                                : rest;
                         }
                         return entry;
                     }),
@@ -4939,174 +5028,23 @@
                 closeRenameModal();
             }
 
-            async function applyColorBy(index) {
-                const layerInfo = loadedLayers[index];
-                const cb = layerInfo && layerInfo.colorBy;
-                if (!cb || !layerInfo.sourceId) return;
-                const panel = document.getElementById(
-                    `colorby-legend-${index}`,
-                );
-                // Lire les sélections courantes du panneau.
-                const selection = layerInfo.colorSelection || {};
-                const dims = cb.dimensions || {};
-                for (const dimName of Object.keys(dims)) {
-                    const el = document.getElementById(
-                        `colorby-${index}-${dimName}`,
-                    );
-                    if (el) selection[dimName] = el.value;
-                }
-                layerInfo.colorSelection = selection;
-
-                // Construire le nom de colonne à lire.
-                let col = cb.column_template;
-                for (const dimName of Object.keys(dims)) {
-                    col = col.replace(
-                        `{${dimName}}`,
-                        selection[dimName],
-                    );
-                }
-                if (!col || col.includes("{")) {
-                    showMessage("Sélection de couleur incomplète", "error");
-                    return;
-                }
-
-                try {
-                    showMessage("Chargement de la couleur…", "info");
-                    const { file } = await _openParquet(cb.url);
-                    const { parquetReadObjects } =
-                        await loadHyparquet();
-                    const rows = await parquetReadObjects({
-                        file,
-                        columns: [cb.key.column, col],
-                    });
-                    const idCol = cb.key.column;
-                    const featureProp = cb.key.property;
-                    let min = Infinity;
-                    let max = -Infinity;
-                    let n = 0;
-                    rows.forEach((row) => {
-                        const id = row[idCol];
-                        const v = row[col];
-                        let val = null;
-                        if (
-                            v !== null &&
-                            v !== undefined &&
-                            Number.isFinite(v)
-                        ) {
-                            val = Number(v);
-                            if (val < min) min = val;
-                            if (val > max) max = val;
-                            n++;
-                        }
-                        if (map.getSource(layerInfo.sourceId)) {
-                            map.setFeatureState(
-                                {
-                                    source: layerInfo.sourceId,
-                                    sourceLayer: layerInfo.sourceLayer,
-                                    id,
-                                },
-                                { v: val },
-                            );
-                        }
-                    });
-
-                    const selectedIndOption =
-                        (dims.indicateur && dims.indicateur.options
-                            ? dims.indicateur.options
-                            : []
-                        ).find(
-                            (o) =>
-                                String(o.value) ===
-                                String(selection.indicateur),
-                        );
-                    const scale =
-                        (selectedIndOption && selectedIndOption.scale) ||
-                        cb.scale || {
-                            type: "diverging",
-                            domain: [-40, 0, 40],
-                            colors: ["#2166ac", "#f7f7f7", "#b2182b"],
-                            unit: "%",
-                        };
-                    const domain = scale.domain || [-40, 0, 40];
-                    const colors = scale.colors || [
-                        "#2166ac",
-                        "#f7f7f7",
-                        "#b2182b",
-                    ];
-                    const expr = [
-                        "coalesce",
-                        [
-                            "interpolate",
-                            ["linear"],
-                            ["feature-state", "v"],
-                            domain[0],
-                            colors[0],
-                            domain[Math.floor(domain.length / 2)],
-                            colors[Math.floor(colors.length / 2)],
-                            domain[domain.length - 1],
-                            colors[colors.length - 1],
-                        ],
-                        layerInfo.baseColor,
-                    ];
-
-                    layerInfo.layerIds.forEach((lid) => {
-                        if (!map.getLayer(lid)) return;
-                        const l = map.getLayer(lid);
-                        if (l.type === "line") {
-                            map.setPaintProperty(lid, "line-color", expr);
-                        }
-                    });
-
-                    if (panel) {
-                        const unit = scale.unit || "";
-                        const mid =
-                            domain[Math.floor(domain.length / 2)];
-                        panel.innerHTML =
-                            `<div style="background:linear-gradient(to right,${colors[0]},${colors[1]},${colors[2]});height:8px;border-radius:4px;margin:4px 0;border:1px solid #888;"></div>` +
-                            `<span style="display:flex;justify-content:space-between;">` +
-                            `<span>${domain[0]}${unit}</span><span>${mid}${unit}</span><span>${domain[domain.length-1]}${unit}</span>` +
-                            `</span>` +
-                            `<div style="margin-top:2px;">${n} tronçons colorés (min ${min === Infinity ? "—" : min.toFixed(1)}, max ${max === -Infinity ? "—" : max.toFixed(1)})</div>`;
-                    }
-                    showMessage("Coloration appliquée", "success");
-                } catch (error) {
-                    console.error("applyColorBy", error);
-                    showMessage(
-                        "Impossible de colorer le calque: " +
-                            error.message,
-                        "error",
-                    );
-                }
-            }
-
-            function resetColorBy(index) {
-                const layerInfo = loadedLayers[index];
-                if (!layerInfo || !layerInfo.sourceId) return;
-                const rgb = layerInfo.baseColor
-                    ? (() => {
-                          const c = hexToRgb(layerInfo.baseColor);
-                          return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
-                      })()
-                    : "#888";
-                layerInfo.layerIds.forEach((lid) => {
-                    if (!map.getLayer(lid)) return;
-                    const l = map.getLayer(lid);
-                    if (l.type === "line") {
-                        map.setPaintProperty(lid, "line-color", rgb);
-                    }
-                });
-                const panel = document.getElementById(
-                    `colorby-legend-${index}`,
-                );
-                if (panel) panel.textContent = "Coloration désactivée.";
-            }
+            /**
+             * Met à jour la couleur d'une couche sur la carte
+             */
             function updateLayerColor(layerIndex, newColor) {
                 const layerInfo = loadedLayers[layerIndex];
                 const rgb = hexToRgb(newColor);
                 const rgbString = `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
+                // Couche color_by : ses couches colorées ne reçoivent jamais
+                // de couleur constante (voir colorByPaint).
+                const choropleth = layerInfo.colorBy
+                    ? new Set(colorByTargets(layerInfo).map((t) => t.id))
+                    : new Set();
+                if (layerInfo.colorBy) colorByPaint(layerInfo);
 
                 layerInfo.layerIds.forEach((layerId) => {
                     if (!map.getLayer(layerId)) return;
+                    if (choropleth.has(layerId)) return;
 
                     const layer = map.getLayer(layerId);
 
@@ -5119,6 +5057,382 @@
                         map.setPaintProperty(layerId, 'fill-color', rgbString);
                     }
                 });
+            }
+
+            /* === Coloration par indicateur (layers[].color_by) ===
+             * La couche déclare un parquet « large » (une ligne par entité,
+             * une colonne par variante d'indicateur), un gabarit de colonne
+             * dont chaque {dimension} se choisit dans la tuile de la couche,
+             * et des échelles nommées. La valeur de chaque entité passe en
+             * feature-state (source déclarée avec promoteId = key.property) ;
+             * la peinture interpole cette feature-state. Changer de
+             * sélection ne relit qu'une colonne et ne réécrit que les états.
+             */
+
+            // Valeurs déjà lues, par fichier/colonne : revenir sur une
+            // sélection ne refait pas de requête.
+            const _colorByColonnes = new Map();
+
+            async function colorByColumn(url, column) {
+                const cle = `${url}\u0000${column}`;
+                if (!_colorByColonnes.has(cle)) {
+                    const promise = (async () => {
+                        const { parquetReadObjects } = await loadHyparquet();
+                        const { file, metadata } = await _openParquet(url);
+                        if (!metadata.schema.some((s) => s.name === column)) {
+                            throw new Error(
+                                `Colonne « ${column} » absente de ${url}`,
+                            );
+                        }
+                        const rows = await parquetReadObjects({
+                            file,
+                            metadata,
+                            columns: [column],
+                        });
+                        return rows.map((r) => r[column]);
+                    })();
+                    promise.catch(() => _colorByColonnes.delete(cle));
+                    _colorByColonnes.set(cle, promise);
+                }
+                return _colorByColonnes.get(cle);
+            }
+
+            /**
+             * Options à plat d'une dimension : un élément qui porte lui-même
+             * des `options` est un groupe (rendu en <optgroup>) ; ses
+             * options héritent de son libellé et de son `scale`.
+             */
+            function colorByOptions(dim) {
+                return (dim.options || []).flatMap((o) =>
+                    Array.isArray(o.options)
+                        ? o.options.map((sub) => ({
+                              scale: o.scale,
+                              ...sub,
+                              group: o.label,
+                          }))
+                        : [o],
+                );
+            }
+
+            function setupColorBy(layerInfo, config) {
+                const dims = config.dimensions || [];
+                const selection = {};
+                dims.forEach((dim, i) => {
+                    const options = colorByOptions(dim);
+                    const initial = config.initial?.[dim.name];
+                    // La première dimension porte l'option « aucun »
+                    // (none_label) : sans `initial`, la couche démarre unie.
+                    selection[dim.name] =
+                        initial !== undefined
+                            ? String(initial)
+                            : i === 0 && config.none_label
+                              ? ""
+                              : String(dim.default ?? options[0]?.value ?? "");
+                });
+                layerInfo.colorBy = {
+                    config,
+                    selection,
+                    active: false,
+                    status: "",
+                    token: 0,
+                };
+                colorByPaint(layerInfo);
+                updateLayerPanel();
+                applyColorBy(layerInfo);
+            }
+
+            // Couches MapLibre qui reçoivent la rampe : les cercles, les
+            // remplissages et la ligne visible, pas le contour d'un
+            // polygone ni la ligne « hit » transparente.
+            function colorByTargets(layerInfo) {
+                return layerInfo.layerIds
+                    .map((id) => map.getLayer(id))
+                    .filter(Boolean)
+                    .flatMap((layer) => {
+                        if (layer.type === "circle")
+                            return [{ id: layer.id, prop: "circle-color" }];
+                        if (layer.type === "fill")
+                            return [{ id: layer.id, prop: "fill-color" }];
+                        if (layer.type === "line" && layer.id.endsWith("-line"))
+                            return [{ id: layer.id, prop: "line-color" }];
+                        return [];
+                    });
+            }
+
+            // Échelle de la sélection : la première option choisie qui
+            // déclare un `scale` l'emporte, sinon celui du bloc color_by.
+            // Un nom renvoie à color_by.scales ; un objet est pris tel quel.
+            function colorByScale(layerInfo) {
+                const { config, selection } = layerInfo.colorBy;
+                let scale = config.scale;
+                for (const dim of config.dimensions || []) {
+                    const option = colorByOptions(dim).find(
+                        (o) => String(o.value) === selection[dim.name],
+                    );
+                    if (option?.scale) {
+                        scale = option.scale;
+                        break;
+                    }
+                }
+                if (typeof scale === "string") scale = config.scales?.[scale];
+                if (!scale?.stops?.length) {
+                    throw new Error("color_by : échelle sans « stops »");
+                }
+                return scale;
+            }
+
+            /**
+             * Peinture des couches colorées. Même « couleur unie », elle
+             * reste une expression qui lit la feature-state : passer d'une
+             * couleur constante à une expression feature-state pendant le
+             * chargement de tuiles fait planter MapLibre 4 (« expression.
+             * evaluate is not a function » dans initializeTileState).
+             */
+            function colorByPaint(layerInfo) {
+                const cb = layerInfo.colorBy;
+                const value = ["feature-state", "v"];
+                const isNumber = ["==", ["typeof", value], "number"];
+                let expression;
+                if (cb.active) {
+                    // Une feature-state absente vaut null : interpolate
+                    // échouerait (couleur noire), d'où le test de type.
+                    const scale = colorByScale(layerInfo);
+                    expression = [
+                        "case",
+                        isNumber,
+                        ["interpolate", ["linear"], value, ...scale.stops.flat()],
+                        cb.config.missing_color || "#9AA3AE",
+                    ];
+                } else {
+                    const rgb = hexToRgb(layerInfo.color);
+                    const color = `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
+                    expression = ["case", isNumber, color, color];
+                }
+                colorByTargets(layerInfo).forEach((t) =>
+                    map.setPaintProperty(t.id, t.prop, expression),
+                );
+            }
+
+            /**
+             * Applique la sélection courante : relit la colonne, réécrit les
+             * feature-state et la peinture. Une sélection plus récente
+             * (token) invalide une lecture encore en vol.
+             */
+            async function applyColorBy(layerInfo) {
+                const cb = layerInfo.colorBy;
+                const { config, selection } = cb;
+                const token = ++cb.token;
+                const dims = config.dimensions || [];
+                const target = {
+                    source: layerInfo.sourceId,
+                    ...(layerInfo.sourceLayer
+                        ? { sourceLayer: layerInfo.sourceLayer }
+                        : {}),
+                };
+
+                cb.active = dims.length > 0 && selection[dims[0].name] !== "";
+                if (!cb.active) {
+                    if (map.getSource(layerInfo.sourceId)) {
+                        map.removeFeatureState(target);
+                        colorByPaint(layerInfo);
+                    }
+                    cb.status = "";
+                    refreshColorByPanel(layerInfo);
+                    return;
+                }
+
+                cb.status = "loading";
+                refreshColorByPanel(layerInfo);
+                try {
+                    const column = config.column.replace(
+                        /\{(\w+)\}/g,
+                        (m, k) => selection[k] ?? m,
+                    );
+                    colorByScale(layerInfo); // échelle invalide : avant de lire
+                    const [keys, values] = await Promise.all([
+                        colorByColumn(config.url, config.key.column),
+                        colorByColumn(config.url, column),
+                    ]);
+                    if (token !== cb.token) return;
+                    if (!map.getSource(layerInfo.sourceId)) return;
+
+                    map.removeFeatureState(target);
+                    let count = 0;
+                    keys.forEach((id, i) => {
+                        const v = values[i];
+                        if (typeof v !== "number" || !Number.isFinite(v)) return;
+                        map.setFeatureState({ ...target, id }, { v });
+                        count++;
+                    });
+                    colorByPaint(layerInfo);
+                    cb.status = "";
+                    cb.count = count;
+                    announceToScreenReader(
+                        `${layerInfo.name} colorée : ${colorBySummary(layerInfo)}`,
+                    );
+                } catch (error) {
+                    if (token !== cb.token) return;
+                    console.error("color_by:", error);
+                    cb.status = "error";
+                    cb.message = error.message;
+                }
+                refreshColorByPanel(layerInfo);
+            }
+
+            function onColorByChange(select) {
+                const layerInfo = loadedLayers.find(
+                    (l) => l.id === select.dataset.layer,
+                );
+                if (!layerInfo?.colorBy) return;
+                layerInfo.colorBy.selection[select.dataset.dim] = select.value;
+                applyColorBy(layerInfo);
+            }
+
+            // Libellés de la sélection, ex. « Débit moyen, Annuel · 2041-2070
+            // · RCP 8.5 », pour les lecteurs d'écran.
+            function colorBySummary(layerInfo) {
+                const { config, selection } = layerInfo.colorBy;
+                return (config.dimensions || [])
+                    .map((dim) => {
+                        const o = colorByOptions(dim).find(
+                            (o) => String(o.value) === selection[dim.name],
+                        );
+                        if (!o) return null;
+                        const label = o.label ?? o.value;
+                        return o.group ? `${o.group}, ${label}` : label;
+                    })
+                    .filter(Boolean)
+                    .join(" · ");
+            }
+
+            /**
+             * Contrôles de la tuile : un <select> par dimension (la première
+             * propose aussi « aucun ») et la légende. Rendu à partir de
+             * l'état seul : updateLayerPanel peut le reconstruire à tout
+             * moment (renommage, réordonnancement, visibilité).
+             */
+            function colorByPanelHtml(layerInfo) {
+                const { config, selection, active } = layerInfo.colorBy;
+                const dims = config.dimensions || [];
+                const optionHtml = (o, dim) =>
+                    `<option value="${escapeAttr(o.value)}"${
+                        String(o.value) === selection[dim.name] ? " selected" : ""
+                    }>${escapeHtml(o.label ?? o.value)}</option>`;
+                const selectHtml = (dim, i) => {
+                    const items = (dim.options || [])
+                        .map((o) =>
+                            Array.isArray(o.options)
+                                ? `<optgroup label="${escapeAttr(o.label ?? "")}">${o.options
+                                      .map((sub) => optionHtml(sub, dim))
+                                      .join("")}</optgroup>`
+                                : optionHtml(o, dim),
+                        )
+                        .join("");
+                    const none =
+                        i === 0 && config.none_label
+                            ? `<option value=""${selection[dim.name] === "" ? " selected" : ""}>${escapeHtml(config.none_label)}</option>`
+                            : "";
+                    return `
+                        <label class="colorby-field">
+                            <span class="colorby-field-label">${escapeHtml(dim.label ?? dim.name)}</span>
+                            <select data-layer="${escapeAttr(layerInfo.id)}"
+                                data-dim="${escapeAttr(dim.name)}"
+                                onchange="onColorByChange(this)">${none}${items}</select>
+                        </label>`;
+                };
+                return `
+                    <div class="colorby${active ? "" : " is-off"}"
+                        data-colorby="${escapeAttr(layerInfo.id)}">
+                        ${config.label ? `<div class="colorby-title">${escapeHtml(config.label)}</div>` : ""}
+                        ${dims.slice(0, 1).map(selectHtml).join("")}
+                        <div class="colorby-caption">${escapeHtml(colorByGroup(layerInfo))}</div>
+                        <div class="colorby-secondary">
+                            ${dims.slice(1).map((d, i) => selectHtml(d, i + 1)).join("")}
+                        </div>
+                        <div class="colorby-legend" aria-live="polite">
+                            ${colorByLegendHtml(layerInfo)}
+                        </div>
+                    </div>`;
+            }
+
+            function colorByLegendHtml(layerInfo) {
+                const cb = layerInfo.colorBy;
+                if (!cb.active) return "";
+                if (cb.status === "loading") {
+                    return `<div class="colorby-status">Chargement…</div>`;
+                }
+                if (cb.status === "error") {
+                    return `<div class="colorby-status is-error">${escapeHtml(cb.message)}</div>`;
+                }
+                let scale;
+                try {
+                    scale = colorByScale(layerInfo);
+                } catch (e) {
+                    return `<div class="colorby-status is-error">${escapeHtml(e.message)}</div>`;
+                }
+                const stops = scale.stops;
+                const lo = stops[0][0];
+                const hi = stops[stops.length - 1][0];
+                const pos = (v) => (hi === lo ? 0 : ((v - lo) / (hi - lo)) * 100);
+                const gradient = stops
+                    .map(([v, c]) => `${c} ${pos(v).toFixed(1)}%`)
+                    .join(", ");
+                const unit = scale.unit ?? "";
+                const fmt = (v) =>
+                    `${v < 0 ? "−" : ""}${Math.abs(v).toLocaleString("fr-CA")}${unit}`;
+                // Graduations : `ticks` de l'échelle, sinon chaque palier.
+                // Au-delà des paliers extrêmes la couleur sature : « ≤ », « ≥ ».
+                const tickHtml = (scale.ticks ?? stops.map(([v]) => v))
+                    .filter((v) => v >= lo && v <= hi)
+                    .map((v) => {
+                        const p = pos(v);
+                        const text =
+                            hi > lo && v === lo
+                                ? `≤ ${fmt(v)}`
+                                : hi > lo && v === hi
+                                  ? `≥ ${fmt(v)}`
+                                  : fmt(v);
+                        const align =
+                            p <= 0 ? "start" : p >= 100 ? "end" : "mid";
+                        return `<span class="colorby-tick is-${align}" style="left: ${p.toFixed(1)}%;">${escapeHtml(text)}</span>`;
+                    })
+                    .join("");
+                const unitLabel = unit.trim() ? ` (${escapeHtml(unit.trim())})` : "";
+                const missing = cb.config.missing_label
+                    ? `<div class="colorby-missing"><span class="colorby-swatch" style="background: ${escapeAttr(cb.config.missing_color || "#9AA3AE")};"></span>${escapeHtml(cb.config.missing_label)}</div>`
+                    : "";
+                return `
+                    ${scale.label ? `<div class="colorby-legend-title">${escapeHtml(scale.label)}${unitLabel}</div>` : ""}
+                    <div class="colorby-ramp" style="background: linear-gradient(to right, ${gradient});"></div>
+                    <div class="colorby-ticks">${tickHtml}</div>
+                    ${missing}`;
+            }
+
+            // Mise à jour en place (pas de updateLayerPanel) : le <select>
+            // qui vient de changer garde le focus clavier.
+            function refreshColorByPanel(layerInfo) {
+                const panel = document.querySelector(
+                    `.colorby[data-colorby="${CSS.escape(layerInfo.id)}"]`,
+                );
+                if (!panel) return;
+                panel.classList.toggle("is-off", !layerInfo.colorBy.active);
+                panel.querySelector(".colorby-caption").textContent =
+                    colorByGroup(layerInfo);
+                panel.querySelector(".colorby-legend").innerHTML =
+                    colorByLegendHtml(layerInfo);
+            }
+
+            // Un <select> fermé n'affiche que l'option (« 2 ans,
+            // été-automne ») : le groupe choisi s'affiche en dessous.
+            function colorByGroup(layerInfo) {
+                const { config, selection } = layerInfo.colorBy;
+                const dim = (config.dimensions || [])[0];
+                if (!dim) return "";
+                return (
+                    colorByOptions(dim).find(
+                        (o) => String(o.value) === selection[dim.name],
+                    )?.group ?? ""
+                );
             }
 
             // Gérer la touche Entrée dans l'input URL

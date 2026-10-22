@@ -2,10 +2,7 @@
   "view": {
     "name": "Atlas hydroclimatique",
     "description": "Tronçons PMTiles, stations GeoJSON ; fiches et indicateurs lus par range requests dans des parquet statiques (hyparquet), débits observés aux stations et portrait RQH en zarr",
-    "center": [
-      47.2,
-      -71.5
-    ],
+    "center": [47.2, -71.5],
     "zoom": 6,
     "basemap": "osm"
   },
@@ -20,1057 +17,149 @@
       "color": "#095797",
       "popup_template": "troncon_atlas",
       "color_by": {
+        "label": "Colorer par indicateur",
+        "none_label": "Aucun (couleur unie)",
         "url": "./data/atlas/indicateurs_carte.parquet",
-        "key": {
-          "column": "troncon_id",
-          "property": "IDTRONCON"
-        },
-        "column_template": "{indicateur}__amp_{horizon}_{scenario}",
-        "dimensions": {
-          "indicateur": {
-            "label": "Indicateur",
-            "options": [
-              {
-                "value": "JQ1MAXHP",
-                "label": "Jour d’occurrence moyen du débit journalier maximal sur la période hiver-printemps",
-                "scale": {
-                  "type": "sequential",
-                  "domain": [
-                    0,
-                    180,
-                    365
-                  ],
-                  "unit": "jours",
-                  "colors": [
-                    "#f7f7f7",
-                    "#ffdd99",
-                    "#D55E00"
-                  ]
-                }
-              },
-              {
-                "value": "Q14MAX100AN",
-                "label": "Débit moyen sur 14 jours maximal annuel de récurrence de 100 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q14MAX100HP",
-                "label": "Débit moyen sur 14 jours maximal annuel sur la période hiver-printemps de récurrence de 100 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q14MAX10AN",
-                "label": "Débit moyen sur 14 jours maximal annuel de récurrence de 10 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q14MAX10HP",
-                "label": "Débit moyen sur 14 jours maximal annuel sur la période hiver-printemps de récurrence de 10 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q14MAX20AN",
-                "label": "Débit moyen sur 14 jours maximal annuel de récurrence de 20 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q14MAX20HP",
-                "label": "Débit moyen sur 14 jours maximal annuel sur la période hiver-printemps de récurrence de 20 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q14MAX2AN",
-                "label": "Débit moyen sur 14 jours maximal annuel de récurrence de 2 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q14MAX2HP",
-                "label": "Débit moyen sur 14 jours maximal sur la période hiver-printemps de récurrence de 2 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q14MAX350AN",
-                "label": "Débit moyen sur 14 jours maximal annuel de récurrence de 350 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q14MAX350HP",
-                "label": "Débit moyen sur 14 jours maximal annuel sur la période hiver-printemps de récurrence de 350 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q14MAX5AN",
-                "label": "Débit moyen sur 14 jours maximal annuel de récurrence de 5 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q14MAX5HP",
-                "label": "Débit moyen sur 14 jours maximal sur la période hiver-printemps de récurrence de 5 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q1MAX100AN",
-                "label": "Débit journalier maximal annuel de récurrence de 100 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q1MAX100EA",
-                "label": "Débit journalier maximal sur la période été-automne de récurrence de 100 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q1MAX100HP",
-                "label": "Débit journalier maximal sur la période hiver-printemps de récurrence de 100 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q1MAX10AN",
-                "label": "Débit journalier maximal annuel de récurrence de 10 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q1MAX10EA",
-                "label": "Débit journalier maximal sur la période été-automne de récurrence de 10 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q1MAX10HP",
-                "label": "Débit journalier maximal sur la période hiver-printemps de récurrence de 10 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q1MAX20AN",
-                "label": "Débit journalier maximal annuel de récurrence de 20 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q1MAX20EA",
-                "label": "Débit journalier maximal sur la période été-automne de récurrence de 20 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q1MAX20HP",
-                "label": "Débit journalier maximal sur la période hiver-printemps de récurrence de 20 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q1MAX2AN",
-                "label": "Débit journalier maximal annuel de récurrence de 2 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q1MAX2EA",
-                "label": "Débit journalier maximal sur la période été-automne de récurrence de 2 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q1MAX2HP",
-                "label": "Débit journalier maximal sur la période hiver-printemps de récurrence de 2 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q1MAX350AN",
-                "label": "Débit journalier maximal annuel de récurrence de 350 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q1MAX350EA",
-                "label": "Débit journalier maximal sur la période été-automne de récurrence de 350 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q1MAX350HP",
-                "label": "Débit journalier maximal sur la période hiver-printemps de récurrence de 350 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q1MAX5AN",
-                "label": "Débit journalier maximal annuel de récurrence de 5 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q1MAX5EA",
-                "label": "Débit journalier maximal sur la période été-automne de récurrence de 5 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q1MAX5HP",
-                "label": "Débit journalier maximal sur la période hiver-printemps de récurrence de 5 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q30MIN10AN",
-                "label": "Débit moyen sur 30 jours minimal annuel de récurrence de 10 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q30MIN10EA",
-                "label": "Débit moyen sur 30 jours minimal sur la période été-automne de récurrence de 10 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q30MIN10HP",
-                "label": "Débit moyen sur 30 jours minimal sur la période hiver-printemps de récurrence de 10 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q30MIN2AN",
-                "label": "Débit moyen sur 30 jours minimal annuel de récurrence de 2 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q30MIN2EA",
-                "label": "Débit moyen sur 30 jours minimal sur la période été-automne de récurrence de 2 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q30MIN2HP",
-                "label": "Débit moyen sur 30 jours minimal sur la période hiver-printemps de récurrence de 2 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q30MIN5AN",
-                "label": "Débit moyen sur 30 jours minimal annuel de récurrence de 5 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q30MIN5EA",
-                "label": "Débit moyen sur 30 jours minimal sur la période été-automne de récurrence de 5 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q30MIN5HP",
-                "label": "Débit moyen sur 30 jours minimal sur la période hiver-printemps de récurrence de 5 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q7MIN10AN",
-                "label": "Débit moyen sur 7 jours minimal annuel de récurrence de 10 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q7MIN10EA",
-                "label": "Débit moyen sur 7 jours minimal sur la période été-automne de récurrence de 10 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q7MIN10HP",
-                "label": "Débit moyen sur 7 jours minimal sur la période hiver-printemps de récurrence de 10 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q7MIN2AN",
-                "label": "Débit moyen sur 7 jours minimal annuel de récurrence de 2 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q7MIN2EA",
-                "label": "Débit moyen sur 7 jours minimal sur la période été-automne de récurrence de 2 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q7MIN2HP",
-                "label": "Débit moyen sur 7 jours minimal sur la période hiver-printemps de récurrence de 2 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q7MIN2_01",
-                "label": "Débit moyen sur 7 jours minimal de récurrence de 2 ans en janvier",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q7MIN2_02",
-                "label": "Débit moyen sur 7 jours minimal de récurrence de 2 ans en février",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q7MIN2_03",
-                "label": "Débit moyen sur 7 jours minimal de récurrence de 2 ans en mars",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q7MIN2_04",
-                "label": "Débit moyen sur 7 jours minimal de récurrence de 2 ans en avril",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q7MIN2_05",
-                "label": "Débit moyen sur 7 jours minimal de récurrence de 2 ans en mai",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q7MIN2_06",
-                "label": "Débit moyen sur 7 jours minimal de récurrence de 2 ans en juin",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q7MIN2_07",
-                "label": "Débit moyen sur 7 jours minimal de récurrence de 2 ans en juillet",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q7MIN2_08",
-                "label": "Débit moyen sur 7 jours minimal de récurrence de 2 ans en août",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q7MIN2_09",
-                "label": "Débit moyen sur 7 jours minimal de récurrence de 2 ans en septembre",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q7MIN2_10",
-                "label": "Débit moyen sur 7 jours minimal de récurrence de 2 ans en octobre",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q7MIN2_11",
-                "label": "Débit moyen sur 7 jours minimal de récurrence de 2 ans en novembre",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q7MIN2_12",
-                "label": "Débit moyen sur 7 jours minimal de récurrence de 2 ans en décembre",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q7MIN5AN",
-                "label": "Débit moyen sur 7 jours minimal annuel de récurrence de 5 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q7MIN5EA",
-                "label": "Débit moyen sur 7 jours minimal sur la période été-automne de récurrence de 5 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "Q7MIN5HP",
-                "label": "Débit moyen sur 7 jours minimal sur la période hiver-printemps de récurrence de 5 ans",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "QMOYAN",
-                "label": "Débit moyen annuel",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "QMOYEA",
-                "label": "Débit moyen sur la période été-automne",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "QMOYHP",
-                "label": "Débit moyen sur la période hiver-printemps",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "QMOY_01",
-                "label": "Débit moyen du mois de janvier",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "QMOY_02",
-                "label": "Débit moyen du mois de février",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "QMOY_03",
-                "label": "Débit moyen du mois de mars",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "QMOY_04",
-                "label": "Débit moyen du mois d'avril",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "QMOY_05",
-                "label": "Débit moyen du mois de mai",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "QMOY_06",
-                "label": "Débit moyen du mois de juin",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "QMOY_07",
-                "label": "Débit moyen du mois de juillet",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "QMOY_08",
-                "label": "Débit moyen du mois d'août",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "QMOY_09",
-                "label": "Débit moyen du mois de septembre",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "QMOY_10",
-                "label": "Débit moyen du mois d'octobre",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "QMOY_11",
-                "label": "Débit moyen du mois de novembre",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              },
-              {
-                "value": "QMOY_12",
-                "label": "Débit moyen du mois de décembre",
-                "scale": {
-                  "type": "diverging",
-                  "domain": [
-                    -40,
-                    0,
-                    40
-                  ],
-                  "unit": "%"
-                }
-              }
-            ]
+        "key": { "column": "troncon_id", "property": "IDTRONCON" },
+        "column": "{indicateur}__amp_{horizon}_{scenario}",
+        "missing_color": "#D3D7DD",
+        "missing_label": "Indicateurs non publiés",
+        "scale": "ampleur",
+        "scales": {
+          "ampleur": {
+            "label": "Ampleur du changement",
+            "unit": "%",
+            "stops": [
+              [-50, "#543005"], [-20, "#8C510A"], [-5, "#BF812D"], [0, "#7F7F7F"],
+              [5, "#35978F"], [20, "#01665E"], [50, "#003C30"]
+            ],
+            "ticks": [-50, -20, 0, 20, 50]
           },
-          "horizon": {
-            "label": "Horizon",
-            "options": [
-              {
-                "value": "h30",
-                "label": "2011-2040"
-              },
-              {
-                "value": "h50",
-                "label": "2041-2070"
-              },
-              {
-                "value": "h80",
-                "label": "2071-2100"
-              }
-            ]
-          },
-          "scenario": {
-            "label": "Scénario",
-            "options": [
-              {
-                "value": "rcp4",
-                "label": "RCP 4.5"
-              },
-              {
-                "value": "rcp8",
-                "label": "RCP 8.5"
-              }
-            ]
+          "jours": {
+            "label": "Devancement (−) ou retard (+)",
+            "unit": " j",
+            "stops": [
+              [-30, "#40004B"], [-15, "#762A83"], [-5, "#9970AB"], [0, "#7F7F7F"],
+              [5, "#5AAE61"], [15, "#1B7837"], [30, "#00441B"]
+            ],
+            "ticks": [-30, -15, 0, 15, 30]
           }
         },
-        "scale": {
-          "type": "diverging",
-          "domain": [
-            -40,
-            0,
-            40
-          ],
-          "colors": [
-            "#2166ac",
-            "#f7f7f7",
-            "#b2182b"
-          ],
-          "unit": "%",
-          "legend_label": "Ampleur (%)"
-        }
+        "dimensions": [
+          {
+            "name": "indicateur",
+            "label": "Indicateur",
+            "options": [
+              { "label": "Débit moyen", "options": [
+                { "value": "QMOYAN", "label": "Annuel" },
+                { "value": "QMOYHP", "label": "Hiver-printemps" },
+                { "value": "QMOYEA", "label": "Été-automne" },
+                { "value": "QMOY_01", "label": "Janvier" },
+                { "value": "QMOY_02", "label": "Février" },
+                { "value": "QMOY_03", "label": "Mars" },
+                { "value": "QMOY_04", "label": "Avril" },
+                { "value": "QMOY_05", "label": "Mai" },
+                { "value": "QMOY_06", "label": "Juin" },
+                { "value": "QMOY_07", "label": "Juillet" },
+                { "value": "QMOY_08", "label": "Août" },
+                { "value": "QMOY_09", "label": "Septembre" },
+                { "value": "QMOY_10", "label": "Octobre" },
+                { "value": "QMOY_11", "label": "Novembre" },
+                { "value": "QMOY_12", "label": "Décembre" }
+              ] },
+              { "label": "Crue : débit journalier maximal (Q1max)", "options": [
+                { "value": "Q1MAX2AN", "label": "2 ans, annuel" },
+                { "value": "Q1MAX5AN", "label": "5 ans, annuel" },
+                { "value": "Q1MAX10AN", "label": "10 ans, annuel" },
+                { "value": "Q1MAX20AN", "label": "20 ans, annuel" },
+                { "value": "Q1MAX100AN", "label": "100 ans, annuel" },
+                { "value": "Q1MAX350AN", "label": "350 ans, annuel" },
+                { "value": "Q1MAX2HP", "label": "2 ans, hiver-printemps" },
+                { "value": "Q1MAX5HP", "label": "5 ans, hiver-printemps" },
+                { "value": "Q1MAX10HP", "label": "10 ans, hiver-printemps" },
+                { "value": "Q1MAX20HP", "label": "20 ans, hiver-printemps" },
+                { "value": "Q1MAX100HP", "label": "100 ans, hiver-printemps" },
+                { "value": "Q1MAX350HP", "label": "350 ans, hiver-printemps" },
+                { "value": "Q1MAX2EA", "label": "2 ans, été-automne" },
+                { "value": "Q1MAX5EA", "label": "5 ans, été-automne" },
+                { "value": "Q1MAX10EA", "label": "10 ans, été-automne" },
+                { "value": "Q1MAX20EA", "label": "20 ans, été-automne" },
+                { "value": "Q1MAX100EA", "label": "100 ans, été-automne" },
+                { "value": "Q1MAX350EA", "label": "350 ans, été-automne" }
+              ] },
+              { "label": "Crue : débit maximal sur 14 jours (Q14max)", "options": [
+                { "value": "Q14MAX2AN", "label": "2 ans, annuel" },
+                { "value": "Q14MAX5AN", "label": "5 ans, annuel" },
+                { "value": "Q14MAX10AN", "label": "10 ans, annuel" },
+                { "value": "Q14MAX20AN", "label": "20 ans, annuel" },
+                { "value": "Q14MAX100AN", "label": "100 ans, annuel" },
+                { "value": "Q14MAX350AN", "label": "350 ans, annuel" },
+                { "value": "Q14MAX2HP", "label": "2 ans, hiver-printemps" },
+                { "value": "Q14MAX5HP", "label": "5 ans, hiver-printemps" },
+                { "value": "Q14MAX10HP", "label": "10 ans, hiver-printemps" },
+                { "value": "Q14MAX20HP", "label": "20 ans, hiver-printemps" },
+                { "value": "Q14MAX100HP", "label": "100 ans, hiver-printemps" },
+                { "value": "Q14MAX350HP", "label": "350 ans, hiver-printemps" }
+              ] },
+              { "label": "Étiage : débit minimal sur 7 jours (Q7min)", "options": [
+                { "value": "Q7MIN2AN", "label": "2 ans, annuel" },
+                { "value": "Q7MIN5AN", "label": "5 ans, annuel" },
+                { "value": "Q7MIN10AN", "label": "10 ans, annuel" },
+                { "value": "Q7MIN2HP", "label": "2 ans, hiver-printemps" },
+                { "value": "Q7MIN5HP", "label": "5 ans, hiver-printemps" },
+                { "value": "Q7MIN10HP", "label": "10 ans, hiver-printemps" },
+                { "value": "Q7MIN2EA", "label": "2 ans, été-automne" },
+                { "value": "Q7MIN5EA", "label": "5 ans, été-automne" },
+                { "value": "Q7MIN10EA", "label": "10 ans, été-automne" },
+                { "value": "Q7MIN2_01", "label": "2 ans, janvier" },
+                { "value": "Q7MIN2_02", "label": "2 ans, février" },
+                { "value": "Q7MIN2_03", "label": "2 ans, mars" },
+                { "value": "Q7MIN2_04", "label": "2 ans, avril" },
+                { "value": "Q7MIN2_05", "label": "2 ans, mai" },
+                { "value": "Q7MIN2_06", "label": "2 ans, juin" },
+                { "value": "Q7MIN2_07", "label": "2 ans, juillet" },
+                { "value": "Q7MIN2_08", "label": "2 ans, août" },
+                { "value": "Q7MIN2_09", "label": "2 ans, septembre" },
+                { "value": "Q7MIN2_10", "label": "2 ans, octobre" },
+                { "value": "Q7MIN2_11", "label": "2 ans, novembre" },
+                { "value": "Q7MIN2_12", "label": "2 ans, décembre" }
+              ] },
+              { "label": "Étiage : débit minimal sur 30 jours (Q30min)", "options": [
+                { "value": "Q30MIN2AN", "label": "2 ans, annuel" },
+                { "value": "Q30MIN5AN", "label": "5 ans, annuel" },
+                { "value": "Q30MIN10AN", "label": "10 ans, annuel" },
+                { "value": "Q30MIN2HP", "label": "2 ans, hiver-printemps" },
+                { "value": "Q30MIN5HP", "label": "5 ans, hiver-printemps" },
+                { "value": "Q30MIN10HP", "label": "10 ans, hiver-printemps" },
+                { "value": "Q30MIN2EA", "label": "2 ans, été-automne" },
+                { "value": "Q30MIN5EA", "label": "5 ans, été-automne" },
+                { "value": "Q30MIN10EA", "label": "10 ans, été-automne" }
+              ] },
+              { "label": "Calendrier", "scale": "jours", "options": [
+                { "value": "JQ1MAXHP", "label": "Date de la crue d'hiver-printemps" }
+              ] }
+            ]
+          },
+          {
+            "name": "horizon",
+            "label": "Horizon",
+            "default": "h50",
+            "options": [
+              { "value": "h30", "label": "2011-2040" },
+              { "value": "h50", "label": "2041-2070" },
+              { "value": "h80", "label": "2071-2100" }
+            ]
+          },
+          {
+            "name": "scenario",
+            "label": "Scénario",
+            "default": "rcp8",
+            "options": [
+              { "value": "rcp4", "label": "RCP 4.5" },
+              { "value": "rcp8", "label": "RCP 8.5" }
+            ]
+          }
+        ]
       }
     },
     {
@@ -1090,29 +179,13 @@
         {
           "type": "parquet_table",
           "url": "./data/atlas/troncons.parquet",
-          "key": {
-            "column": "troncon_id",
-            "value": "{properties.IDTRONCON}"
-          },
+          "key": { "column": "troncon_id", "value": "{properties.IDTRONCON}" },
           "layout": "record",
           "columns": [
-            {
-              "path": "region",
-              "label": "Région"
-            },
-            {
-              "path": "superficie_km2",
-              "label": "Superficie du bassin (km²)"
-            },
-            {
-              "path": "masque",
-              "label": "Publication",
-              "raw": true
-            },
-            {
-              "path": "bv_primaire",
-              "label": "Bassin primaire"
-            }
+            { "path": "region", "label": "Région" },
+            { "path": "superficie_km2", "label": "Superficie du bassin (km²)" },
+            { "path": "masque", "label": "Publication", "raw": true },
+            { "path": "bv_primaire", "label": "Bassin primaire" }
           ]
         },
         {
@@ -1127,27 +200,9 @@
             "time_array": "time",
             "missing": "Tronçon hors du portrait RQH : pas de série.",
             "series": [
-              {
-                "name": "q25",
-                "role": "lower",
-                "indexers": {
-                  "percentile": 25
-                }
-              },
-              {
-                "name": "q50",
-                "role": "main",
-                "indexers": {
-                  "percentile": 50
-                }
-              },
-              {
-                "name": "q75",
-                "role": "upper",
-                "indexers": {
-                  "percentile": 75
-                }
-              }
+              { "name": "q25", "role": "lower", "indexers": { "percentile": 25 } },
+              { "name": "q50", "role": "main",  "indexers": { "percentile": 50 } },
+              { "name": "q75", "role": "upper", "indexers": { "percentile": 75 } }
             ]
           },
           "options": {
@@ -1160,65 +215,28 @@
           "type": "parquet_table",
           "title": "Stations hydrométriques rattachées",
           "url": "./data/atlas/stations_troncons.parquet",
-          "key": {
-            "column": "troncon_id",
-            "value": "{properties.IDTRONCON}"
-          },
+          "key": { "column": "troncon_id", "value": "{properties.IDTRONCON}" },
           "empty": "Aucune station rattachée à ce tronçon.",
           "columns": [
-            {
-              "path": "station_id",
-              "label": "No",
-              "raw": true
-            },
-            {
-              "path": "nom",
-              "label": "Nom"
-            },
-            {
-              "path": "etat",
-              "label": "État"
-            },
-            {
-              "path": "regime",
-              "label": "Régime"
-            },
-            {
-              "path": "superficie_km2",
-              "label": "Bassin (km²)"
-            }
+            { "path": "station_id", "label": "No", "raw": true },
+            { "path": "nom", "label": "Nom" },
+            { "path": "etat", "label": "État" },
+            { "path": "regime", "label": "Régime" },
+            { "path": "superficie_km2", "label": "Bassin (km²)" }
           ]
         },
         {
           "type": "parquet_table",
           "title": "Indicateurs — ampleur du changement, RCP8.5 (% ; JQ1MAXHP en jours)",
           "url": "./data/atlas/indicateurs_ampleur.parquet",
-          "key": {
-            "column": "troncon_id",
-            "value": "{properties.IDTRONCON}"
-          },
+          "key": { "column": "troncon_id", "value": "{properties.IDTRONCON}" },
           "empty": "Tronçon masqué : indicateurs non publiés.",
           "columns": [
-            {
-              "path": "indicateur",
-              "label": "Indicateur"
-            },
-            {
-              "path": "reference",
-              "label": "Réf. 1981-2010"
-            },
-            {
-              "path": "amp_h30_rcp8",
-              "label": "2011-40"
-            },
-            {
-              "path": "amp_h50_rcp8",
-              "label": "2041-70"
-            },
-            {
-              "path": "amp_h80_rcp8",
-              "label": "2071-2100"
-            }
+            { "path": "indicateur", "label": "Indicateur" },
+            { "path": "reference", "label": "Réf. 1981-2010" },
+            { "path": "amp_h30_rcp8", "label": "2011-40" },
+            { "path": "amp_h50_rcp8", "label": "2041-70" },
+            { "path": "amp_h80_rcp8", "label": "2071-2100" }
           ]
         }
       ]
@@ -1268,10 +286,7 @@
             "time_array": "time",
             "missing": "Pas de débit observé disponible pour cette station.",
             "series": [
-              {
-                "name": "Débit observé",
-                "role": "main"
-              }
+              { "name": "Débit observé", "role": "main" }
             ]
           },
           "options": {
@@ -1292,27 +307,9 @@
             "time_array": "time",
             "missing": "Station non rattachée à un tronçon de l'Atlas : pas de série RQH.",
             "series": [
-              {
-                "name": "q25",
-                "role": "lower",
-                "indexers": {
-                  "percentile": 25
-                }
-              },
-              {
-                "name": "q50",
-                "role": "main",
-                "indexers": {
-                  "percentile": 50
-                }
-              },
-              {
-                "name": "q75",
-                "role": "upper",
-                "indexers": {
-                  "percentile": 75
-                }
-              }
+              { "name": "q25", "role": "lower", "indexers": { "percentile": 25 } },
+              { "name": "q50", "role": "main",  "indexers": { "percentile": 50 } },
+              { "name": "q75", "role": "upper", "indexers": { "percentile": 75 } }
             ]
           },
           "options": {
@@ -1325,37 +322,18 @@
           "type": "parquet_table",
           "title": "Indicateurs du tronçon rattaché — ampleur, RCP8.5 (% ; JQ1MAXHP en jours)",
           "url": "./data/atlas/indicateurs_ampleur.parquet",
-          "key": {
-            "column": "troncon_id",
-            "value": "{properties.troncon_id}"
-          },
+          "key": { "column": "troncon_id", "value": "{properties.troncon_id}" },
           "missing": "Station non rattachée à un tronçon de l'Atlas : pas d'indicateurs.",
           "empty": "Tronçon masqué : indicateurs non publiés.",
           "columns": [
-            {
-              "path": "indicateur",
-              "label": "Indicateur"
-            },
-            {
-              "path": "reference",
-              "label": "Réf. 1981-2010"
-            },
-            {
-              "path": "amp_h30_rcp8",
-              "label": "2011-40"
-            },
-            {
-              "path": "amp_h50_rcp8",
-              "label": "2041-70"
-            },
-            {
-              "path": "amp_h80_rcp8",
-              "label": "2071-2100"
-            }
+            { "path": "indicateur", "label": "Indicateur" },
+            { "path": "reference", "label": "Réf. 1981-2010" },
+            { "path": "amp_h30_rcp8", "label": "2011-40" },
+            { "path": "amp_h50_rcp8", "label": "2041-70" },
+            { "path": "amp_h80_rcp8", "label": "2071-2100" }
           ]
         }
       ]
     }
   }
 }
-

@@ -311,6 +311,7 @@ Créez un fichier `config.json` :
 - **layers[].source_layer** : Nom de la couche interne PMTiles (par défaut : basename du fichier ; doit correspondre au `--layer` passé à tippecanoe)
 - **layers[].geometry_type** : `"line"` (défaut), `"point"` ou `"polygon"` — requis pour PMTiles car les vector tiles ne sont pas introspectables
 - **layers[].attribution** : Mention de source affichée dans la carte (optionnel)
+- **layers[].color_by** : Coloration des entités par un indicateur lu dans un parquet, choisi dans la tuile de la couche (voir [Colorer une couche par indicateur](#colorer-une-couche-par-indicateur-color_by))
 - **popup_templates** : Objet définissant les templates de popups (optionnel)
 - **popup_templates.\*.display** : `"popup"` pour garder la bulle sur la carte ; sans cette clé, la fiche s'ouvre dans le panneau latéral droit
 - **sections[].labels** (section `"properties"`) : libellés lisibles par champ, ex. `{"superficie_km2": "Bassin (km²)"}` ; sans cela, le nom du champ sert d'en-tête
@@ -481,13 +482,80 @@ sans service web :
 - L'hébergeur doit gérer les requêtes Range (GitHub Pages, Netlify, etc. ;
   en local, `npx http-server -p 8765`).
 
-Exemple complet : `config-atlas-statique.json` (Atlas hydroclimatique sans
-service web — fiches et indicateurs en parquet, portrait RQH en zarr) —
-ouvrir `index.html?config=config-atlas-statique.json`.
+Exemple complet : `config.json` (Atlas hydroclimatique sans service web :
+fiches et indicateurs en parquet, portrait RQH en zarr).
+
+### Colorer une couche par indicateur (`color_by`)
+
+Une couche peut déclarer un bloc **`color_by`** : sa tuile, dans le panneau
+des couches, propose alors un sélecteur par dimension et une légende, et
+ses entités sont colorées selon la valeur lue dans un parquet statique.
+
+```json
+"color_by": {
+  "label": "Colorer par indicateur",
+  "none_label": "Aucun (couleur unie)",
+  "url": "./data/atlas/indicateurs_carte.parquet",
+  "key": { "column": "troncon_id", "property": "IDTRONCON" },
+  "column": "{indicateur}__amp_{horizon}_{scenario}",
+  "missing_color": "#D3D7DD",
+  "missing_label": "Indicateurs non publiés",
+  "scale": "ampleur",
+  "scales": {
+    "ampleur": {
+      "label": "Ampleur du changement", "unit": "%",
+      "stops": [[-50, "#543005"], [0, "#7F7F7F"], [50, "#003C30"]],
+      "ticks": [-50, 0, 50]
+    },
+    "jours": { "label": "Devancement (−) ou retard (+)", "unit": " j", "stops": [[-30, "#40004B"], [0, "#7F7F7F"], [30, "#00441B"]] }
+  },
+  "dimensions": [
+    { "name": "indicateur", "label": "Indicateur", "options": [
+      { "label": "Débit moyen", "options": [
+        { "value": "QMOYAN", "label": "Annuel" }
+      ] },
+      { "label": "Calendrier", "scale": "jours", "options": [
+        { "value": "JQ1MAXHP", "label": "Date de la crue d'hiver-printemps" }
+      ] }
+    ] },
+    { "name": "horizon", "label": "Horizon", "default": "h50", "options": [
+      { "value": "h30", "label": "2011-2040" }, { "value": "h50", "label": "2041-2070" }
+    ] }
+  ]
+}
+```
+
+- **url**, **key** : parquet « large », une ligne par entité ; `key.column`
+  y identifie l'entité, `key.property` est la propriété correspondante des
+  tuiles ou du GeoJSON (déclarée `promoteId` de la source).
+- **column** : nom de la colonne à lire ; chaque `{nom}` est remplacé par
+  la valeur choisie dans la dimension de ce nom.
+- **dimensions** : un `<select>` chacune, dans l'ordre. Une option qui
+  porte elle-même des `options` est un groupe (`<optgroup>`), dont le
+  libellé s'affiche sous le sélecteur. `default` fixe la valeur initiale
+  (sinon la première option).
+- **none_label** : ajoute à la première dimension une option qui rend à la
+  couche sa couleur unie (`color`) ; sans **initial**, la couche démarre
+  ainsi. `"initial": { "indicateur": "QMOYAN", ... }` la colore dès
+  l'ouverture (c'est ce qu'écrit l'export de la configuration).
+- **scales**, **scale** : échelles nommées ; `stops` est une liste de
+  paliers `[valeur, couleur]` interpolés linéairement, la couleur saturant
+  au-delà des extrêmes ; `ticks` choisit les graduations de la légende (par
+  défaut, chaque palier). L'échelle vient de la première option choisie
+  (ou de son groupe) qui déclare un `scale`, sinon de `scale` du bloc ; un
+  objet peut remplacer le nom.
+- **missing_color**, **missing_label** : entités sans valeur (absentes du
+  parquet ou valeur nulle) et leur mention dans la légende.
+
+Changer de sélection ne lit qu'une colonne (une range request de quelques
+dizaines de Ko si le parquet tient en un seul row group) ; les colonnes
+déjà lues restent en mémoire. Le parquet de l'Atlas
+(`data/atlas/indicateurs_carte.parquet`, 9 665 tronçons × 456 colonnes) est
+produit par `export_statique_carte.py` (repo atlas2027).
 
 ### Chroniques observées des stations (zarr statique)
 
-La fiche station de `config-atlas-statique.json` montre aussi le débit
+La fiche station de `config.json` montre aussi le débit
 journalier **observé** (BDH, MELCCFP) : `data/atlas/debits_observes.zarr`
 est un zarr v3 de 148 stations × 20 747 jours (1970-2026), construit par
 `export_statique_stations.py` (repo atlas2027) à partir des NetCDF du run
