@@ -1,0 +1,8 @@
+# Outillage Python local (uv : huggingface-hub pour publier les données).
+# feuillage reste un site statique : rien de tout ça n'est publié.
+.venv/
+__pycache__/
+.python-version
+pyproject.toml
+uv.lock
+main.py
